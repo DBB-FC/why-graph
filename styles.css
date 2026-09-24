@@ -138,3 +138,56 @@
 .mn-raiz .mn-panel .mn-resumen2.mn-recien { border-left: 3px solid #34D17A; padding-left: 8px; animation: mn-recien 2.4s ease-out forwards; }
 .mn-raiz .mn-panel .mn-capa.mn-recien { color: #34D17A; }
 @keyframes mn-recien { from { background: rgba(52,209,122,.18); } to { background: transparent; } }
+
+/* 1.32 — Novedades: el material nuevo, en el panel del mapa. Una línea por novedad, agrupadas por
+   la página a la que van; lo que choca y lo que falló, arriba y en color. */
+.mn-raiz button.mn-chip.mn-chip-nov { border-color: rgba(52,209,122,.6); color: #7CF0B0; }
+.mn-raiz .mn-panel .mn-nov .mn-resumen { margin-bottom: 6px; }
+.mn-raiz .mn-panel .mn-nov .mn-acciones { margin: 10px 0; }
+.mn-raiz .mn-panel .mn-nov-barra { height: 6px; margin: 12px 0 8px; border-radius: 3px; overflow: hidden; background: rgba(170,185,255,.15); }
+.mn-raiz .mn-panel .mn-nov-barra > div { height: 100%; width: var(--mn-avance, 0%); background: #34D17A; transition: width .3s ease; }
+.mn-raiz .mn-panel .mn-nov-aviso { margin: 8px 0; padding: 8px 10px; border-radius: 8px; border-left: 3px solid; }
+.mn-raiz .mn-panel .mn-nov-choca { border-color: #F5CF45; background: rgba(245,207,69,.07); }
+.mn-raiz .mn-panel .mn-nov-error { border-color: #FF6B6B; background: rgba(255,107,107,.07); }
+.mn-raiz .mn-panel .mn-nov-titulo { font: 600 12px var(--font-interface); margin-bottom: 4px; }
+.mn-raiz .mn-panel .mn-nov-grupo { margin: 10px 0; padding: 8px 10px; border: 1px solid rgba(170,185,255,.16); border-radius: 10px; background: rgba(20,26,64,.45); }
+.mn-raiz .mn-panel .mn-nov-cab { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; }
+.mn-raiz .mn-panel .mn-nov-cab.mn-nov-enlace { cursor: pointer; }
+.mn-raiz .mn-panel .mn-nov-cab.mn-nov-enlace:hover .mn-nov-pagina { text-decoration: underline; }
+.mn-raiz .mn-panel .mn-nov-pagina { font: 600 13px var(--font-interface); color: #E6EAFF; }
+.mn-raiz .mn-panel .mn-nov-meta { font: 11px var(--font-monospace); color: #8A93B8; }
+.mn-raiz .mn-panel .mn-nov-cab .mn-nov-meta { margin-left: auto; }
+.mn-raiz .mn-panel .mn-nov-fila { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-top: 1px solid rgba(170,185,255,.1); }
+.mn-raiz .mn-panel .mn-nov-cuerpo { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mn-raiz .mn-panel .mn-nov-texto { font: 13px/1.45 var(--font-interface); color: #E6EAFF; }
+.mn-raiz .mn-panel .mn-nov-sin-cita { color: #F5CF45; }
+.mn-raiz .mn-panel .mn-nov-botones { display: flex; gap: 6px; flex-shrink: 0; }
+.mn-raiz .mn-panel .mn-nov-botones button.mn-btn { width: 30px; padding: 0; justify-content: center; }
+.mn-raiz .mn-panel .mn-nov-botones button:disabled { opacity: .3; cursor: not-allowed; }
+.mn-raiz .mn-panel .mn-nov-fila.hecha .mn-nov-texto { color: #7CF0B0; }
+.mn-raiz .mn-panel .mn-nov-fila.hecha .mn-nov-texto::before { content: '✓ '; }
+.mn-raiz .mn-panel .mn-nov-fila.descartada { opacity: .4; }
+.mn-raiz .mn-panel .mn-nov-plegable { margin: 10px 0; }
+.mn-raiz .mn-panel .mn-nov-plegable summary { cursor: pointer; font: 12px var(--font-interface); color: #AEB6DA; padding: 4px 0; }
+/* 1.32 — Conexiones que faltan: «revisar primero» en la barra y temas clave en el panel. */
+.mn-raiz button.mn-chip.mn-chip-revisar { border-color: rgba(255,107,157,.55); color: #FF9CC0; }
+.mn-raiz .mn-panel .mn-temas-clave { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+.mn-raiz .mn-panel button.mn-ficha.clave { border-color: #F5CF45; color: #F5CF45; }
+.mn-raiz .mn-panel .mn-vacio { cursor: pointer; }
+.mn-raiz .mn-panel .mn-vacio .mn-acciones { margin-top: 6px; }
+.mn-raiz .mn-panel .mn-vacio .mn-vacio-t { display: block; line-height: 1.5; }
+.mn-raiz .mn-panel .mn-vacio .mn-vacio-t .mn-punto { margin-right: 4px; vertical-align: 1px; }
+
+/* Obsidian 1.13+: el bloque de IA se dibuja dentro de UNA fila de ajustes, que es flex en fila.
+   Sin esto, cada ajuste (proveedor, llave, modelo…) quedaba como una columna angosta. */
+.setting-item.mn-ajuste-ia { display: block; padding: 0; border-top: none; }
+.mn-ajuste-ia > .setting-item,
+.mn-ajuste-ia > .setting-item-description { width: 100%; }
+.mn-ajuste-ia > .setting-item-description { margin: 0 0 var(--size-4-2); }
+/* La fila contenedora ya trae su margen: las filas de adentro no suman otro, así todo queda alineado. */
+.setting-item.mn-ajuste-ia > .setting-item { padding-inline: 0; }
+
+/* Asistente: «Qué significa cada capa», plegado y con la letra de las descripciones. */
+.mn-asistente-leyenda { padding: var(--size-4-2) 0; border-bottom: 1px solid var(--background-modifier-border); }
+.mn-asistente-leyenda > summary { font-size: var(--font-ui-small); color: var(--text-muted); cursor: pointer; }
+.mn-asistente-leyenda > .setting-item-description { margin-top: var(--size-4-1); }

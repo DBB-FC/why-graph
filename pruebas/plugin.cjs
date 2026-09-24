@@ -35,7 +35,7 @@ const AJUSTES = Object.assign({}, AJUSTES_BASE, {
   pl.app = app;
   await pl.onload();
   p.igual('registra la vista del mapa', pl.vistas.length, 1);
-  p.igual('registra tres comandos', pl.comandos.length, 3);
+  p.igual('registra cuatro comandos', pl.comandos.length, 4);
   p.igual('registra el ícono de la barra', pl.ribbon.length, 1);
   p.igual('registra la pestaña de ajustes', pl.pestanas.length, 1);
   p.cierto('los comandos no repiten el nombre del plugin', !pl.comandos.some((c) => /mapa neuronal/i.test(c.name)));
@@ -90,6 +90,25 @@ const AJUSTES = Object.assign({}, AJUSTES_BASE, {
   p.cierto('la vista radial arma anillos', (v.anillos || []).length >= 2);
   v.radial = false; v.medir();
   p.cierto('calcular vacíos no falla', Array.isArray(v.calcularVacios()));
+  // 1.32 — «Conexiones que faltan» como lista de trabajo: orden por impacto, temas clave y descartes.
+  {
+    const original = v.calcularVacios;
+    v.calcularVacios = () => [
+      { ti: 'a', tj: 'b', real: 0, esperado: 4, todos: [{ a: 'x', b: 'y', comunes: 1 }, { a: 'z', b: 'w', comunes: 2 }] },
+      { ti: 'c', tj: 'd', real: 0, esperado: 4, todos: [{ a: 'p', b: 'q', comunes: 1 }] },
+    ];
+    v.plugin.ajustes = Object.assign({}, AJUSTES, { temasClave: [], vaciosDescartados: [] });
+    v.pendientesCache = null;   // el cálculo se reemplazó a mano: lo guardado ya no vale
+    p.igual('se ordena por vecinos en común, no por tema', v.calcularPendientes().map((x) => x.clave), ['w|z', 'x|y', 'p|q']);
+    v.plugin.ajustes.temasClave = ['c'];
+    p.igual('un tema marcado como clave sube', v.calcularPendientes()[0].clave, 'p|q');
+    v.plugin.ajustes.vaciosDescartados = ['p|q'];
+    p.cierto('un par descartado no vuelve', !v.calcularPendientes().some((x) => x.clave === 'p|q'));
+    const llamadas = []; v.calcularVacios = () => { llamadas.push(1); return []; }; v.pendientesCache = null;
+    v.calcularPendientes(); v.calcularPendientes(); v.calcularPendientes();
+    p.igual('repintar los chips no recalcula los pares si nada cambió', llamadas.length, 1);
+    v.calcularVacios = original; v.plugin.ajustes = AJUSTES; v.pendientesCache = null;
+  }
   v.cerrada = true; v.pedir();
   p.cierto('cerrada, no vuelve a dibujar', true);
 

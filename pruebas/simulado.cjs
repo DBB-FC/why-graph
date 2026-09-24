@@ -9,6 +9,9 @@ const Componente = class {
   registerEvent() {}
   registerDomEvent(el, tipo, fn) { (this._eventos = this._eventos || []).push([el, tipo, fn]); }
   registerInterval() {}
+  // Como Component: lo registrado corre al descargar (desactivar el plugin).
+  register(fn) { (this._alDescargar = this._alDescargar || []).push(fn); }
+  unload() { for (const fn of this._alDescargar || []) fn(); this._alDescargar = []; this.onunload?.(); }
 };
 
 function obsidianSimulado() {
@@ -69,6 +72,7 @@ const el = () => ({
   addEventListener() {},
 });
 const campo = () => { const o = {}; for (const k of [ 'onChange', 'setPlaceholder', 'setLimits', 'setDynamicTooltip', 'addOptions', 'setButtonText', 'setCta', 'onClick', 'setIcon', 'setChecked', 'setDisabled', 'setTooltip']) o[k] = () => o;
+  o.onChange = (f) => { o.alCambiar = f; return o; }; o.onClick = (f) => { o.alClic = f; return o; };
   o.setValue = (v) => { o.valor = v; return o; }; o.setTitle = (v) => { o.titulo = v; return o; }; o.inputEl = { type: '', rows: 0, addClass() {} }; return o; };
 // Lienzo falso: cuenta las llamadas para saber que de verdad dibujó.
 const contexto2D = () => { const c = { llamadas: 0 }; const nada = () => { c.llamadas++; }; for (const k of ['beginPath', 'moveTo', 'lineTo', 'arc', 'fill', 'stroke', 'fillRect', 'strokeRect', 'setLineDash', 'bezierCurveTo', 'save', 'restore', 'translate', 'scale', 'clearRect', 'fillText', 'closePath', 'quadraticCurveTo',
@@ -95,12 +99,25 @@ function vaultSimulado(notas) {
   const resolved = {};
   for (const p of archivos) { resolved[p] = {}; for (const x of notas[p].matchAll(/\[\[([^\]|#]+)/g)) { const d = porBase[x[1].trim()]; if (d) resolved[p][d] = 1; } }
   const escrituras = [];
+  // La API real trae stat (mtime/ctime): sin él, cualquier código que filtre por fecha —la
+  // ingesta— reventaba en la prueba y pasaba en Obsidian, o al revés. mtimes deja fijar fechas.
+  const mtimes = {};
+  const conStat = (p) => ({ path: p, name: p.split('/').pop(), basename: base(p), parent: { path: p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '/' }, stat: { mtime: mtimes[p] !== undefined ? mtimes[p] : Date.now(), ctime: 0, size: (notas[p] || '').length } });
+  // Archivos internos del plugin (ingesta.json): van por el adapter, no son notas del vault.
+  const internos = {};
   const app = {
     vault: {
+      configDir: '.obsidian',
+      adapter: {
+        exists: async (p) => internos[p] !== undefined,
+        read: async (p) => internos[p],
+        write: async (p, t) => { internos[p] = t; },
+      },
       // Solo las .md son notas; lo demás (PDF, capturas) existe en el vault pero no se lee como nota.
-      getMarkdownFiles: () => archivos.filter((p) => notas[p] !== undefined && p.endsWith('.md')).map((p) => ({ path: p, basename: base(p) })),
-      getFiles: () => archivos.filter((p) => notas[p] !== undefined).map((p) => ({ path: p, basename: base(p) })),
-      getFileByPath: (p) => (notas[p] !== undefined ? { path: p, basename: base(p) } : null),
+      getMarkdownFiles: () => archivos.filter((p) => notas[p] !== undefined && p.endsWith('.md')).map(conStat),
+      getFiles: () => archivos.filter((p) => notas[p] !== undefined).map(conStat),
+      getFileByPath: (p) => (notas[p] !== undefined ? conStat(p) : null),
+      getAbstractFileByPath: (p) => (notas[p] !== undefined ? conStat(p) : archivos.some((a) => a.startsWith(p + '/')) ? { path: p } : null),
       getFolderByPath: (p) => (archivos.some((a) => a.startsWith(p + '/')) ? { path: p } : null),
       createFolder: async () => {},
       create: async (p, t) => { notas[p] = t; archivos.push(p); escrituras.push(['create', p]); },
@@ -111,6 +128,9 @@ function vaultSimulado(notas) {
       read: async (f) => notas[f.path],
     },
     fileManager: {
+      // Mover y borrar como Obsidian: renameFile cambia la ruta (y los enlaces), trashFile saca la nota.
+      renameFile: async (f, nueva) => { notas[nueva] = notas[f.path]; delete notas[f.path]; archivos.splice(archivos.indexOf(f.path), 1, nueva); escrituras.push(['rename', f.path, nueva]); },
+      trashFile: async (f) => { delete notas[f.path]; archivos.splice(archivos.indexOf(f.path), 1); escrituras.push(['trash', f.path]); },
       processFrontMatter: async (f, fn) => {
         const fm = leerFm(notas[f.path]); fn(fm);
         const cuerpo = notas[f.path].replace(/^---\n[\s\S]*?\n---\n/, '');
@@ -124,7 +144,7 @@ function vaultSimulado(notas) {
     saveLocalStorage: (k, v) => { app._ls[k] = v; },
     _ls: {},
   };
-  return { app, notas, escrituras, el, contexto2D };
+  return { app, notas, escrituras, mtimes, internos, el, contexto2D };
 }
 
 /* Carga el plugin construido (main.js) y devuelve sus piezas internas. */

@@ -72,6 +72,12 @@ for (const idioma of ['es', 'en']) {
 const noTraduce = salida.es.filter((x, i) => x === salida.en[i] && !/^\d+$/.test(x));
 if (noTraduce.length) console.log('  IGUAL EN LOS DOS IDIOMAS  ' + JSON.stringify(noTraduce));
 
-const problemas = faltan.length + sobran.length + noTraduce.length;
+// Textos visibles escritos directo, sin T() (issue #19: el botón «Abrir» salía en español con
+// Obsidian en inglés). Se revisan los lugares donde el texto va a la pantalla.
+const directos = [...texto.matchAll(/(?:boton\([^,]+,\s*'[^']+',\s*|setButtonText\(|setName\(|setDesc\(|setTitle\(|new Notice\(|\btext:\s*)'([^']{2,})'/g)]
+  .map((m) => m[1]).filter((x) => /[a-záéíóúñ]{3}/i.test(x));
+directos.forEach((x) => console.log('  SIN T()  ' + JSON.stringify(x)));
+
+const problemas = faltan.length + sobran.length + noTraduce.length + directos.length;
 console.log(problemas ? `✕ ${problemas} problema(s) de idioma` : '✓ idioma completo en inglés y español');
 process.exit(problemas ? 1 : 0);
