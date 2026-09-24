@@ -23,6 +23,7 @@ tomar 02-panel "foco=Tostadora"
 tomar 03-camino "vista=camino&de=Hotel&a=Mapa"
 tomar 04-vacios "vista=vacios"
 tomar 05-radial "vista=radial&foco=Camila"
+tomar 08-novedades "vista=novedades"
 
 python3 - <<'PY'
 from PIL import Image

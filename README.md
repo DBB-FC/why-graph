@@ -17,9 +17,9 @@ Made for [LLM wikis](https://gist.github.com/karpathy/442a6bf555914893e9891c1151
 
 *English · [Leer en español](README.es.md)*
 
-<img src="docs/imagenes/demo.webp" alt="Five views of the map: layers, a note with its reasons, the gaps, a path between two notes, and the radial view" width="100%">
+<img src="docs/imagenes/demo.webp" alt="Five views of the map: layers, a note with its reasons, the missing connections, a path between two notes, and the radial view" width="100%">
 
-<sub>Five real views, no mock-ups: the layered map · a note with every reason · the gaps · a path between two notes · the radial view</sub>
+<sub>Five real views, no mock-ups: the layered map · a note with every reason · the missing connections · a path between two notes · the radial view</sub>
 
 <a href="https://www.buymeacoffee.com/DbbLabs" target="_blank"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&emoji=%F0%9F%8D%BA&slug=DbbLabs&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a beer" height="46"></a>
 
@@ -53,11 +53,11 @@ Not a guess. The real line from your own note.
 </tr>
 <tr>
 <td><img src="docs/imagenes/03-camino.webp" alt="A path between two notes, with the reason for every hop"></td>
-<td><img src="docs/imagenes/04-vacios.webp" alt="The gaps panel: topic pairs that should be connected and are not"></td>
+<td><img src="docs/imagenes/04-vacios.webp" alt="Missing connections: a review-first list of notes that should be linked and are not"></td>
 </tr>
 <tr>
 <td><b>Paths.</b> Pick two notes and read the shortest chain between them, hop by hop, with the reason for each. This is how you find out that two projects you thought were related are four hops apart.</td>
-<td><b>Gaps.</b> It compares the links that exist against the links you would expect between two topics. In my own vault it found two topics with <b>0 links where ~26 were expected</b>.</td>
+<td><b>Missing connections.</b> A short <i>review first</i> list: notes that share neighbours but are not linked, from topics that connect less than expected. Star the topics you care about — say, projects and sales — and theirs come first. In my own vault it found two topics with <b>0 links where ~26 were expected</b>.</td>
 </tr>
 </table>
 
@@ -96,23 +96,25 @@ Open it with the command **Open neural map** (`Cmd/Ctrl+P`) or the brain icon in
 
 1. **A wizard lists your folders** with a proposed layer for each one (Input / Entities /
    Knowledge / Topics / Don't show). Change what looks wrong and press Apply. Up top you can pick
-   another layer template: LLM wiki, professional (legal, accounting), academic or Zettelkasten.
-   Open it again later and it starts from the layers you already have.
+   another layer template: LLM wiki, business (clients and projects → sales and operations),
+   professional (rules and services), academic or Zettelkasten. Picking one re-sorts your folders
+   by name; folders you set to *Don't show* stay hidden. Nothing is created or moved in your vault:
+   a template only names the columns. Open it again later and it starts from the layers you have.
 2. **Click any note.** The side panel names its layer, its topic, a two-line summary and every
    link with its reason.
 3. **`···` → Path between two notes**, pick two, and read the chain.
-4. **`···` → Gaps between topics**, to see what should be connected and is not.
+4. **The `⌁ review first` chip**, to see which connections are missing — and propose or dismiss each one.
 
 That's it. No configuration beyond the wizard, and **no AI key required for any of the above**.
 
 <details>
 <summary>See the wizard and the tools menu</summary>
 
-![The first-run wizard: every folder with a proposed layer](docs/imagenes/02-asistente.webp)
+![The layer wizard: a template on top, and every folder with a proposed layer](docs/imagenes/02-asistente.webp)
 
 Everything else lives in the tools menu — the `⋯ tools` chip on the map, or the tab's own `···` menu:
 
-![The tools menu: paths, radial view, gaps, health mode, collapsing topics, recent activity and export](docs/imagenes/07-herramientas.webp)
+![The tools menu, in groups: paths, radial view, missing connections, health mode; filters and topics; export, reload and the layer wizard](docs/imagenes/07-herramientas.webp)
 
 </details>
 
@@ -170,6 +172,27 @@ Three locks apply, whatever provider you pick:
 3. **Nothing is written without you.** Approving is a click, and only then does the reason go into
    your note as a new line. Existing text is never rewritten.
 
+**What's new: raw material into the wiki (1.32).** Set a *raw material folder* and a *wiki folder*
+in settings and a green chip appears on the map when there is something new (counting is local and
+free). The *What's new* panel skips what was already sent, copies and repeated paragraphs, batches
+the rest and tells you how many calls it will make **before** sending anything. The AI returns
+**one-line items, grouped by the page they belong to**, each backed by a literal quote the plugin
+checks in the file — no quote, no approval. Items are compared with the current page: what is
+already there is hidden, what contradicts it is listed apart and never resolved for you. Approving
+inserts that one line in the right section, with a link to its source; **nothing is ever deleted or
+rewritten**. *Approve the safe ones* does it in one click. Optional: prepare new items in the
+background when Obsidian opens (off by default, with a daily call limit), an alias note so the same
+client is not created twice, and a switch to only add to pages that already exist. Without both
+folders, none of this exists.
+
+**Loose clippings.** The Web Clipper and the share menu on your phone drop notes in the vault root.
+Set a *clippings folder* and the same panel lists the root notes nothing links to, with one button
+to file them there — on desktop and on mobile. They are moved, never edited; an identical copy
+already in the folder goes to the trash instead. *Keep here* remembers notes that belong in the
+root. Empty by default: nothing is ever moved.
+
+![What's new: one-line items grouped by page, with the clash on top and one click to approve the safe ones](docs/imagenes/08-novedades.webp)
+
 <details>
 <summary>Does it work with my Claude or ChatGPT subscription?</summary>
 
@@ -184,7 +207,7 @@ Three ways to deal with that:
 - **Your own key.** A few cents per suggestion — roughly **$0.04** with Claude Opus 5. New API
   accounts get free credit to try it.
 - **No AI at all.** The AI only proposes reasons for links that do not have one; everything else —
-  layers, paths, gaps, radial, export — never makes a network call.
+  layers, paths, missing connections, radial, export — never makes a network call.
 
 Plugins that appear to run on "one subscription" are doing one of two things: using a local model
 (free, like the option above), or paying the API with the developer's own key and charging you a
@@ -256,6 +279,11 @@ in a browser.
 | **External links property** | Frontmatter properties holding web links (`Title \| https://…`, `https://…`, `user/repo`). Empty = the section never appears. Only `http`/`https` are opened. |
 | **Last-modified property** | If set, approving a reason or a summary also writes today's date in that property. Empty by default: the plugin never touches your frontmatter. |
 | **Animation** | Light pulses travelling along the links. Only while the map is visible, and off if your system asks for reduced motion. |
+| **Raw material folder · Wiki folder** (What's new) | Where new material is read from and where its items go. Both empty by default: no chip, no panel, no command. |
+| **Prepare new items when Obsidian opens** | Off by default. On, your AI prepares the items in the background, up to the **daily limit of automatic calls** (30). Two devices on the same vault do not prepare the same material twice. |
+| **Allow creating pages** · **Alias file** | Off = only add to pages that exist. The alias note (`- **Name** \| \`folder/page\`` with `aliases: "…"` below, or `- [[page]]` with `alias: a, b`) keeps "Acme Inc" from becoming a second page for "Acme". |
+| **Ignore during ingestion** | Copies and summaries not worth sending twice. Default `*.mini.md, *digest*`. |
+| **Clippings folder · Stay in the root** | Where loose root notes are offered to be filed, and which ones never are. Empty by default: nothing is moved. |
 
 </details>
 
@@ -288,8 +316,9 @@ they matched. These are the rules, written once (they also ship inside the expor
   no server. The author never sees your notes, your keys or your queries.
 - Keys are stored per device in Obsidian's local storage — never in `data.json`, so they never
   travel through git, Obsidian Sync or a backup.
-- Nothing is sent until you ask for a suggestion. Opening the map, browsing, paths and gaps make
-  **zero** network calls.
+- Nothing is sent until you ask for a suggestion or for new items — or turn on *Prepare new items
+  when Obsidian opens*, which is off by default and has a daily limit. Opening the map, browsing,
+  paths and missing connections make **zero** network calls.
 - Rough cost per suggestion with Claude Opus 5: two notes of context plus the review pass. A vault
   with a hundred reason-less links costs single-digit dollars to work through — and you never have
   to do it in one go.
@@ -326,11 +355,18 @@ connections section of that one note. Existing text is never rewritten or reorde
 frontmatter is not touched unless you fill in the *Last-modified property* setting, which is empty
 by default.
 
-Everything else — layers, colours, paths, gaps, exports — is read-only. Exports are the one other
-write: a PNG into the folder you choose.
+*What's new* writes the same way: each approved item is **one inserted line** in the section of the
+wiki page it belongs to, with a link to its source. A new page is created only if *Allow creating
+pages* is on. The plugin also keeps `ingesta.json` in its own folder: sizes and fingerprints of what
+was already sent (never the text), today's call count and which device is preparing.
+*Loose clippings* only moves the notes you file, with Obsidian's own rename (links are updated), and
+sends duplicates to the trash.
+
+Everything else — layers, colours, paths, missing connections, exports — is read-only. Exports are
+the one other write: a PNG into the folder you choose.
 
 There is no telemetry, no analytics and no server: the plugin makes no network request except the
-AI call you ask for, to the provider you configured.
+AI calls you ask for (or the background preparation you turn on), to the provider you configured.
 
 It does read the list of every note in your vault — a map cannot be drawn from a subset — and the
 release assets carry [GitHub attestations](https://github.com/DBB-FC/why-graph/attestations), so

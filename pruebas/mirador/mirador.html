@@ -60,6 +60,7 @@ P.setCssProps = function (o) { for (const [k, v] of Object.entries(o)) this.styl
 P.show = function () { this.style.display = ''; return this; };
 P.hide = function () { this.style.display = 'none'; return this; };
 P.isShown = function () { return this.style.display !== 'none'; };
+P.toggle = function (v) { this.style.display = v ? '' : 'none'; return this; };
 
 // ── El módulo «obsidian», lo mínimo para dibujar ───────────────────────────────
 class Componente {
@@ -173,6 +174,25 @@ window.exports = window.module.exports;
     const ruta = a && b ? v.rutaMasCorta(a.id, b.id) : null;
     if (ruta) { v.camino = ruta; v.panelCamino(ruta); v.pintarEstado(); }
     else document.title = 'ERROR: sin camino entre esas notas';
+  } else if (vista === 'novedades') {
+    // El panel de novedades con una revisión ya hecha (datos de la demo, sin IA): para ver el
+    // diseño sin gastar llamadas. El chip de la barra se pinta igual que con material real.
+    plugin.ingestaLista = () => true;
+    plugin.ajustes.carpetaCrudo = 'Diario';
+    const n = (texto, destino, extra) => Object.assign({ texto, destino, fuente: 'Diario/2026-09-15.md', seccion: '', verificada: true, estado: 'nuevo', crear: false }, extra);
+    plugin.nov = { fase: 'revisar', aplicadas: 0, material: { piezas: [], sellos: {}, repetidos: 0 }, prop: { tandas: 2, leidas: 2, avisos: [], contradicciones: [], novedades: [
+      n('Acordamos 12 kg de Huila lavado al mes desde octubre.', 'Clientes/hotel-andino.md', { seccion: 'Pedidos' }),
+      n('Quieren sumar una cata para el equipo de cocina.', 'Clientes/hotel-andino.md'),
+      n('Precio del kilo: $18.500', 'Clientes/hotel-andino.md', { estado: 'choca', detalle: 'La página dice $17.900 (agosto)' }),
+      n('La tostadora nueva llega el 28 de octubre; instalación un día después.', 'Proyectos/proyecto-tostadora-nueva.md', { seccion: 'Plazos' }),
+      n('Pendiente: cotizar el seguro de la máquina.', 'Proyectos/proyecto-tostadora-nueva.md', { verificada: false }),
+      n('Tomás lidera el piloto de despacho en bicicleta.', 'Proyectos/proyecto-despacho-bici.md', { crear: true }),
+      n('Revisar si conviene cambiar el proveedor de bolsas.', ''),
+      n('Camila sigue a cargo de la cata semanal.', 'Personas/camila-soto.md', { estado: 'ya_estaba' }),
+      n('El espresso de la casa usa el perfil medio.', 'Referencias/perfil-tueste-espresso.md', { estado: 'ya_estaba' }),
+    ] } };
+    v.contarNovedades();
+    await v.panelNovedades();
   } else if (q.get('foco')) {
     const n = buscar(q.get('foco'));
     if (n) v.enfocar(n.id, true); else document.title = 'ERROR: no encuentro esa nota';

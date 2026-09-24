@@ -17,9 +17,9 @@ Hecho para [LLM wikis](https://gist.github.com/karpathy/442a6bf555914893e9891c11
 
 *Español · [Read in English](README.md)*
 
-<img src="docs/imagenes/demo.webp" alt="Cinco vistas del mapa: las capas, una nota con sus motivos, los vacíos, un camino entre dos notas y la vista radial" width="100%">
+<img src="docs/imagenes/demo.webp" alt="Cinco vistas del mapa: las capas, una nota con sus motivos, las conexiones que faltan, un camino entre dos notas y la vista radial" width="100%">
 
-<sub>Cinco vistas reales, sin maquetas: el mapa por capas · una nota con todos sus motivos · los vacíos · un camino entre dos notas · la vista radial</sub>
+<sub>Cinco vistas reales, sin maquetas: el mapa por capas · una nota con todos sus motivos · las conexiones que faltan · un camino entre dos notas · la vista radial</sub>
 
 <a href="https://www.buymeacoffee.com/DbbLabs" target="_blank"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&emoji=%F0%9F%8D%BA&slug=DbbLabs&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Invítame una cerveza" height="46"></a>
 
@@ -53,11 +53,11 @@ No una suposición. La línea real de tu propia nota.
 </tr>
 <tr>
 <td><img src="docs/imagenes/03-camino.webp" alt="Un camino entre dos notas, con el motivo de cada salto"></td>
-<td><img src="docs/imagenes/04-vacios.webp" alt="El panel de vacíos: pares de temas que deberían estar conectados y no lo están"></td>
+<td><img src="docs/imagenes/04-vacios.webp" alt="Conexiones que faltan: una lista para revisar primero con notas que deberían enlazarse y no lo están"></td>
 </tr>
 <tr>
 <td><b>Caminos.</b> Eliges dos notas y lees la cadena más corta entre ellas, salto por salto, con el motivo de cada uno. Así te enteras de que dos proyectos que creías relacionados están a cuatro saltos.</td>
-<td><b>Vacíos.</b> Compara los enlaces que existen contra los que cabría esperar entre dos temas. En mi propio vault encontró dos temas con <b>0 enlaces donde se esperaban ~26</b>.</td>
+<td><b>Conexiones que faltan.</b> Una lista corta para <i>revisar primero</i>: notas que comparten vecinos pero no se enlazan, de temas que se conectan menos de lo esperable. Marca con ★ los temas que te importan —por ejemplo, proyectos y ventas— y los suyos salen primero. En mi propio vault encontró dos temas con <b>0 enlaces donde se esperaban ~26</b>.</td>
 </tr>
 </table>
 
@@ -96,23 +96,26 @@ Se abre con el comando **Abrir mapa neuronal** (`Cmd/Ctrl+P`) o con el ícono de
 
 1. **Un asistente lista tus carpetas** con una capa propuesta para cada una (Entrada / Entidades /
    Conocimiento / Temas / No mostrar). Cambia lo que se vea mal y aprieta Aplicar. Arriba puedes
-   elegir otra plantilla de capas: LLM wiki, profesional (jurídico, contable), académico o
-   Zettelkasten. Si vuelves a abrirlo más tarde, arranca con las capas que ya tienes.
+   elegir otra plantilla de capas: LLM wiki, negocio (clientes y proyectos → ventas y operación),
+   profesional (normas y servicios), académico o Zettelkasten. Al elegir una, tus carpetas se
+   reparten por su nombre; las que tenías en *No mostrar* siguen ocultas. No se crea ni se mueve
+   nada en tu vault: una plantilla solo nombra las columnas. Si vuelves a abrirlo más tarde, arranca
+   con las capas que ya tienes.
 2. **Toca cualquier nota.** El panel lateral nombra su capa, su tema, un resumen de dos líneas y
    cada enlace con su motivo.
 3. **`···` → Camino entre dos notas**, eliges dos y lees la cadena.
-4. **`···` → Vacíos entre temas**, para ver qué debería estar conectado y no lo está.
+4. **El chip `⌁ revisar primero`**, para ver qué conexiones faltan y proponer o descartar cada una.
 
 Eso es todo. Sin configuración más allá del asistente, y **sin ninguna llave de IA para nada de lo anterior**.
 
 <details>
 <summary>Ver el asistente y el menú de herramientas</summary>
 
-![El asistente de la primera vez: cada carpeta con su capa propuesta](docs/imagenes/02-asistente.webp)
+![El asistente de capas: la plantilla arriba y cada carpeta con su capa propuesta](docs/imagenes/02-asistente.webp)
 
 Todo lo demás vive en el menú de herramientas — la cápsula `⋯ herramientas` del mapa, o el menú `···` de la pestaña:
 
-![El menú de herramientas: caminos, vista radial, vacíos, modo salud, colapsar temas, actividad reciente y exportar](docs/imagenes/07-herramientas.webp)
+![El menú de herramientas, en grupos: caminos, vista radial, conexiones que faltan, modo salud; filtros y temas; exportar, recargar y el asistente de capas](docs/imagenes/07-herramientas.webp)
 
 </details>
 
@@ -170,6 +173,27 @@ Se aplican tres candados, sea cual sea el proveedor:
 3. **Nada se escribe sin ti.** Aprobar es un clic, y solo entonces el motivo entra en tu nota como
    una línea nueva. El texto que ya estaba nunca se reescribe.
 
+**Novedades: del material crudo al wiki (1.32).** Configura una *carpeta del material sin procesar*
+y una *carpeta del wiki* en los ajustes y, cuando hay algo nuevo, aparece un chip verde en el mapa
+(contar es local y gratis). El panel *Novedades* salta lo ya enviado, las copias y los párrafos
+repetidos, junta el resto en tandas y te dice cuántas llamadas hará **antes** de enviar nada. La IA
+devuelve **novedades de una línea, agrupadas por la página a la que van**, cada una con una cita
+literal que el plugin comprueba en el archivo: sin cita, no se aprueba. Se comparan con la página
+actual: lo que ya estaba no se muestra y lo que choca va aparte, sin resolverse solo. Aprobar
+inserta esa línea en su sección, con enlace a su fuente; **nunca se borra ni se reescribe nada**.
+*Aprobar las seguras* lo hace de un clic. Opcional: preparar las novedades en segundo plano al abrir
+Obsidian (apagado por defecto, con tope diario de llamadas), una nota de alias para no crear dos
+veces el mismo cliente, y un interruptor para solo agregar a páginas que ya existen. Sin las dos
+carpetas, nada de esto existe.
+
+**Recortes sueltos.** El Web Clipper y el menú compartir del teléfono dejan notas en la raíz del
+vault. Configura una *carpeta de recortes* y el mismo panel lista las notas de la raíz que nada
+enlaza, con un botón para guardarlas ahí, en el computador y en el teléfono. Se mueven, nunca se
+editan; si ya había una copia idéntica en la carpeta, la repetida va a la papelera. *Dejar aquí*
+recuerda las notas que viven en la raíz. Vacío por defecto: nunca se mueve nada.
+
+![Novedades: líneas agrupadas por página, lo que choca arriba y un clic para aprobar las seguras](docs/imagenes/08-novedades.webp)
+
 <details>
 <summary>¿Funciona con mi suscripción de Claude o ChatGPT?</summary>
 
@@ -184,7 +208,7 @@ Tres formas de resolverlo:
 - **Tu propia llave.** Unos centavos por sugerencia — alrededor de **US$0,04** con Claude Opus 5.
   Las cuentas nuevas de API traen saldo gratis para probar.
 - **Sin IA.** La IA solo propone motivos para los enlaces que no tienen uno; todo lo demás —capas,
-  caminos, vacíos, radial, exportar— nunca hace una llamada a la red.
+  caminos, conexiones que faltan, radial, exportar— nunca hace una llamada a la red.
 
 Los plugins que parecen funcionar con "una suscripción" hacen una de dos cosas: usan un modelo local
 (gratis, como la opción de arriba), o pagan la API con la llave del desarrollador y te cobran una
@@ -256,6 +280,11 @@ navegador.
 | **Propiedad de enlaces externos** | Propiedades del frontmatter con enlaces web (`Título \| https://…`, `https://…`, `usuario/repo`). Vacío = la sección no aparece nunca. Solo se abren `http`/`https`. |
 | **Propiedad de fecha de modificación** | Si la escribes, aprobar un motivo o un resumen también pone la fecha de hoy en esa propiedad. Vacía por defecto: el plugin no toca tu frontmatter. |
 | **Animación** | Pulsos de luz que viajan por los enlaces. Solo mientras el mapa está visible, y apagada si tu sistema pide reducir el movimiento. |
+| **Carpeta del material sin procesar · Carpeta del wiki** (Novedades) | De dónde se lee lo nuevo y adónde van sus novedades. Vacías por defecto: sin chip, sin panel, sin comando. |
+| **Preparar novedades al abrir Obsidian** | Apagado por defecto. Encendido, tu IA prepara las novedades en segundo plano, hasta el **tope de llamadas automáticas al día** (30). Dos dispositivos con el mismo vault no preparan dos veces lo mismo. |
+| **Permitir crear páginas** · **Archivo de alias** | Apagado = solo agrega a páginas que existen. La nota de alias (`- **Nombre** \| \`carpeta/página\`` con `aliases: "…"` debajo, o `- [[página]]` con `alias: a, b`) evita que «Acme SpA» se vuelva una segunda página de «Acme». |
+| **Ignorar en la ingesta** | Copias y resúmenes que no vale la pena enviar dos veces. Por defecto `*.mini.md, *digest*`. |
+| **Carpeta de recortes · Se quedan en la raíz** | Adónde se proponen guardar las notas sueltas de la raíz, y cuáles nunca. Vacío por defecto: no se mueve nada. |
 
 </details>
 
@@ -289,8 +318,9 @@ le cuadraron. Estas son las reglas, escritas una sola vez (también van dentro d
   servidor. El autor nunca ve tus notas, tus llaves ni tus consultas.
 - Las llaves se guardan por dispositivo en el almacenamiento local de Obsidian — nunca en
   `data.json`, así que no viajan por git, ni por Obsidian Sync, ni en un respaldo.
-- No se envía nada hasta que pides una sugerencia. Abrir el mapa, navegarlo, los caminos y los vacíos
-  hacen **cero** llamadas a la red.
+- No se envía nada hasta que pides una sugerencia o las novedades, o activas *Preparar novedades al
+  abrir Obsidian*, que viene apagado y tiene tope diario. Abrir el mapa, navegarlo, los caminos y
+  las conexiones que faltan hacen **cero** llamadas a la red.
 - Costo aproximado por sugerencia con Claude Opus 5: dos notas de contexto más la revisión. Un vault
   con cien enlaces sin motivo cuesta unos pocos dólares recorrer completo — y nunca tienes que
   hacerlo de una sola vez.
@@ -327,11 +357,19 @@ sección de conexiones de esa nota. El texto que ya existía nunca se reescribe 
 frontmatter no se toca a menos que llenes el ajuste *Propiedad de fecha de modificación*, que viene
 vacío.
 
-Todo lo demás —capas, colores, caminos, vacíos, exportaciones— es de solo lectura. Las exportaciones
-son la otra escritura: un PNG en la carpeta que elijas.
+*Novedades* escribe igual: cada novedad aprobada es **una línea insertada** en la sección de la página
+del wiki a la que va, con enlace a su fuente. Una página nueva se crea solo si *Permitir crear
+páginas* está encendido. El plugin guarda además `ingesta.json` en su propia carpeta: tamaños y
+huellas de lo ya enviado (nunca el texto), las llamadas del día y qué dispositivo está preparando.
+*Recortes sueltos* solo mueve las notas que guardas, con el renombrar de Obsidian (los enlaces se
+actualizan), y manda las repetidas a la papelera.
 
-No hay telemetría, ni analítica, ni servidor: el plugin no hace ninguna petición de red salvo la
-llamada de IA que tú pidas, al proveedor que configuraste.
+Todo lo demás —capas, colores, caminos, conexiones que faltan, exportaciones— es de solo lectura.
+Las exportaciones son la otra escritura: un PNG en la carpeta que elijas.
+
+No hay telemetría, ni analítica, ni servidor: el plugin no hace ninguna petición de red salvo las
+llamadas de IA que tú pidas (o la preparación en segundo plano que actives), al proveedor que
+configuraste.
 
 Sí lee la lista de todas las notas de tu vault —un mapa no se puede dibujar con una parte— y los
 archivos del release llevan [atestaciones de GitHub](https://github.com/DBB-FC/why-graph/attestations),
