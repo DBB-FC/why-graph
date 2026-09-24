@@ -144,6 +144,7 @@ const EN = {
   'Recargar el mapa': 'Reload the map',
   'Asistente de capas': 'Layer wizard',
   // panel
+  'Abrir': 'Open',
   'Cerrar': 'Close',
   'Radial': 'Radial',
   'Camino': 'Path',
