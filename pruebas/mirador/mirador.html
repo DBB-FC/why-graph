@@ -79,7 +79,9 @@ const obsidian = {
   Notice: class { constructor(m) { console.log('[aviso]', m); } },
   Platform: { isMobile: false, isPhone: false },
   debounce: (f) => f,
-  setIcon: (el) => { el.textContent = ''; },
+  // Sin la librería de íconos de Obsidian: solo la ✕ de cerrar se dibuja como texto, para que
+  // las capturas del README no muestren un botón vacío.
+  setIcon: (el, nombre) => { el.textContent = nombre === 'x' ? '✕' : ''; },
   requestUrl: async () => ({ status: 500, json: {} }),
   normalizePath: (p) => String(p).replace(/\/+/g, '/').replace(/^\/|\/$/g, ''),
   getLanguage: () => (new URLSearchParams(location.search).get('idioma') || 'es'),

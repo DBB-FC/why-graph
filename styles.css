@@ -191,3 +191,8 @@
 .mn-asistente-leyenda { padding: var(--size-4-2) 0; border-bottom: 1px solid var(--background-modifier-border); }
 .mn-asistente-leyenda > summary { font-size: var(--font-ui-small); color: var(--text-muted); cursor: pointer; }
 .mn-asistente-leyenda > .setting-item-description { margin-top: var(--size-4-1); }
+
+/* Temas clave: el punto y el nombre separados (el botón es flex y se comía el espacio). */
+.mn-raiz .mn-panel .mn-temas-clave button.mn-ficha { display: inline-flex; align-items: center; gap: 6px; }
+/* «Dejar aquí» es texto, no un ícono: el botón toma el ancho de su texto. */
+.mn-raiz .mn-panel .mn-nov-recortes .mn-nov-botones button.mn-btn { width: auto; padding: 0 10px; }
