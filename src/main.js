@@ -14,6 +14,8 @@
  *   (también en el teléfono); se mueven, nunca se editan. El arranque automático se cancela al desactivar.
  *   Asistente: plantilla «Negocio», «Profesional (normas y servicios)», y elegir una plantilla reparte
  *   las carpetas por su nombre (antes solo renombraba columnas); aplicar sin cambios lo avisa.
+ * v1.32.1 (24.09.2026): «Dejar aquí» cabe en su botón, «Conexiones que faltan» se cierra con la ✕ de
+ *   los demás paneles y los temas clave separan el punto del nombre. README con todos los ajustes.
  * v1.31 (19.09.2026): salud por gravedad (rojo solo lo grave, ámbar el resto); en el teléfono el tope por
  *   capa baja a lo que cabe; ajustes también como definiciones (búsqueda de ajustes de Obsidian 1.13).
  * v1.30 (19.09.2026): la escena se cachea en dos capas fuera de pantalla y cada cuadro de la animación
@@ -2094,7 +2096,10 @@ class VistaMapa extends ItemView {
     const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
     const acciones = this.cabecera(p, T('Conexiones que faltan'), T('Revisar primero'),
       T('Notas que comparten vecinos pero no se enlazan, de temas que se conectan menos de lo esperable.'));
-    acciones.createEl('button', { text: T('Cerrar') }).onclick = () => { this.vacios = false; this.sugerencia = null; this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
+    // Igual que los demás paneles: una ✕, no un botón de texto.
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => { this.vacios = false; this.sugerencia = null; this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
     const lista = p.createDiv('mn-lista');
     // Temas clave: la persona dice qué le importa (p. ej. proyectos y ventas) y eso sube primero.
     const temas = Object.entries(this.D.temas).filter(([id]) => this.D.nodos.some((n) => n.tema === id));
@@ -2104,7 +2109,7 @@ class VistaMapa extends ItemView {
       const clave = new Set(pl.ajustes.temasClave || []);
       for (const [id, [nombre, color]] of temas) {
         const b = fila.createEl('button', { cls: 'mn-ficha' + (clave.has(id) ? ' clave' : '') });
-        b.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': color }); b.appendText(` ${clave.has(id) ? '★ ' : ''}${nombre}`);
+        b.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': color }); b.appendText(`${clave.has(id) ? '★ ' : ''}${nombre}`);
         b.onclick = async () => { clave.has(id) ? clave.delete(id) : clave.add(id); pl.ajustes.temasClave = [...clave]; await pl.guardar(); this.panelVacios(); this.pintarChips(); };
       }
     }

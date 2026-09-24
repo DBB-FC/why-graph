@@ -267,7 +267,9 @@ in a browser.
 | Setting | What it changes |
 |---|---|
 | **Layers** | One line per layer: `Name \| description`. Three to five works best. |
-| **Folders** | Which folder goes to which layer. The wizard writes this for you. |
+| **Folders → layer** | Which folder goes to which layer. The wizard writes this for you; the more specific folder wins. |
+| **Exclude notes** | Note names, comma-separated, left off the map. Useful for notes that link to everything. |
+| **Follow the active note** | When you open a note, the map focuses it. On by default. |
 | **Topic property** | The frontmatter property that groups and colours notes (default `tema`). Empty = no topics. |
 | **Notes visible per layer** | In large vaults each layer shows its most connected notes; the rest appear when you search or open them. Default 150. |
 | **Source folders** | One per line. If your notes cite files by path (`raw/articles/x.md`, a PDF, a day's folder), those files appear as sources. `folder/*` groups each subfolder into one node. Empty by default: with no folders, the map is the one you know. |
@@ -279,6 +281,9 @@ in a browser.
 | **Only long-range links** (tools) | Shows only the links that jump two layers or more: where two halves of the vault touch end to end. |
 | **External links property** | Frontmatter properties holding web links (`Title \| https://…`, `https://…`, `user/repo`). Empty = the section never appears. Only `http`/`https` are opened. |
 | **Last-modified property** | If set, approving a reason or a summary also writes today's date in that property. Empty by default: the plugin never touches your frontmatter. |
+| **Second pass** | A second AI call checks that a suggested reason is faithful (negations, states, pending items). Costs twice as much; on by default. |
+| **Approval log folder** | Where each approved reason leaves its record: `<folder>/<date>/mapa-neuronal-motivos.md`. |
+| **Folder for exported images** | Where *Export image (PNG)* saves the map. |
 | **Animation** | Light pulses travelling along the links. Only while the map is visible, and off if your system asks for reduced motion. |
 | **Raw material folder · Wiki folder** (What's new) | Where new material is read from and where its items go. Both empty by default: no chip, no panel, no command. |
 | **Prepare new items when Obsidian opens** | Off by default. On, your AI prepares the items in the background, up to the **daily limit of automatic calls** (30). Two devices on the same vault do not prepare the same material twice. |

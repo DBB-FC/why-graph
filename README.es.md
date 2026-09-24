@@ -268,7 +268,9 @@ navegador.
 | Ajuste | Qué cambia |
 |---|---|
 | **Capas** | Una línea por capa: `Nombre \| descripción`. Entre tres y cinco funciona mejor. |
-| **Carpetas** | Qué carpeta va a qué capa. El asistente lo escribe por ti. |
+| **Carpetas → capa** | Qué carpeta va a qué capa. El asistente lo escribe por ti; gana la carpeta más específica. |
+| **Excluir notas** | Nombres de nota, separados por coma, que quedan fuera del mapa. Útil para notas que enlazan a todo. |
+| **Seguir la nota activa** | Al abrir una nota, el mapa la enfoca. Encendido por defecto. |
 | **Propiedad de tema** | La propiedad del frontmatter que agrupa y colorea las notas (por defecto `tema`). Vacío = sin temas. |
 | **Notas visibles por capa** | En vaults grandes cada capa muestra sus notas más conectadas; el resto aparece al buscarlas o abrirlas. Por defecto 150. |
 | **Carpetas de fuentes** | Una por línea. Si tus notas citan archivos por su ruta (`raw/articles/algo.md`, un PDF, una carpeta de un día), esos archivos aparecen como fuentes. `carpeta/*` agrupa cada subcarpeta en un nodo. Vacío por defecto: sin carpetas, el mapa es el de siempre. |
@@ -280,6 +282,9 @@ navegador.
 | **Solo enlaces de largo alcance** (herramientas) | Muestra solo los enlaces que saltan dos capas o más: dónde dos mitades del vault se tocan de punta a punta. |
 | **Propiedad de enlaces externos** | Propiedades del frontmatter con enlaces web (`Título \| https://…`, `https://…`, `usuario/repo`). Vacío = la sección no aparece nunca. Solo se abren `http`/`https`. |
 | **Propiedad de fecha de modificación** | Si la escribes, aprobar un motivo o un resumen también pone la fecha de hoy en esa propiedad. Vacía por defecto: el plugin no toca tu frontmatter. |
+| **Segunda revisión** | Una segunda llamada a la IA revisa que el motivo propuesto sea fiel (negaciones, estados, pendientes). Cuesta el doble; encendida por defecto. |
+| **Carpeta del registro de aprobaciones** | Dónde deja constancia cada motivo aprobado: `<carpeta>/<fecha>/mapa-neuronal-motivos.md`. |
+| **Carpeta para exportar imágenes** | Dónde guarda el mapa *Exportar imagen (PNG)*. |
 | **Animación** | Pulsos de luz que viajan por los enlaces. Solo mientras el mapa está visible, y apagada si tu sistema pide reducir el movimiento. |
 | **Carpeta del material sin procesar · Carpeta del wiki** (Novedades) | De dónde se lee lo nuevo y adónde van sus novedades. Vacías por defecto: sin chip, sin panel, sin comando. |
 | **Preparar novedades al abrir Obsidian** | Apagado por defecto. Encendido, tu IA prepara las novedades en segundo plano, hasta el **tope de llamadas automáticas al día** (30). Dos dispositivos con el mismo vault no preparan dos veces lo mismo. |
