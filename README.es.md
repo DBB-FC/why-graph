@@ -98,7 +98,8 @@ Se abre con el comando **Abrir mapa neuronal** (`Cmd/Ctrl+P`) o con el ícono de
    Conocimiento / Temas / No mostrar). Cambia lo que se vea mal y aprieta Aplicar. Arriba puedes
    elegir otra plantilla de capas: LLM wiki, negocio (clientes y proyectos → ventas y operación),
    profesional (normas y servicios), académico o Zettelkasten. Al elegir una, tus carpetas se
-   reparten por su nombre; las que tenías en *No mostrar* siguen ocultas. No se crea ni se mueve
+   reparten por su nombre; las que tenías en *No mostrar* siguen ocultas, y *Qué significa cada capa*
+   explica cada columna. No se crea ni se mueve
    nada en tu vault: una plantilla solo nombra las columnas. Si vuelves a abrirlo más tarde, arranca
    con las capas que ya tienes.
 2. **Toca cualquier nota.** El panel lateral nombra su capa, su tema, un resumen de dos líneas y

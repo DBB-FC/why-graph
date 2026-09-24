@@ -186,3 +186,8 @@
 .mn-ajuste-ia > .setting-item-description { margin: 0 0 var(--size-4-2); }
 /* La fila contenedora ya trae su margen: las filas de adentro no suman otro, así todo queda alineado. */
 .setting-item.mn-ajuste-ia > .setting-item { padding-inline: 0; }
+
+/* Asistente: «Qué significa cada capa», plegado y con la letra de las descripciones. */
+.mn-asistente-leyenda { padding: var(--size-4-2) 0; border-bottom: 1px solid var(--background-modifier-border); }
+.mn-asistente-leyenda > summary { font-size: var(--font-ui-small); color: var(--text-muted); cursor: pointer; }
+.mn-asistente-leyenda > .setting-item-description { margin-top: var(--size-4-1); }

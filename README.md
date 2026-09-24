@@ -98,7 +98,8 @@ Open it with the command **Open neural map** (`Cmd/Ctrl+P`) or the brain icon in
    Knowledge / Topics / Don't show). Change what looks wrong and press Apply. Up top you can pick
    another layer template: LLM wiki, business (clients and projects → sales and operations),
    professional (rules and services), academic or Zettelkasten. Picking one re-sorts your folders
-   by name; folders you set to *Don't show* stay hidden. Nothing is created or moved in your vault:
+   by name; folders you set to *Don't show* stay hidden, and *What each layer means* explains every
+   column. Nothing is created or moved in your vault:
    a template only names the columns. Open it again later and it starts from the layers you have.
 2. **Click any note.** The side panel names its layer, its topic, a two-line summary and every
    link with its reason.

@@ -381,7 +381,11 @@ const EN = {
   'Plantilla de capas': 'Layer template',
   'LLM wiki': 'LLM wiki',
   'Profesional (normas y servicios)': 'Professional (rules and services)',
+  'Abrir': 'Open',
   'Negocio': 'Business',
+  'Qué significa cada capa': 'What each layer means',
+  'Fuentes citadas por ruta: archivos que tus notas citan (PDF, capturas, notas crudas). No son una capa: aparecen junto a la nota que los cita.': 'Sources cited by path: files your notes cite (PDFs, screenshots, raw notes). They are not a layer: they show up next to the note that cites them.',
+  'No mostrar: la carpeta queda fuera del mapa. Si una carpeta está dentro de otra, gana la más específica.': 'Don\'t show: the folder stays off the map. When one folder is inside another, the more specific one wins.',
   'Clientes y proyectos': 'Clients and projects',
   'con quién y en qué trabajas': 'who you work with and on what',
   'Ventas y operación': 'Sales and operations',
@@ -1015,6 +1019,16 @@ class AsistenteCapas extends Modal {
     const pintarFilas = () => {
       cuerpo.empty();
       const capas = capasDe(), traducir = this.plantilla !== 'actual';
+      // Qué es cada capa (pedido en el issue #20): el nombre solo no alcanza para decidir.
+      const leyenda = cuerpo.createEl('details', { cls: 'mn-asistente-leyenda' });
+      leyenda.createEl('summary', { text: T('Qué significa cada capa') });
+      capas.forEach(([nombre, desc], i) => {
+        const l = leyenda.createDiv({ cls: 'setting-item-description' });
+        l.createEl('strong', { text: `L${i} · ${traducir ? T(nombre) : nombre}` });
+        if (desc) l.appendText(` — ${traducir ? T(desc) : desc}`);
+      });
+      leyenda.createDiv({ cls: 'setting-item-description', text: T('Fuentes citadas por ruta: archivos que tus notas citan (PDF, capturas, notas crudas). No son una capa: aparecen junto a la nota que los cita.') });
+      leyenda.createDiv({ cls: 'setting-item-description', text: T('No mostrar: la carpeta queda fuera del mapa. Si una carpeta está dentro de otra, gana la más específica.') });
       const opciones = Object.fromEntries(capas.map((x, i) => [String(i), traducir ? T(x[0]) : x[0]]));
       opciones['-2'] = T('Fuentes citadas por ruta'); opciones['-1'] = T('No mostrar');
       for (const fila of filas) {
@@ -1898,7 +1912,7 @@ class VistaMapa extends ItemView {
     if (n.updated) meta.push(`actualizada ${n.updated.slice(0, 10)}`);
     cab.createDiv({ cls: 'mn-meta', text: meta.join(' · ') });
     const acciones = cab.createDiv('mn-acciones');
-    if (!n.virtual && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', 'Abrir', () => this.abrirNota(n.ruta), true);
+    if (!n.virtual && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta), true);
     if (!this.radial) this.boton(acciones, 'orbit', T('Radial'), () => { this.radial = true; this.foco = n.id; this.medir(); this.encuadrar(); this.pintarEstado(); });
     this.boton(acciones, 'route', T('Camino'), () => { this.eligiendo = { desde: n.id }; this.abrirPanel(null); new Notice(T('Toca la nota de destino')); this.pintarEstado(); this.pedir(); });
     if (n.tema && (n.agrupados || n.capa === ultima)) this.boton(acciones, this.colapsados.has(n.tema) ? 'maximize-2' : 'minimize-2', this.colapsados.has(n.tema) ? 'Expandir' : 'Colapsar', () => this.alternarColapso(n.tema));
