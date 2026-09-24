@@ -1,32 +1,35 @@
-name: Feature request
-description: An idea to make the map more useful. English or Spanish are both fine.
+name: Feature request · Proponer una idea
+description: An idea to make the map more useful · Una idea para que el mapa sirva más
 labels: [enhancement]
 body:
+  - type: markdown
+    attributes:
+      value: Write in English or Spanish · Escribe en español o en inglés.
   - type: textarea
     id: problem
     attributes:
-      label: What are you trying to do?
-      description: Describe the situation in your vault, not the solution yet.
+      label: What are you trying to do? · ¿Qué estás tratando de hacer?
+      description: Describe the situation in your vault, not the solution yet · Describe la situación en tu vault, todavía no la solución.
     validations:
       required: true
   - type: textarea
     id: idea
     attributes:
-      label: What would help
-      description: How you imagine it working. Rough is fine.
+      label: What would help · Qué te ayudaría
+      description: How you imagine it working. Rough is fine · Cómo te lo imaginas. Un borrador sirve.
     validations:
       required: true
   - type: textarea
     id: vault
     attributes:
-      label: How your vault is organised
-      description: Optional. Folders or layers you use, roughly how many notes. No private content, please.
+      label: How your vault is organised · Cómo está ordenado tu vault
+      description: Optional. Folders or layers you use, roughly how many notes. No private content, please · Opcional. Carpetas o capas que usas y cuántas notas, más o menos. Sin contenido privado, por favor.
   - type: checkboxes
     id: promises
     attributes:
-      label: The three promises
-      description: Ideas that break one of these will not be built (see CONTRIBUTING.md).
+      label: The three promises · Las tres promesas
+      description: Ideas that break one of these will not be built (see CONTRIBUTING.md) · Las ideas que rompan una de estas no se construyen (ver CONTRIBUTING.es.md).
       options:
-        - label: Nothing is written to my notes without my approval.
-        - label: Quotes are verified by code, not by the model.
-        - label: No telemetry and no network call I did not ask for.
+        - label: Nothing is written to my notes without my approval · Nada se escribe en mis notas sin mi aprobación.
+        - label: Quotes are verified by code, not by the model · Las citas las verifica el código, no el modelo.
+        - label: No telemetry and no network call I did not ask for · Sin telemetría ni llamadas a la red que yo no pedí.

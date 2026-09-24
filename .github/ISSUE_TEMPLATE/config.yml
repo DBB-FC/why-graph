@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Report a security problem
+  - name: Report a security problem · Reportar un problema de seguridad
     url: https://github.com/DBB-FC/why-graph/security/advisories/new
-    about: Please report vulnerabilities privately, not in a public issue.
+    about: Please report vulnerabilities privately, not in a public issue · Reporta las vulnerabilidades en privado, no en un issue público.
