@@ -139,6 +139,7 @@ const EN = {
   'Recargar el mapa': 'Reload the map',
   'Asistente de capas': 'Layer wizard',
   // panel
+  'Abrir': 'Open',
   'Cerrar': 'Close',
   'Radial': 'Radial',
   'Camino': 'Path',
@@ -1646,7 +1647,7 @@ class VistaMapa extends ItemView {
     if (n.updated) meta.push(`actualizada ${n.updated.slice(0, 10)}`);
     cab.createDiv({ cls: 'mn-meta', text: meta.join(' · ') });
     const acciones = cab.createDiv('mn-acciones');
-    if (!n.virtual && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', 'Abrir', () => this.abrirNota(n.ruta), true);
+    if (!n.virtual && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta), true);
     if (!this.radial) this.boton(acciones, 'orbit', T('Radial'), () => { this.radial = true; this.foco = n.id; this.medir(); this.encuadrar(); this.pintarEstado(); });
     this.boton(acciones, 'route', T('Camino'), () => { this.eligiendo = { desde: n.id }; this.abrirPanel(null); new Notice(T('Toca la nota de destino')); this.pintarEstado(); this.pedir(); });
     if (n.tema && (n.agrupados || n.capa === ultima)) this.boton(acciones, this.colapsados.has(n.tema) ? 'maximize-2' : 'minimize-2', this.colapsados.has(n.tema) ? 'Expandir' : 'Colapsar', () => this.alternarColapso(n.tema));
