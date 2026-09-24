@@ -382,7 +382,6 @@ const EN = {
   'Plantilla de capas': 'Layer template',
   'LLM wiki': 'LLM wiki',
   'Profesional (normas y servicios)': 'Professional (rules and services)',
-  'Abrir': 'Open',
   'Negocio': 'Business',
   'Qué significa cada capa': 'What each layer means',
   'Fuentes citadas por ruta: archivos que tus notas citan (PDF, capturas, notas crudas). No son una capa: aparecen junto a la nota que los cita.': 'Sources cited by path: files your notes cite (PDFs, screenshots, raw notes). They are not a layer: they show up next to the note that cites them.',
