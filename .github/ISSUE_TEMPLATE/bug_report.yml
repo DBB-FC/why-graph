@@ -1,0 +1,75 @@
+name: Bug report
+description: Something in Why Graph does not work as expected. English or Spanish are both fine.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Please **do not paste private notes**: a short made-up example is enough.
+        For a security problem, use a [private security advisory](https://github.com/DBB-FC/why-graph/security/advisories/new) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you see instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the map
+        2. Tap a note
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: plugin
+    attributes:
+      label: Why Graph version
+      description: Settings → Community plugins → Why Graph.
+      placeholder: "1.32.1"
+    validations:
+      required: true
+  - type: input
+    id: obsidian
+    attributes:
+      label: Obsidian version
+      placeholder: "1.13.7"
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      multiple: true
+      options:
+        - Desktop (macOS)
+        - Desktop (Windows)
+        - Desktop (Linux)
+        - Phone or tablet (iOS)
+        - Phone or tablet (Android)
+    validations:
+      required: true
+  - type: dropdown
+    id: ai
+    attributes:
+      label: AI provider, if the problem involves AI
+      options:
+        - Not related to AI
+        - Claude (Anthropic)
+        - OpenAI
+        - Google Gemini
+        - Local (Ollama, LM Studio)
+  - type: textarea
+    id: console
+    attributes:
+      label: Errors in the developer console
+      description: On desktop, View → Toggle developer tools → Console. Paste any red lines that mention Why Graph or mapa-neuronal.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Optional. Blur note titles you do not want to share.

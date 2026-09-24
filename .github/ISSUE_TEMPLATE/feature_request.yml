@@ -1,0 +1,32 @@
+name: Feature request
+description: An idea to make the map more useful. English or Spanish are both fine.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the situation in your vault, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: How you imagine it working. Rough is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: vault
+    attributes:
+      label: How your vault is organised
+      description: Optional. Folders or layers you use, roughly how many notes. No private content, please.
+  - type: checkboxes
+    id: promises
+    attributes:
+      label: The three promises
+      description: Ideas that break one of these will not be built (see CONTRIBUTING.md).
+      options:
+        - label: Nothing is written to my notes without my approval.
+        - label: Quotes are verified by code, not by the model.
+        - label: No telemetry and no network call I did not ask for.

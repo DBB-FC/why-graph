@@ -7,13 +7,13 @@ and do your own thing — no permission needed.
 
 ```bash
 npm install
-npm test            # builds src/main.js → main.js, then runs both test suites
+npm test            # builds src/main.js → main.js, then runs every test suite
 npx eslint src/     # the official Obsidian plugin linter — it must stay at 0 errors
 ```
 
-`npm test` runs 77 checks against a fake vault held in memory (no folder on your disk) and
-a translation check that fails if any user-visible text lacks its English or Spanish
-counterpart. If you add a string, wrap it in `T('…')` and add the English line to the `EN`
+`npm test` runs more than 340 checks against a fake vault held in memory (no folder on your
+disk): the map, sources, settings, the AI flows and What's new. It also runs a translation check that fails if any user-visible text lacks its English or Spanish
+counterpart, or any visible text written without `T()`. If you add a string, wrap it in `T('…')` and add the English line to the `EN`
 dictionary at the top of `src/main.js`; the test will tell you if you forgot.
 
 A third check renders the settings screen in headless Chrome and fails if it breaks halfway:
@@ -24,12 +24,13 @@ rest simply does not appear. It skips itself where Chrome is not installed.
 
 Three rules are the product. A change that weakens one of them will not be merged:
 
-1. **Nothing is written without the user's approval.** Only an appended line, in the
-   heading they configured. Existing text is never rewritten.
+1. **Nothing is written without the user's approval.** One inserted line at a time; existing
+   text is never rewritten or deleted.
 2. **Quotes are verified by code, not by the model.** If a quote is not found literally in
    the file, the suggestion cannot be approved.
 3. **No telemetry, no server, no network call the user did not ask for.** The AI key stays
-   in the device's local storage, never in `data.json`.
+   in the device's local storage, never in `data.json`. Automatic modes are off by default
+   and say what they will send before sending it.
 
 ## Conventions
 
