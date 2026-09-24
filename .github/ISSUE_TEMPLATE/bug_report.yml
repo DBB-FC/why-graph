@@ -1,63 +1,65 @@
-name: Bug report
-description: Something in Why Graph does not work as expected. English or Spanish are both fine.
+name: Bug report · Reportar un error
+description: Something in Why Graph does not work as expected · Algo de Why Graph no funciona como debería
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time. Please **do not paste private notes**: a short made-up example is enough.
-        For a security problem, use a [private security advisory](https://github.com/DBB-FC/why-graph/security/advisories/new) instead.
+        Thanks for taking the time. Write in English or Spanish. Please **do not paste private notes**: a short made-up example is enough.
+        Gracias por tomarte el tiempo. Escribe en español o en inglés. Por favor, **no pegues notas privadas**: basta un ejemplo inventado y corto.
+
+        Security problem? Use a [private security advisory](https://github.com/DBB-FC/why-graph/security/advisories/new) · ¿Un problema de seguridad? Usa un aviso privado.
   - type: textarea
     id: what
     attributes:
-      label: What happened
-      description: What did you expect, and what did you see instead?
+      label: What happened · Qué pasó
+      description: What did you expect, and what did you see instead? · ¿Qué esperabas y qué viste en cambio?
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
+      label: Steps to reproduce · Pasos para reproducirlo
       placeholder: |
-        1. Open the map
-        2. Tap a note
+        1. Open the map · Abrir el mapa
+        2. Tap a note · Tocar una nota
         3. …
     validations:
       required: true
   - type: input
     id: plugin
     attributes:
-      label: Why Graph version
-      description: Settings → Community plugins → Why Graph.
+      label: Why Graph version · Versión de Why Graph
+      description: Settings → Community plugins → Why Graph · Ajustes → Complementos comunitarios → Why Graph
       placeholder: "1.32.1"
     validations:
       required: true
   - type: input
     id: obsidian
     attributes:
-      label: Obsidian version
+      label: Obsidian version · Versión de Obsidian
       placeholder: "1.13.7"
     validations:
       required: true
   - type: dropdown
     id: device
     attributes:
-      label: Device
+      label: Device · Dispositivo
       multiple: true
       options:
-        - Desktop (macOS)
-        - Desktop (Windows)
-        - Desktop (Linux)
-        - Phone or tablet (iOS)
-        - Phone or tablet (Android)
+        - Desktop (macOS) · Computador (macOS)
+        - Desktop (Windows) · Computador (Windows)
+        - Desktop (Linux) · Computador (Linux)
+        - Phone or tablet (iOS) · Teléfono o tablet (iOS)
+        - Phone or tablet (Android) · Teléfono o tablet (Android)
     validations:
       required: true
   - type: dropdown
     id: ai
     attributes:
-      label: AI provider, if the problem involves AI
+      label: AI provider, if the problem involves AI · Proveedor de IA, si el problema tiene que ver con IA
       options:
-        - Not related to AI
+        - Not related to AI · No tiene que ver con IA
         - Claude (Anthropic)
         - OpenAI
         - Google Gemini
@@ -65,11 +67,11 @@ body:
   - type: textarea
     id: console
     attributes:
-      label: Errors in the developer console
-      description: On desktop, View → Toggle developer tools → Console. Paste any red lines that mention Why Graph or mapa-neuronal.
+      label: Errors in the developer console · Errores en la consola de desarrollo
+      description: On desktop, View → Toggle developer tools → Console. Paste the red lines that mention Why Graph or mapa-neuronal · En el computador, abre las herramientas de desarrollo (Cmd+Opción+I en Mac, Ctrl+Mayús+I en Windows) → Consola. Pega las líneas rojas que mencionen Why Graph o mapa-neuronal.
       render: text
   - type: textarea
     id: screenshots
     attributes:
-      label: Screenshots
-      description: Optional. Blur note titles you do not want to share.
+      label: Screenshots · Capturas
+      description: Optional. Blur note titles you do not want to share · Opcional. Difumina los títulos que no quieras compartir.

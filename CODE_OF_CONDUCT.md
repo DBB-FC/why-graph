@@ -1,5 +1,7 @@
 # Code of conduct
 
+*English · [Leer en español](CODE_OF_CONDUCT.es.md)*
+
 Why Graph is a small project built in the open, and people who use it come from many places and
 speak different languages. English and Spanish are both welcome everywhere in this repository.
 

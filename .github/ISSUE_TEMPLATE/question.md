@@ -1,23 +1,25 @@
 ---
-name: Question
-about: How do I…? Something in the map or the settings is unclear. English or Spanish are both fine.
+name: Question · Pregunta
+about: How do I…? Something in the map or the settings is unclear · ¿Cómo hago…? Algo del mapa o de los ajustes no se entiende.
 title: ""
 labels: question
 assignees: ""
 ---
 
-## What I want to do
+<!-- Write in English or Spanish · Escribe en español o en inglés. -->
 
-<!-- Describe what you are trying to achieve in your vault. -->
+## What I want to do · Qué quiero hacer
 
-## What I tried
+<!-- Describe what you are trying to achieve in your vault · Describe lo que quieres lograr en tu vault. -->
 
-<!-- Settings you changed, buttons you pressed, what you saw. -->
+## What I tried · Qué intenté
 
-## My setup
+<!-- Settings you changed, buttons you pressed, what you saw · Ajustes que cambiaste, botones que apretaste, qué viste. -->
 
-- Why Graph version:
-- Obsidian version:
-- Device (desktop or phone):
+## My setup · Mi configuración
 
-<!-- Please do not paste private notes. A short made-up example is enough. -->
+- Why Graph version · Versión de Why Graph:
+- Obsidian version · Versión de Obsidian:
+- Device (desktop or phone) · Dispositivo (computador o teléfono):
+
+<!-- Please do not paste private notes. A short made-up example is enough · Por favor, no pegues notas privadas. Basta un ejemplo inventado y corto. -->

@@ -1,5 +1,7 @@
 # Security
 
+*English · [Leer en español](SECURITY.es.md)*
+
 ## Reporting a vulnerability
 
 Open a [private security advisory](https://github.com/DBB-FC/why-graph/security/advisories/new)
@@ -27,11 +29,11 @@ only in the two cases described below, and only with a key you configured.
 
 - Your notes are read from the vault and stay there. The plugin has no server and no
   telemetry, and it makes no network request unless you use an AI feature.
-- **Suggest a reason or a summary:** the one or two notes involved are sent to the AI
+- ***Suggest a reason* or *Summarize with AI*:** the one or two notes involved are sent to the AI
   provider **you** configured, with **your** key.
 - **What's new** (off until you set a raw material folder and a wiki folder): new or changed
   material from that folder, plus the wiki pages it may belong to, is sent to your provider when
-  you press *Find new items*. The panel tells you how many calls it will make **before** sending.
+  you press *Find what is new*. The panel tells you how many calls it will make **before** sending.
   If you turn on *Prepare new items when Obsidian opens*, the same happens in the background at
   startup, within a daily call limit you set. That exchange is between you and your provider.
 - API keys are stored in Obsidian's per-device local storage, never in `data.json`, so

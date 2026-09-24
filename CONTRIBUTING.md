@@ -1,5 +1,7 @@
 # Contributing
 
+*English · [Leer en español](CONTRIBUTING.es.md)*
+
 Issues and pull requests are welcome. The plugin is MIT licensed, so you may also fork it
 and do your own thing — no permission needed.
 
