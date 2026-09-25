@@ -65,13 +65,13 @@ const respuesta = (obj) => ({ status: 200, json: { choices: [{ message: { conten
       const f = [...u.matchAll(/fuente="([^"]+)"/g)].map((x) => x[1]);
       return respuesta({ contradicciones: [], novedades: f.flatMap((r) => ['wiki/a.md', 'wiki/b.md'].map((d) => ({ texto: 'n ' + d, cita: 'Material nuevo número', fuente: r, destino: d, crear: false }))) });
     };
+    // [1.33.1] Con más tandas que el tope, lee hasta el tope (antes no leía nada, ningún día).
     const r = await v.pl.alAbrirObsidian();
-    p.igual('con 4 tandas y tope 3 no arranca', r, 'tope');
-    p.igual('y no llama a nadie', llamadas, 0);
-    v.pl.ajustes.topeDiario = 4;
-    await v.pl.alAbrirObsidian();
-    p.cierto('con tope 4 las llamadas reales no pasan del tope (antes el paso 2 iba aparte)', llamadas <= 4);
+    p.igual('con 4 tandas y tope 3, igual arranca', r, 'hecho');
+    p.cierto('y no pasa de 3 llamadas reales (los dos pasos y los reintentos cuentan)', llamadas > 0 && llamadas <= 3);
     p.igual('el uso anotado es lo que de verdad se llamó', v.registro().uso?.llamadas, llamadas);
+    await v.pl.cerrarRevision();
+    const otra = llamadas; p.igual('con el tope ya usado hoy, no arranca', [await v.pl.alAbrirObsidian(), llamadas], ['tope', otra]);
     global.__req = null;
   }
 

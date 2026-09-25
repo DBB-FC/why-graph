@@ -8,7 +8,8 @@
     "build": "node esbuild.config.mjs",
     "dev": "node esbuild.config.mjs --watch",
     "lint": "eslint src/",
-    "test": "npm run build && node pruebas/plugin.cjs && node pruebas/fuentes.cjs && node pruebas/idioma.cjs && node pruebas/interfaz.cjs && node pruebas/v128.cjs && node pruebas/ingesta.cjs && node pruebas/v133.cjs"
+    "test": "npm run build && node pruebas/plugin.cjs && node pruebas/fuentes.cjs && node pruebas/idioma.cjs && node pruebas/interfaz.cjs && node pruebas/v128.cjs && node pruebas/ingesta.cjs && node pruebas/v133.cjs && node pruebas/e2e/recorridos.cjs",
+    "e2e": "node pruebas/e2e/recorridos.cjs"
   },
   "keywords": [
     "obsidian",

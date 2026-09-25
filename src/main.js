@@ -2371,10 +2371,8 @@ class VistaMapa extends ItemView {
     if (!pl.ingestaLista()) return mostrar('', 0);
     const st = this.plugin.nov || await pl.recuperarRevision();
     if (st?.fase === 'buscando') return mostrar(T('● buscando…'), 1);
-    if (st?.prop) {
-      const quedan = st.prop.novedades.filter((n) => n.estado === 'nuevo' && !n.decision).length;
-      return mostrar(T('● {0} nuevas', quedan), quedan);
-    }
+    const quedan = st?.prop ? st.prop.novedades.filter((n) => n.estado === 'nuevo' && !n.decision).length : 0;
+    if (quedan) return mostrar(T('● {0} nuevas', quedan), quedan);
     // Contar es local y gratis: se leen los archivos, no se llama a la IA.
     const m = await pl.prepararMaterial(pl.reunirCrudo());
     const n = new Set(m.piezas.map((x) => x.ruta)).size;
@@ -3214,7 +3212,10 @@ export default class MapaNeuronal extends Plugin {
   // panel y a reiniciar Obsidian. Solo lo que hace falta para mostrarla y aprobarla.
   async guardarRevision() {
     const reg = await this.leerRegistroIngesta(), p = this.nov?.prop;
-    if (!p) { delete reg.revision; await this.escribirRegistroIngesta(reg); return; }
+    // Solo vale la pena guardar si queda algo por decidir. Una búsqueda que falló entera (cuota)
+    // guardaba una revisión vacía que escondía «N por leer» y frenaba la búsqueda automática.
+    const pendientes = (p?.novedades || []).some((n) => n.estado === 'nuevo' && !n.decision);
+    if (!p || !pendientes) { if (reg.revision) { delete reg.revision; await this.escribirRegistroIngesta(reg); } return; }
     const campos = ['id', 'texto', 'cita', 'fuente', 'destino', 'crear', 'verificada', 'estado', 'seccion', 'detalle', 'porAlias', 'decision'];
     reg.revision = { fecha: new Date().toISOString(), modelo: p.modelo, tandas: p.tandas, leidas: p.leidas, exitosas: p.exitosas,
       contradicciones: (p.contradicciones || []).slice(0, 100), fallos: (p.fallos || []).slice(0, 50), avisos: (p.avisos || []).slice(0, 50),
@@ -3225,7 +3226,7 @@ export default class MapaNeuronal extends Plugin {
   async recuperarRevision() {
     if (this.nov) return this.nov;
     const r = (await this.leerRegistroIngesta()).revision;
-    if (!r?.novedades) return null;
+    if (!r?.novedades?.some((n) => n.estado === 'nuevo' && !n.decision)) return null;
     this.nov = { fase: 'revisar', material: null, aplicadas: 0, recuperada: true, prop: r };
     return this.nov;
   }
@@ -3257,8 +3258,11 @@ export default class MapaNeuronal extends Plugin {
     const reg = await this.leerRegistroIngesta(), yo = this.idDispositivo(), ahora = Date.now();
     if (reg.bloqueo && reg.bloqueo.dispositivo !== yo && reg.bloqueo.hasta > ahora) return 'otro-dispositivo';
     const tope = Math.max(0, Number(this.ajustes.topeDiario) || 0);
-    const usadas = reg.uso?.fecha === hoy() ? reg.uso.llamadas : 0, necesarias = this.armarTandas(material.piezas).length;
-    if (usadas + necesarias > tope) {
+    // [1.33.1] Se lee hasta el tope y lo demás sigue mañana: lo leído ya queda sellado. Antes, si el
+    // atraso pedía más llamadas que el tope, no se hacía ninguna, ningún día: con 67 archivos
+    // pendientes y tope 30, la búsqueda automática no avanzaba nunca.
+    const usadas = reg.uso?.fecha === hoy() ? reg.uso.llamadas : 0;
+    if (usadas >= tope) {
       new Notice(T('Hay material nuevo, pero hoy ya van {0} de {1} llamadas automáticas. Revísalo desde el mapa.', usadas, tope), 10000);
       return 'tope';
     }
