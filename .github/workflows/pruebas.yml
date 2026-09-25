@@ -23,6 +23,8 @@ jobs:
       - name: Linter oficial de Obsidian
         run: npx eslint src/
       - name: Construir y probar (mapa, fuentes, escritura, IA, idioma)
-        # Sin «|| true»: si una prueba falla, el flujo falla. La de interfaz necesita Chrome y se
-        # salta sola donde no hay; las demás son obligatorias.
+        # Sin «|| true»: si una prueba falla, el flujo falla. Todas son obligatorias, también la de
+        # interfaz (Chrome del runner): antes se saltaba siempre porque buscaba la ruta de macOS.
+        env:
+          CHROME: /usr/bin/google-chrome   # viene instalado en ubuntu-latest
         run: npm test
