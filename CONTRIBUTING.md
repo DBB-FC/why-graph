@@ -20,7 +20,9 @@ dictionary at the top of `src/main.js`; the test will tell you if you forgot.
 
 A third check renders the settings screen in headless Chrome and fails if it breaks halfway:
 an exception inside `display()` leaves the screen half-drawn with no visible error, so the
-rest simply does not appear. It skips itself where Chrome is not installed.
+rest simply does not appear. It also types into the search box and checks that the results list is
+visible. On your machine it skips itself if Chrome is not installed; in CI it is mandatory and fails
+without it.
 
 ## What the plugin promises, and must keep promising
 
