@@ -1,7 +1,7 @@
 {
   "id": "mapa-neuronal",
   "name": "Why Graph",
-  "version": "1.33.0",
+  "version": "1.33.1",
   "minAppVersion": "1.8.7",
   "description": "The map for your LLM wiki: raw sources, notes and syntheses as layers, with the reason each link exists — written by you or suggested by your AI. Works with any structured vault.",
   "author": "Felipe Córdova",
