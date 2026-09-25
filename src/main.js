@@ -3,6 +3,9 @@
  * v1.19 (16.09.2026): el nombre visible pasa a «Why Graph». El id, los nombres de archivo y
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
+ * v1.34 (en curso): «Modelo» se elige de una lista cargada en vivo desde el proveedor (OpenRouter
+ *   con precio y solo los que respetan el esquema JSON; Gemini, OpenAI y la IA local con su llave).
+ *   ★ marca lo probado con Why Graph; «Otro» deja escribir un modelo que no aparece.
  *
  * v1.33 (25.09.2026): la auditoría forense sobre el cerebro real —
  *   · Buscador: la lista de resultados por fin se ve en Obsidian (show() deja display vacío y el
@@ -558,6 +561,20 @@ const EN = {
   'ingesta': 'ingestion',
   'Material de origen': 'Source material',
   'aprobado por la persona': 'approved by the person',
+  // [1.34] lista de modelos
+  'gratis, con límite diario': 'free, with a daily limit',
+  'US${0} por millón': 'US${0} per million',
+  '— elige un modelo —': '— choose a model —',
+  'Otro: escribir el nombre…': 'Other: type the name…',
+  '{0} modelos que responden en el formato que pide Why Graph, del más barato al más caro (precio por millón de tokens de entrada). Los gratis van al final: tienen límite diario.':
+    '{0} models that answer in the format Why Graph needs, cheapest first (price per million input tokens). Free ones go last: they have a daily limit.',
+  '{0} modelos disponibles con tu llave.': '{0} models available with your key.',
+  '★ = probado con Why Graph.': '★ = tested with Why Graph.',
+  'Volver a cargar la lista': 'Reload the list',
+  'Cargando la lista de modelos…': 'Loading the list of models…',
+  'No se pudo cargar la lista ({0}). Escribe el nombre a mano.': 'Could not load the list ({0}). Type the name instead.',
+  'Pega la llave para elegir el modelo de una lista.': 'Paste the key to choose the model from a list.',
+  'Ver la lista': 'Show the list',
 };
 let _es = null; // se resuelve una vez: Obsidian pide reiniciar para cambiar de idioma
 const enEspanol = () => {
@@ -639,6 +656,9 @@ const PROVEEDORES = {
   openrouter: { nombre: 'OpenRouter', url: 'https://openrouter.ai/api/v1/chat/completions', llave: true, ayuda: 'Crea la llave en openrouter.ai/keys. Una sola llave da acceso a modelos de Anthropic, Google, OpenAI y abiertos; los que terminan en «:free» no cuestan, con límite diario.', modeloAyuda: 'El identificador como aparece en openrouter.ai/models, con el proveedor delante: por ejemplo google/gemini-3.1-flash-lite.', modelo: '' },
   local: { nombre: 'IA local (Ollama, LM Studio)', url: 'http://localhost:11434/v1/chat/completions', llave: false, ayuda: 'Gratis y sin enviar tus notas a internet. Necesitas Ollama o LM Studio corriendo en este computador. No funciona en el celular.', modeloAyuda: 'El nombre del modelo que descargaste, por ejemplo el que muestra «ollama list».', modelo: '' },
 };
+// [1.34] Los modelos que ya se probaron de punta a punta con Why Graph: van primero en la lista, con ★.
+const PROBADOS = { openrouter: ['google/gemini-3.1-flash-lite'], gemini: ['gemini-3.1-flash-lite'] };
+const OTRO_MODELO = '__otro__';
 // Fuentes: rutas explícitas a archivos de las carpetas configuradas. Se aceptan tildes y espacios
 // cuando la ruta va entre acentos graves, en un [[wikilink]] o en un enlace (…); suelta en el texto,
 // solo hasta el primer espacio. Texto que se parece a una ruta pero no resuelve a un archivo o
@@ -2726,7 +2746,7 @@ class AjustesMapa extends PluginSettingTab {
     const prov = p.ajustes.proveedorIA || 'claude', def = PROVEEDORES[prov];
     new Setting(c).setName(T('Proveedor')).setDesc(T('Con qué IA se proponen motivos, resúmenes y novedades. Las citas verificadas y tu aprobación funcionan con todas.'))
       .addDropdown((d) => d.addOptions(Object.fromEntries(Object.entries(PROVEEDORES).map(([k, v]) => [k, v.nombre]))).setValue(prov)
-        .onChange(async (v) => { p.ajustes.proveedorIA = v; p.ajustes.modeloIA = PROVEEDORES[v].modelo; await p.guardar(); this.refrescar(); }));
+        .onChange(async (v) => { p.ajustes.proveedorIA = v; p.ajustes.modeloIA = PROVEEDORES[v].modelo; this.aMano = false; await p.guardar(); this.refrescar(); }));
     if (def.llave) {
       // Pegar una llave en un campo de contraseña y no ver nada deja la duda de si quedó guardada.
       // El aviso va en la DESCRIPCIÓN de la fila, no en un evento del DOM: `PluginSettingTab` no
@@ -2738,15 +2758,14 @@ class AjustesMapa extends PluginSettingTab {
       decir();
       fila.addText((t) => { t.inputEl.type = 'password';
         t.setPlaceholder(p.app.loadLocalStorage(CLAVE_IA(prov)) ? T('guardada') : T('pega la llave aquí'));
-        t.onChange((v) => { p.app.saveLocalStorage(CLAVE_IA(prov), v.trim() || null); decir(); }); })
+        t.onChange((v) => { p.app.saveLocalStorage(CLAVE_IA(prov), v.trim() || null); decir(); if (p.modelos?.[prov] === null || p.modelos?.[prov]?.error) delete p.modelos[prov]; }); })
         .addButton((b) => b.setButtonText(T('Borrar')).onClick(() => { p.app.saveLocalStorage(CLAVE_IA(prov), null); this.refrescar(); new Notice(T('Llave borrada de este dispositivo')); }));
     } else new Setting(c).setName(T('Sin llave')).setDesc(T(def.ayuda));
     if (prov === 'local') new Setting(c).setName(T('Dirección del servidor local')).setDesc(T('Compatible con OpenAI. Ollama usa http://localhost:11434/v1/chat/completions.'))
       .addText((t) => t.setValue(p.ajustes.urlLocal).onChange(async (v) => { p.ajustes.urlLocal = v.trim() || PROVEEDORES.local.url; await p.guardar(); }));
     if (prov === 'claude') new Setting(c).setName(T('Modelo')).setDesc(T(def.modeloAyuda))
       .addDropdown((d) => d.addOptions({ 'claude-opus-5': 'Claude Opus 5', 'claude-sonnet-5': 'Claude Sonnet 5', 'claude-haiku-4-5': 'Claude Haiku 4.5' }).setValue(p.ajustes.modeloIA || 'claude-opus-5').onChange(async (v) => { p.ajustes.modeloIA = v; await p.guardar(); }));
-    else new Setting(c).setName(T('Modelo')).setDesc(T(def.modeloAyuda))
-      .addText((t) => t.setPlaceholder(T('nombre del modelo')).setValue(p.ajustes.modeloIA).onChange(async (v) => { p.ajustes.modeloIA = v.trim(); await p.guardar(); }));
+    else this.pintarModelo(c, prov, def);
     c.createEl('p', { cls: 'setting-item-description', text: T('Medido con Claude Opus 5: 97,7 % de motivos correctos y 0 inventados en 50 conexiones. Con otros modelos los candados siguen; la precisión no está medida.') });
     new Setting(c).setName(T('Probar la conexión')).setDesc(T('Hace una llamada mínima —unos pocos tokens— y te dice si tu IA responde. Ninguna nota se envía.'))
       .addButton((b) => b.setButtonText(T('Probar')).onClick(async () => {
@@ -2760,6 +2779,46 @@ class AjustesMapa extends PluginSettingTab {
         } catch (e) { new Notice(e.message, 10000); }
         b.setButtonText(T('Probar')).setDisabled(false);
       }));
+  }
+  // [1.34] «Modelo» como lista desplegable, cargada del proveedor al abrir los ajustes (una vez por
+  // proveedor y sesión). Si no hay llave, la lista no carga o la persona elige «Otro», queda el
+  // campo de texto de siempre: nunca se pierde la forma de escribir un modelo que no aparece.
+  pintarModelo(c, prov, def) {
+    const p = this.plugin, actual = p.ajustes.modeloIA || '', cache = (p.modelos = p.modelos || {});
+    const puede = !def.llave || prov === 'openrouter' || !!p.app.loadLocalStorage(CLAVE_IA(prov));
+    if (cache[prov] === undefined && puede) {
+      cache[prov] = 'cargando';
+      p.listarModelos(prov).then((l) => { cache[prov] = l; }, (e) => { cache[prov] = { error: e.message }; }).finally(() => this.refrescar());
+    }
+    const lista = cache[prov], fila = new Setting(c).setName(T('Modelo'));
+    const recargar = () => { delete cache[prov]; this.aMano = false; this.refrescar(); };
+    if (Array.isArray(lista) && lista.length && !this.aMano) {
+      const num = (n) => (n < 0.1 ? n.toFixed(3) : n.toFixed(2)).replace('.', enEspanol() ? ',' : '.');
+      const etiqueta = (m) => m.precio === undefined ? m.id
+        : m.id + ' · ' + (m.precio === 0 ? T('gratis, con límite diario') : T('US${0} por millón', num(m.precio)));
+      const probados = (PROBADOS[prov] || []).filter((id) => lista.some((m) => m.id === id));
+      const opciones = {};
+      if (!actual) opciones[''] = T('— elige un modelo —');
+      for (const id of probados) opciones[id] = '★ ' + etiqueta(lista.find((m) => m.id === id));
+      for (const m of lista) if (!opciones[m.id]) opciones[m.id] = etiqueta(m);
+      if (actual && !opciones[actual]) opciones[actual] = actual;   // lo que ya tenía, aunque no venga en la lista
+      opciones[OTRO_MODELO] = T('Otro: escribir el nombre…');
+      fila.setDesc((prov === 'openrouter'
+        ? T('{0} modelos que responden en el formato que pide Why Graph, del más barato al más caro (precio por millón de tokens de entrada). Los gratis van al final: tienen límite diario.', lista.length)
+        : T('{0} modelos disponibles con tu llave.', lista.length)) + (probados.length ? ' ' + T('★ = probado con Why Graph.') : ''))
+        .addDropdown((d) => d.addOptions(opciones).setValue(actual).onChange(async (v) => {
+          if (v === OTRO_MODELO) { this.aMano = true; this.refrescar(); return; }
+          p.ajustes.modeloIA = v; await p.guardar();
+        }))
+        .addExtraButton((b) => b.setIcon('refresh-cw').setTooltip(T('Volver a cargar la lista')).onClick(recargar));
+      return;
+    }
+    const estado = lista === 'cargando' ? T('Cargando la lista de modelos…')
+      : lista?.error ? T('No se pudo cargar la lista ({0}). Escribe el nombre a mano.', lista.error)
+      : !puede ? T('Pega la llave para elegir el modelo de una lista.') : '';
+    fila.setDesc([estado, T(def.modeloAyuda)].filter(Boolean).join(' '))
+      .addText((t) => t.setPlaceholder(T('nombre del modelo')).setValue(actual).onChange(async (v) => { p.ajustes.modeloIA = v.trim(); await p.guardar(); }));
+    if (puede && lista !== 'cargando') fila.addButton((b) => b.setButtonText(T('Ver la lista')).onClick(recargar));
   }
   refrescar() { if (typeof this.update === 'function') this.update(); else this.display(); }
   // Obsidian 1.13+: los ajustes también como definiciones, para que aparezcan en la búsqueda
@@ -2875,6 +2934,41 @@ export default class MapaNeuronal extends Plugin {
     const prov = this.ajustes.proveedorIA || 'claude', def = PROVEEDORES[prov];
     if (!def) return false;
     return def.llave ? !!this.app.loadLocalStorage(CLAVE_IA(prov)) : !!this.ajustes.modeloIA;
+  }
+
+  // [1.34] La lista de modelos, en vivo desde el proveedor: los nombres cambian cada mes y escribirlos
+  // a mano era el primer tropiezo. OpenRouter la da sin llave, con precio, y se dejan solo los que
+  // respetan el esquema JSON (el mismo filtro que pide `require_parameters` al llamar).
+  async listarModelos(prov) {
+    const def = PROVEEDORES[prov], llave = def?.llave ? this.app.loadLocalStorage(CLAVE_IA(prov)) : '';
+    const headers = {}; let url;
+    if (prov === 'openrouter') url = 'https://openrouter.ai/api/v1/models';
+    else if (prov === 'openai') { url = 'https://api.openai.com/v1/models'; headers.authorization = `Bearer ${llave}`; }
+    else if (prov === 'gemini') url = `${PROVEEDORES.gemini.url}?pageSize=1000&key=${encodeURIComponent(llave)}`;
+    else if (prov === 'local') url = String(this.ajustes.urlLocal || PROVEEDORES.local.url).replace(/\/chat\/completions\/?$/, '/models');
+    else return null;
+    if (def.llave && prov !== 'openrouter' && !llave) return null;
+    let reloj;
+    const r = await Promise.race([
+      requestUrl({ url, method: 'GET', headers, throw: false }),
+      new Promise((ok) => { reloj = window.setTimeout(() => ok({ status: 0, json: {} }), 15000); }),
+    ]).finally(() => window.clearTimeout(reloj));
+    const j = this.revisarRespuesta(r, def.nombre, prov === 'local');
+    const solo = (id) => !/embed|image|imagen|veo|tts|audio|realtime|transcri|moderation|search|aqa|live|robotics/i.test(id);
+    let lista;
+    if (prov === 'openrouter') lista = (j.data || [])
+      .filter((m) => (m.supported_parameters || []).includes('structured_outputs') && !/:batch$/.test(m.id) && solo(m.id)
+        && !(m.architecture?.output_modalities || []).some((x) => x !== 'text') && Number(m.pricing?.prompt) >= 0 && !/^openrouter\//.test(m.id))
+      .map((m) => ({ id: m.id, precio: Number(m.pricing.prompt) * 1e6 }))
+      // Los gratis al final: su límite diario los traba igual que la capa gratis de Gemini.
+      .sort((x, y) => (x.precio === 0) - (y.precio === 0) || x.precio - y.precio || x.id.localeCompare(y.id));
+    else if (prov === 'gemini') lista = (j.models || [])
+      .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map((m) => ({ id: String(m.name).replace(/^models\//, '') })).filter((m) => solo(m.id));
+    else lista = (j.data || []).map((m) => ({ id: m.id }))
+      .filter((m) => prov === 'local' || (/^(gpt-|o\d|chatgpt)/.test(m.id) && !/instruct/.test(m.id) && solo(m.id)));
+    if (prov !== 'openrouter') lista.sort((x, y) => x.id.localeCompare(y.id));
+    return lista;
   }
 
   // Una sola puerta para todos los proveedores. Devuelve el objeto JSON que pide el esquema.

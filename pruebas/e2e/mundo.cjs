@@ -84,7 +84,16 @@ class Mundo {
     this.notas = {}; this.mtimes = {}; this.internos = {}; this.datos = null;
     this.dispositivos = {};          // nombre → { ls: {}, telefono }
     this.hallazgos = []; this.avisos = []; this.errores = []; this.registro = [];
-    this.ia = { cuotaDiaria: Infinity, usadas: {}, llamadas: [], lento: 0, caida: 0, pagado: new Map() };
+    this.ia = { cuotaDiaria: Infinity, usadas: {}, llamadas: [], lento: 0, caida: 0, pagado: new Map(), listas: [], listasCaidas: 0,
+      modelos: {
+        openrouter: [{ id: 'mistralai/mistral-nemo', precio: 0.019 }, { id: 'google/gemini-3.1-flash-lite', precio: 0.25 },
+          { id: 'google/gemini-3.1-flash-lite:batch', precio: 0.125 }, { id: 'qwen/qwen3.8-27b:free', precio: 0 },
+          { id: 'openrouter/auto', precio: -1 }, { id: 'openrouter/free', precio: 0 }, { id: 'viejo/sin-esquema', precio: 0.01, esquema: false },
+          { id: 'google/gemini-3.1-flash-image', precio: 0.5, salida: ['image', 'text'] }, { id: 'anthropic/claude-opus-5', precio: 5 }],
+        gemini: [{ id: 'gemini-3.1-flash-lite' }, { id: 'gemini-3.8-flash' }, { id: 'text-embedding-005', metodos: ['embedContent'] }, { id: 'gemini-3.1-flash-image' }],
+        openai: [{ id: 'gpt-5-mini' }, { id: 'text-embedding-3-small' }, { id: 'gpt-5-realtime' }, { id: 'dall-e-3' }],
+        local: [{ id: 'llama3.2' }],
+      } };
     this.eventos = {}; this.tiempos = []; this.foco = null; this.menu = null; this.raizDom = null; this.sesion = null;
     this.timers = new Set();
     this.escala = opciones.escala || 1000;   // 1 s del plugin = 1 ms real
@@ -112,7 +121,20 @@ class Mundo {
   hallazgo(tipo, detalle) { if (!this.hallazgos.some((h) => h.tipo === tipo && h.detalle === detalle)) this.hallazgos.push({ tipo, detalle, dia: this.hoy(), paso: this.paso }); }
   error(donde, e) { this.errores.push(`${donde}: ${e?.stack || e}`); this.hallazgo('error tragado', `${donde}: ${String(e?.message || e).slice(0, 160)}`); }
   // ── IA falsa ──
+  // Las listas de modelos que da cada proveedor (GET …/models). No son llamadas a la IA: no gastan
+  // cuota, pero se cuentan para detectar si se piden de más.
+  listaModelos(url) {
+    const d = this.ia.modelos, prov = /openrouter/.test(url) ? 'openrouter' : /generativelanguage/.test(url) ? 'gemini' : /openai/.test(url) ? 'openai' : 'local';
+    this.ia.listas.push({ dia: this.hoy(), prov, sesion: this.sesion?.id });
+    if (this.ia.listasCaidas > 0) { this.ia.listasCaidas--; return { status: 503, json: { error: { message: 'overloaded' } } }; }
+    if (prov === 'gemini' && !/key=[^&]+/.test(url)) return { status: 403, json: { error: { message: 'API key missing' } } };
+    if (prov === 'gemini') return { status: 200, json: { models: d.gemini.map((m) => ({ name: 'models/' + m.id, supportedGenerationMethods: m.metodos || ['generateContent'] })) } };
+    if (prov === 'openrouter') return { status: 200, json: { data: d.openrouter.map((m) => ({ id: m.id, pricing: { prompt: String(m.precio / 1e6), completion: '0' },
+      supported_parameters: m.esquema === false ? ['temperature'] : ['structured_outputs', 'response_format'], architecture: { output_modalities: m.salida || ['text'] } })) } };
+    return { status: 200, json: { data: (d[prov] || []).map((m) => ({ id: m.id })) } };
+  }
   responderIA(o) {
+    if (String(o.method).toUpperCase() === 'GET' && /\/models(\?|$)/.test(o.url)) return this.listaModelos(o.url);
     const url = o.url, cuerpo = JSON.parse(o.body || '{}'), gemini = /generativelanguage/.test(url);
     const sistema = gemini ? cuerpo.systemInstruction?.parts?.[0]?.text : (cuerpo.system || cuerpo.messages?.find((m) => m.role === 'system')?.content || '');
     const usuario = gemini ? cuerpo.contents?.[0]?.parts?.[0]?.text : (cuerpo.messages?.find((m) => m.role === 'user')?.content || '');
@@ -199,7 +221,7 @@ function tipoPrompt(s) {
   if (/^Explicas por qué/.test(s)) return 'motivo';
   if (/^Resumes una nota/.test(s)) return 'resumen';
   if (/^Eres un revisor/.test(s)) return 'revisor';
-  if (/prueba|test/i.test(s)) return 'probar';
+  if (/prueba|test/i.test(s) || /^Responde solo con JSON\.$/.test(s)) return 'probar';
   return 'otro';
 }
 function bloques(u) { return [...String(u).matchAll(/<material fuente="([^"]+)"[^>]*>\n([\s\S]*?)\n<\/material>/g)].map((m) => ({ fuente: m[1], texto: m[2] })); }
@@ -286,10 +308,10 @@ class Sesion {
     class Menu { constructor() { this.items = []; } addItem(f) { const i = item(); f(i); this.items.push(i); return this; } addSeparator() { return this; } showAtMouseEvent() { M.menu = this; } showAtPosition() { M.menu = this; } }
     class Modal { constructor(app) { this.app = app; this.contentEl = new Nodo('div', M); this.contentEl.padre = M.raizDom; M.raizDom.hijos.push(this.contentEl); this.titleEl = new Nodo('div', M); } setTitle(t) { this.titulo = t; } open() { M.modal = this; this.onOpen?.(); } close() { M.modal = null; this.contentEl.remove(); this.onClose?.(); } }
     class Notice { constructor(m) { M.avisos.push({ dia: M.hoy(), texto: String(m) }); if (/no se pudo|error|falló|rechazó|no encuentro|no respondió|desconocid|cortada|bloqueó/i.test(String(m))) M.hallazgo('aviso de error', String(m).slice(0, 200)); } setMessage() { return this; } hide() {} }
-    const campo = (tipo) => { const c = { tipo, valor: undefined }; for (const k of ['setPlaceholder', 'setLimits', 'setDynamicTooltip', 'addOptions', 'setButtonText', 'setCta', 'setIcon', 'setDisabled', 'setTooltip', 'setWarning']) c[k] = () => c; c.setValue = (v) => { c.valor = v; return c; }; c.onChange = (f) => { c.alCambiar = f; return c; }; c.onClick = (f) => { c.alClic = f; return c; }; c.inputEl = new Nodo('input', M); c.inputEl.addClass = () => c.inputEl; c.selectEl = new Nodo('select', M); c.buttonEl = new Nodo('button', M); return c; };
+    const campo = (tipo) => { const c = { tipo, valor: undefined }; c.addOptions = (o) => { c.opciones = Object.assign(c.opciones || {}, o); return c; }; c.setButtonText = (t) => { c.texto = String(t); return c; }; for (const k of ['setPlaceholder', 'setLimits', 'setDynamicTooltip', 'setCta', 'setIcon', 'setDisabled', 'setTooltip', 'setWarning']) c[k] = () => c; c.setValue = (v) => { c.valor = v; return c; }; c.onChange = (f) => { c.alCambiar = f; return c; }; c.onClick = (f) => { c.alClic = f; return c; }; c.inputEl = new Nodo('input', M); c.inputEl.addClass = () => c.inputEl; c.selectEl = new Nodo('select', M); c.buttonEl = new Nodo('button', M); return c; };
     class Setting {
       constructor(el) { this.el = el; this.settingEl = el?.createDiv ? el.createDiv('setting-item') : new Nodo('div', M); this.campos = []; this.descEl = new Nodo('div', M); this.nameEl = new Nodo('div', M); this.controlEl = new Nodo('div', M); this.infoEl = new Nodo('div', M); (M.ajustesUI = M.ajustesUI || []).push(this); }
-      setName(v) { this.nombre = String(v?.textContent ?? v); this.settingEl.attrs['data-nombre'] = this.nombre; return this; } setDesc() { return this; } setHeading() { return this; } setClass() { return this; } setTooltip() { return this; } setDisabled() { return this; }
+      setName(v) { this.nombre = String(v?.textContent ?? v); this.settingEl.attrs['data-nombre'] = this.nombre; return this; } setDesc(v) { this.desc = String(v ?? ''); return this; } setHeading() { return this; } setClass() { return this; } setTooltip() { return this; } setDisabled() { return this; }
       _c(t, f) { const c = campo(t); f(c); this.campos.push(c); return this; }
       addText(f) { return this._c('texto', f); } addTextArea(f) { return this._c('area', f); } addToggle(f) { return this._c('interruptor', f); } addSlider(f) { return this._c('deslizador', f); } addDropdown(f) { return this._c('lista', f); } addButton(f) { return this._c('boton', f); } addExtraButton(f) { return this._c('boton', f); } addSearch(f) { return this._c('texto', f); }
     };
@@ -435,6 +457,18 @@ class Sesion {
     for (const f of v.lienzo.eventos.pointerdown || []) f(ev('pointerdown'));
     for (const f of v.lienzo.eventos.pointerup || []) f(ev('pointerup'));
     await this.calma(); return true;
+  }
+  // La pantalla de ajustes como la ve la persona, después de que termine de cargar lo que carga sola.
+  async verAjustes() {
+    const t = this.pestanaAjustes, dibujar = () => { this.mundo.ajustesUI = []; t.containerEl = new Nodo('div', this.mundo); t.display(); };
+    dibujar(); await this.calma(); dibujar(); await this.calma(); return this.mundo.ajustesUI;
+  }
+  fila(nombre) { return (this.mundo.ajustesUI || []).find((x) => x.nombre && (typeof nombre === 'string' ? x.nombre.includes(nombre) : nombre.test(x.nombre))); }
+  // Pulsar un botón de una fila de ajustes, por su texto.
+  async botonAjuste(nombre, texto) {
+    const b = this.fila(nombre)?.campos.find((x) => x.tipo === 'boton' && x.alClic && (!texto || x.texto === texto));
+    if (!b) { this.mundo.hallazgo('botón que no está', `${texto || '?'} en ajustes «${nombre}»`); return false; }
+    await b.alClic(); await this.calma(); return true;
   }
   // Ajustes: la pantalla de ajustes se dibuja y se cambia un campo por el nombre de su fila.
   async ajuste(nombre, valor) {
