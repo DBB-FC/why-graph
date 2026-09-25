@@ -288,15 +288,16 @@ function conIA(pl, respuesta) {
     q.ajustes.autoIngesta = true;
     p.igual('encendido: prepara las novedades en segundo plano', await q.alAbrirObsidian(), 'hecho');
     p.cierto('y quedan esperando revisión', llamadas === 1 && q.nov?.fase === 'revisar' && q.nov.prop.novedades.length === 1);
-    p.igual('mientras esperan, abrir de nuevo no vuelve a llamar', [await q.alAbrirObsidian(), llamadas], ['apagado', 1]);
+    p.igual('mientras esperan, abrir de nuevo no vuelve a llamar', [await q.alAbrirObsidian(), llamadas], ['revision-pendiente', 1]);
     const reg = JSON.parse(Object.values(v.internos)[0]);
-    p.cierto('se anotan las llamadas del día y el bloqueo de este dispositivo', reg.uso?.llamadas === 1 && !!reg.bloqueo?.dispositivo);
+    // [1.33.1] Lo leído se sella al terminar la búsqueda y el bloqueo se suelta; la revisión queda guardada.
+    p.cierto('se anotan las llamadas del día, lo leído queda sellado y la revisión guardada', reg.uso?.llamadas === 1 && !reg.bloqueo && reg.revision?.novedades?.length === 1);
 
     // Otro dispositivo (mismo vault por Sync) ve el bloqueo y no paga de nuevo
     const otro = new Plugin(); otro.app = Object.assign({}, v.app, { _ls: {}, loadLocalStorage: (k) => otro.app._ls[k], saveLocalStorage: (k, x) => { otro.app._ls[k] = x; } });
     await otro.onload(); Object.assign(otro.ajustes, { carpetaCrudo: 'raw', carpetaWiki: 'wiki', autoIngesta: true });
     otro.app.saveLocalStorage(CLAVE_IA('claude'), 'llave'); otro.llamarIA = q.llamarIA;
-    p.igual('otro dispositivo no prepara lo mismo mientras el primero no termine', [await otro.alAbrirObsidian(), llamadas], ['otro-dispositivo', 1]);
+    p.igual('otro dispositivo no vuelve a pagar: retoma la revisión guardada', [await otro.alAbrirObsidian(), llamadas, !!otro.nov?.recuperada], ['revision-pendiente', 1, true]);
 
     // Terminar suelta el bloqueo
     await q.confirmarIngesta(q.nov.material); q.nov = null;
