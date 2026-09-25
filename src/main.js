@@ -4,6 +4,27 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.33 (25.09.2026): la auditoría forense sobre el cerebro real —
+ *   · Buscador: la lista de resultados por fin se ve en Obsidian (show() deja display vacío y el
+ *     CSS la tenía oculta). Busca por palabras en cualquier orden, sin tildes ni guiones, por alias,
+ *     y también lo que no está en el mapa (material crudo sin citar, notas fuera de capa): se abre.
+ *   · Pulsos: cada uno sale al empezar su viaje y lo termina (antes 516 cortes cada 30 s) y nunca
+ *     quedan en cero; la animación usa la ventana del mapa y sigue en una ventana aparte.
+ *   · Ingesta: los párrafos de una pieza fallida ya no quedan como enviados; el tope diario cuenta
+ *     cada llamada real (los dos pasos y los reintentos); la cuota diaria de Gemini no se reintenta
+ *     y detiene la corrida con un aviso claro; respuestas cortadas o bloqueadas se dicen como son;
+ *     el último error queda en ingesta.json; con fallos el sello avanza sin saltar lo fallido.
+ *   · Fuentes anidadas (raw, raw/articles, raw/daily/*): gana la más específica, sin doble conteo.
+ *   · Motivos: «- [[a]] · [[b]] — motivo» vale para cada nota; enlaces con ruta, ancla o mayúsculas.
+ *   · OpenRouter como quinto proveedor: una llave para muchos modelos, con esquema JSON exigido.
+ *   · UI/UX (auditoría medida con la sonda sobre el vault real, 14 escenarios): tocar una nota la deja
+ *     a la vista aunque el panel o la hoja del teléfono se abran encima; el panel reserva su ancho
+ *     real (bajo ~1.250 px tapaba la capa de temas); rótulos que no invaden el panel ni se salen de
+ *     la pantalla (se acortan con «…»); radial dentro del espacio libre y con su rótulo traducido;
+ *     el tope por capa del teléfono vale desde la primera carga; texto del lienzo ≥ 9 px en el
+ *     teléfono; filas del panel y resultados accesibles con teclado (↓ ↑ Enter Esc); lienzo con
+ *     nombre para lectores de pantalla; objetivos táctiles de 40–44 px; chips que avisan que hay
+ *     más; contraste ≥ 4,5 en los textos tenues.
  * v1.32 (23.09.2026): Novedades — el material sin procesar se vuelve líneas para el wiki. Nunca
  *   dos veces lo mismo (huellas en ingesta.json), tandas en paralelo, dos pasos (buscar con cita
  *   verificada; comparar con la página: nuevo / ya estaba / choca), aprobar = insertar una línea
@@ -108,6 +129,17 @@ const EN = {
   // barra y guía
   'buscar nota…': 'search note…',
   'No hay notas con ese nombre': 'No notes with that name',
+  'fuera del mapa': 'not on the map',
+  '{0} salto(s)': '{0} hop(s)',
+  ' · {0} notas': ' · {0} notes',
+  'Crea la llave en openrouter.ai/keys. Una sola llave da acceso a modelos de Anthropic, Google, OpenAI y abiertos; los que terminan en «:free» no cuestan, con límite diario.':
+    'Create the key at openrouter.ai/keys. One key reaches models from Anthropic, Google, OpenAI and open ones; those ending in «:free» cost nothing, with a daily limit.',
+  'El identificador como aparece en openrouter.ai/models, con el proveedor delante: por ejemplo google/gemini-3.1-flash-lite.':
+    'The identifier as shown on openrouter.ai/models, with the provider in front: for example google/gemini-3.1-flash-lite.',
+  'Se llegó al tope diario de llamadas automáticas. Lo que falta queda para la próxima vez.': 'The daily limit of automatic calls was reached. The rest is kept for next time.',
+  '{0}: se agotó la cuota diaria de {1} ({2} llamadas al día en la capa gratis). Elige otro modelo o activa la facturación; mañana se renueva.': '{0}: the daily quota for {1} is used up ({2} calls a day on the free tier). Pick another model or enable billing; it resets tomorrow.',
+  'Gemini bloqueó el material ({0}).': 'Gemini blocked the material ({0}).',
+  'Novedades: no se pudo leer el material. {0}': 'What\'s new: the material could not be read. {0}',
   '⋯ herramientas': '⋯ tools',
   'Alejar': 'Zoom out',
   'Encuadrar': 'Fit to screen',
@@ -601,6 +633,9 @@ const PROVEEDORES = {
   claude: { nombre: 'Claude (Anthropic)', url: 'https://api.anthropic.com/v1/messages', llave: true, ayuda: 'Crea la llave en console.anthropic.com, sección API keys. Una suscripción de Claude (Pro o Max) no sirve: la API se paga por uso.', modeloAyuda: 'claude-opus-5 es el más preciso (97,7 % en nuestra prueba). claude-sonnet-5 y claude-haiku-4-5 son más baratos.', modelo: 'claude-opus-5' },
   openai: { nombre: 'OpenAI (ChatGPT)', url: 'https://api.openai.com/v1/chat/completions', llave: true, ayuda: 'Crea la llave en platform.openai.com. Una suscripción de ChatGPT no sirve: la API se paga por uso.', modeloAyuda: 'Escribe el identificador del modelo, como aparece en la documentación de OpenAI.', modelo: '' },
   gemini: { nombre: 'Google Gemini', url: 'https://generativelanguage.googleapis.com/v1beta/models', llave: true, ayuda: 'Crea la llave en aistudio.google.com. Tiene una capa gratuita con límites de uso.', modeloAyuda: 'Escribe el identificador del modelo, como aparece en la documentación de Gemini.', modelo: '' },
+  // [1.33] Una llave para muchos modelos (Anthropic, Google, OpenAI, abiertos), algunos gratis («:free»).
+  // Habla el mismo protocolo que OpenAI: va por pedirCompatible.
+  openrouter: { nombre: 'OpenRouter', url: 'https://openrouter.ai/api/v1/chat/completions', llave: true, ayuda: 'Crea la llave en openrouter.ai/keys. Una sola llave da acceso a modelos de Anthropic, Google, OpenAI y abiertos; los que terminan en «:free» no cuestan, con límite diario.', modeloAyuda: 'El identificador como aparece en openrouter.ai/models, con el proveedor delante: por ejemplo google/gemini-3.1-flash-lite.', modelo: '' },
   local: { nombre: 'IA local (Ollama, LM Studio)', url: 'http://localhost:11434/v1/chat/completions', llave: false, ayuda: 'Gratis y sin enviar tus notas a internet. Necesitas Ollama o LM Studio corriendo en este computador. No funciona en el celular.', modeloAyuda: 'El nombre del modelo que descargaste, por ejemplo el que muestra «ollama list».', modelo: '' },
 };
 // Fuentes: rutas explícitas a archivos de las carpetas configuradas. Se aceptan tildes y espacios
@@ -611,7 +646,9 @@ function carpetasFuentesDe(s) {
   return String(s.carpetasFuentes || '').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
     const grupo = l.endsWith('/*'); const ruta = (grupo ? l.slice(0, -2) : l).replace(/^\/+|\/+$/g, '');
     return ruta ? { ruta, grupo } : null;
-  }).filter(Boolean);
+  // [1.33] La más específica primero: con «raw», «raw/articles» y «raw/daily/*» ganaba siempre
+  // «raw»; el agrupado por día nunca se aplicaba y el inventario contaba 494 archivos dos veces.
+  }).filter(Boolean).sort((a, b) => b.ruta.length - a.ruta.length);
 }
 function citasDe(texto, carpetas) {
   if (!carpetas.length) return [];
@@ -644,14 +681,21 @@ function nodoFuenteDe(ruta, carpetas) {
 function inventarioFuentes(app, carpetas) {
   const todos = (app.vault.getFiles ? app.vault.getFiles() : app.vault.getMarkdownFiles()).map((f) => f.path);
   const items = [];
+  // Cada archivo cuenta una vez, en su carpeta más específica (carpetas viene ordenada así).
+  const suya = (r) => carpetas.find((x) => r.startsWith(x.ruta + '/'));
   for (const c of carpetas) {
-    const dentro = todos.filter((r) => r.startsWith(c.ruta + '/'));
+    const dentro = todos.filter((r) => suya(r) === c);
     if (c.grupo) { const subs = new Set(dentro.map((r) => r.slice(c.ruta.length + 1).split('/')[0]).filter((s) => dentro.some((r) => r.startsWith(c.ruta + '/' + s + '/')))); for (const s of subs) items.push({ ruta: c.ruta + '/' + s, titulo: s, carpeta: c, grupo: true }); }
     else for (const r of dentro) items.push({ ruta: r, titulo: r.slice(c.ruta.length + 1), carpeta: c });
   }
   return items;
 }
-const MOTIVO = /^- \[\[([^\]|#]+)\]\]\s+—\s+(.+)$/gm;
+// «- [[nota]] — motivo», y también «- [[a]] · [[b]] — motivo» (un motivo para varias) o con alias.
+const MOTIVO = /^- ((?:\[\[[^\]]+\]\][\s·,]*)+)\s+—\s+(.+)$/gm;
+// Clave de un enlace para compararlo con el nombre del archivo: Obsidian no distingue mayúsculas,
+// y «[[wiki/tecnico/x#sección|X]]» apunta a x.
+const claveEnlace = (t) => String(t || '').split('|')[0].split('#')[0].trim().replace(/\.md$/i, '').split('/').pop().toLowerCase();
+const enlacesEnLinea = (l) => [...l.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => claveEnlace(m[1]));
 const rgba = (h, a) => { const v = parseInt(String(h).replace('#', ''), 16) || 0xC9D1FF; return `rgba(${v >> 16},${(v >> 8) & 255},${v & 255},${a})`; };
 // Fecha LOCAL, no UTC: en Chile, después de las 21:00 toISOString() ya es el día siguiente (lección del 01.09).
 // Huella corta de un texto (cyrb53, 53 bits): dice «esto ya se envió» sin guardar el texto.
@@ -661,6 +705,16 @@ const huella = (t) => {
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+};
+// Un error que no se arregla reintentando (llave, cuota diaria, modelo inexistente, tope): la
+// ingesta deja de mandar tandas en vez de gastar el resto de la cuota en el mismo error.
+const fatal = (mensaje) => Object.assign(new Error(mensaje), { fatal: true });
+// Número fijo en [0, 1) para un par de enteros: el mismo enlace en el mismo viaje sortea siempre
+// lo mismo, así un pulso que salió no desaparece al cuadro siguiente.
+const sorteo = (i, j) => {
+  let h = Math.imul(i ^ Math.imul(j + 0x9E3779B9, 0x85EBCA6B), 0xC2B2AE35);
+  h ^= h >>> 15; h = Math.imul(h, 0x2C1B3C6D); h ^= h >>> 12; h = Math.imul(h, 0x297A2D39); h ^= h >>> 15;
+  return (h >>> 0) / 4294967296;
 };
 // «*.mini.md» → expresión regular. Sin «/» se compara con el nombre; con «/», con la ruta.
 const comoPatron = (g) => new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]') + '$', 'i');
@@ -757,7 +811,8 @@ async function construir(app, s) {
     if (tema && !cfg.temas[tema]) cfg.temas[tema] = [tema, PALETA[Object.keys(cfg.temas).length % PALETA.length]];
     nodos[f.path] = { id: f.path, capa, ruta: f.path, titulo: String(fm.title || f.basename).slice(0, 90), tema,
       propio: !!tema, updated: fm.updated ? String(fm.updated) : null, resumenAprobado: fm.resumen ? String(fm.resumen) : null,
-      enlaces: enlacesDe(fm, s), hub: fm.hub === true || String(fm.hub).toLowerCase() === 'true' };
+      enlaces: enlacesDe(fm, s), hub: fm.hub === true || String(fm.hub).toLowerCase() === 'true',
+      alias: [].concat(fm.aliases || fm.alias || []).map(String).filter(Boolean).slice(0, 12) };
     porRuta[f.path] = f.path;
   }
   // Validación de la config: carpetas que no tienen ninguna nota y notas que no caen en capa alguna.
@@ -781,17 +836,17 @@ async function construir(app, s) {
     const texto = archivo ? await app.vault.cachedRead(archivo) : '';
     nodos[id].resumen = nodos[id].resumenAprobado || resumir(texto);
     const curados = {};
-    for (const m of texto.matchAll(MOTIVO)) curados[m[1].trim()] = m[2].trim();
-    const lineas = texto.split('\n'), finCuerpo = (() => { const i = lineas.findIndex((l) => l.startsWith('## ' + (s.seccionMotivos || 'Conexiones'))); return i < 0 ? lineas.length : i; })();
+    for (const m of texto.matchAll(MOTIVO)) for (const k of enlacesEnLinea(m[1])) if (!curados[k]) curados[k] = m[2].trim();
+    const lineas = texto.split('\n'), clavesDe = [], finCuerpo = (() => { const i = lineas.findIndex((l) => l.startsWith('## ' + (s.seccionMotivos || 'Conexiones'))); return i < 0 ? lineas.length : i; })();
     for (const destino of Object.keys(resueltos[id] || {})) {
       if (!porRuta[destino] || destino === id) continue;
-      const base = destino.split('/').pop().replace(/\.md$/, '');
+      const base = claveEnlace(destino);
       poner(id, destino, curados[base] || '');
       if (!curados[base]) {
         const k = id < destino ? id + '|' + destino : destino + '|' + id;
         if (!frases[k]) for (let i = 0; i < finCuerpo; i++) {
           const l = lineas[i];
-          if (l.includes('[[' + base + ']]') || l.includes('[[' + base + '|')) { frases[k] = { origen: id, destino, linea: i + 1, texto: limpiarFrase(l) }; break; }
+          if (l.includes('[[') && (clavesDe[i] ??= enlacesEnLinea(l)).includes(base)) { frases[k] = { origen: id, destino, linea: i + 1, texto: limpiarFrase(l) }; break; }
         }
       }
     }
@@ -886,6 +941,10 @@ const PISTAS = [
   [-1, ['template', 'plantilla', 'attachment', 'adjunto', 'asset', 'archive', 'archivo', 'excalidraw', 'trash', 'papelera']],
 ];
 function sinAcentos(t) { return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+// Buscar: «Segundo cerebro», «segundo-cerebro» y «cerebro segundo» son la misma búsqueda.
+const textoBusqueda = (t) => sinAcentos(String(t || '')).replace(/[-_./\\|·,;:()[\]]+/g, ' ').replace(/\s+/g, ' ').trim();
+const palabrasBusqueda = (q) => textoBusqueda(q).split(' ').filter(Boolean);
+const coincide = (palabras, ...campos) => { const t = textoBusqueda(campos.join(' ')); return palabras.every((p) => t.includes(p)); };
 // Lo que nunca va al mapa, con cualquier plantilla.
 const PISTAS_OCULTAS = PISTAS[PISTAS.length - 1];
 function sugerirCapa(nombre, pistas = PISTAS, porDefecto = 2) {
@@ -1078,24 +1137,55 @@ class VistaMapa extends ItemView {
   getDisplayText() { return NOMBRE; }
   getIcon() { return 'brain-circuit'; }
 
+  // [1.33] La ventana del mapa, no la principal: con el mapa en una ventana aparte (o la principal
+  // minimizada) el requestAnimationFrame de la principal se congela y los pulsos se detenían.
+  get ventana() { return this.contentEl?.win || window; }
+  get documento() { return this.contentEl?.doc || document; }
   async onOpen() {
+    this.cerrada = false;
     const raiz = this.contentEl; raiz.empty(); raiz.addClass('mn-raiz');
-    this.lienzo = raiz.createEl('canvas', { cls: 'mn-lienzo' });
+    this.lienzo = raiz.createEl('canvas', { cls: 'mn-lienzo', attr: { role: 'img' } });
     this.ctx = this.lienzo.getContext('2d');
     const barra = raiz.createDiv('mn-barra'); this.barra = barra;
     this.marca = barra.createDiv({ cls: 'mn-marca', text: NOMBRE });
     const buscar = barra.createEl('input', { type: 'search', placeholder: T('buscar nota…'), cls: 'mn-buscar' });
     this.resultados = barra.createDiv('mn-resultados');
-    const elegir = (n) => { buscar.value = ''; this.filtro = ''; this.resultados.empty(); this.resultados.hide(); this.irA(n.id); };
+    // [1.33] La lista se muestra con una clase, no con show()/toggle(): en Obsidian esos dejan
+    // style.display vacío, el CSS la tenía oculta por defecto y los resultados nunca se veían.
+    const cerrarLista = () => { this.resultados.empty(); this.resultados.removeClass('mostrar'); };
+    const limpiar = () => { buscar.value = ''; this.filtro = ''; cerrarLista(); this.pedir(); };
+    const elegir = (n) => { limpiar(); if (n.externo) this.abrirNota(n.ruta); else this.irA(n.id); };
+    const resultados = () => (this.filtro ? [...this.buscarTodo(this.filtro), ...this.buscarFuera(this.filtro)] : []);
     this.registerDomEvent(buscar, 'input', () => {
-      this.filtro = buscar.value.trim().toLowerCase(); this.pedir();
+      this.filtro = buscar.value.trim(); this.pedir();
       this.resultados.empty();
-      const lista = this.filtro ? this.buscarTodo(this.filtro) : [];
-      this.resultados.toggle(lista.length > 0);
-      for (const n of lista) { const fila = this.resultados.createDiv({ cls: 'mn-resultado' + (n.fuente ? ' fuente' : '') , text: (n.fuente ? '📄 ' : '') + n.titulo }); fila.createSpan({ cls: 'mn-tenue', text: ' ' + (n.fuente ? n.ruta : n.ruta.split('/').slice(0, -1).join('/')) }); fila.onclick = () => elegir(n); }
+      if (!this.filtro) return cerrarLista();
+      const lista = resultados();
+      this.resultados.addClass('mostrar');
+      if (!lista.length) { this.resultados.createDiv({ cls: 'mn-resultado mn-tenue', text: T('No hay notas con ese nombre') }); return; }
+      for (const n of lista) {
+        // title: en el teléfono el nombre largo queda cortado con «…»; así se puede leer entero.
+        const fila = this.resultados.createDiv({ cls: 'mn-resultado' + (n.fuente ? ' fuente' : '') + (n.externo ? ' externo' : ''), text: (n.fuente || n.externo ? '📄 ' : '') + n.titulo, attr: { title: `${n.titulo} — ${n.ruta}` } });
+        fila.createSpan({ cls: 'mn-tenue', text: ' ' + (n.externo ? `${n.ruta} · ${T('fuera del mapa')}` : n.fuente ? n.ruta : n.ruta.split('/').slice(0, -1).join('/')) });
+        fila.onclick = () => elegir(n);
+      }
     });
-    this.registerDomEvent(buscar, 'keydown', (e) => { if (e.key !== 'Enter' || !this.filtro) return; const n = this.buscarTodo(this.filtro)[0]; if (n) elegir(n); else new Notice(T('No hay notas con ese nombre')); });
+    // [1.33] Con el teclado: ↓ entra en la lista, ↑/↓ recorren, Enter abre, Esc vuelve a escribir.
+    const filas = () => [...this.resultados.querySelectorAll('.mn-resultado[role="button"], .mn-resultado[tabindex]')];
+    this.registerDomEvent(this.resultados, 'keydown', (e) => {
+      const l = filas(), i = l.indexOf(e.target);
+      if (e.key === 'ArrowDown' && i < l.length - 1) { e.preventDefault(); l[i + 1].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); (i > 0 ? l[i - 1] : buscar).focus(); }
+      else if (e.key === 'Escape') { e.preventDefault(); buscar.focus(); cerrarLista(); }
+    });
+    this.registerDomEvent(buscar, 'keydown', (e) => {
+      if (e.key === 'ArrowDown') { const l = filas(); if (l.length) { e.preventDefault(); l[0].focus(); } return; }
+      if (e.key === 'Escape') { limpiar(); return; }
+      if (e.key !== 'Enter' || !this.filtro) return;
+      const n = resultados()[0]; if (n) elegir(n); else new Notice(T('No hay notas con ese nombre'));
+    });
     this.chips = barra.createDiv('mn-chips');
+    this.registerDomEvent(this.chips, 'scroll', () => this.marcarDesborde(), { passive: true });
     // Solo aparece si hay material nuevo: una barra sin nada que hacer no muestra este chip.
     this.chipNovedades = barra.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
     this.chipNovedades.onclick = () => this.panelNovedades();
@@ -1109,8 +1199,24 @@ class VistaMapa extends ItemView {
     this.guia = raiz.createDiv({ cls: 'mn-guia', text: T('Toca una nota para ver por qué se conecta.') });
     this.panel = raiz.createDiv('mn-panel');
 
+    // [1.33] Las filas del panel y de la búsqueda son <div> con onclick: con el teclado no se podía
+    // llegar a ninguna. Todo lo clicable que no es un botón recibe foco y rol de botón, y Enter o
+    // Espacio lo activan. Un observador lo aplica a lo que cada panel dibuja, sin tocar cada uno.
+    const accesibles = () => { for (const r of [this.panel, this.resultados]) for (const e of r.querySelectorAll?.('div, span') || []) if (e.onclick && !e.hasAttribute('tabindex')) { e.setAttribute('tabindex', '0'); e.setAttribute('role', 'button'); } };
+    if (typeof MutationObserver !== 'undefined' && this.panel instanceof Node) {
+      this.observadorTeclado = new MutationObserver(accesibles);
+      for (const r of [this.panel, this.resultados]) this.observadorTeclado.observe(r, { childList: true, subtree: true });
+    }
+    this.registerDomEvent(raiz, 'keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target?.getAttribute?.('role') === 'button' && e.target.onclick) { e.preventDefault(); e.target.click(); }
+    });
     this.registrarGestos();
-    this.observador = new ResizeObserver(() => { const antes = this.escala; this.medir(); if (this.vista.k === antes && !this.dist) this.vista.k = this.escala; this.pedir(); });
+    this.observador = new ResizeObserver(() => {
+      const antes = this.escala; this.medir(); this.marcarDesborde();
+      // Girar el teléfono o angostar el panel cambia cuántas notas caben por capa: se rehace.
+      if (this.topeUsado !== undefined && this.topePorCapa() !== this.topeUsado) this.rehacer();
+      if (this.vista.k === antes && !this.dist) this.vista.k = this.escala; this.pedir();
+    });
     this.observador.observe(raiz);
     this.registerEvent(this.app.workspace.on('file-open', (f) => {
       if (!this.plugin.ajustes.seguirActiva || !f || this.eligiendo) return;
@@ -1122,22 +1228,23 @@ class VistaMapa extends ItemView {
     if (!this.plugin.ajustes.configurado && !this.plugin.ajustes.carpetas.trim()) new AsistenteCapas(this.app, this.plugin).open();
     this.iniciarAnimacion();
   }
-  async onClose() { this.cerrada = true; this.observador?.disconnect(); if (this.anim) window.cancelAnimationFrame(this.anim); this.anim = null; }
+  async onClose() { this.cerrada = true; this.observador?.disconnect(); this.observadorTeclado?.disconnect(); if (this.anim) (this.animWin || window).cancelAnimationFrame(this.anim); this.anim = null; }
 
   // ── animación: pulsos que viajan por los enlaces, en el sentido en que se compila ──
   debeAnimar() {
     return this.plugin.ajustes.animacion && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-      && document.visibilityState === 'visible' && this.contentEl.isShown?.() !== false;
+      && this.documento.visibilityState !== 'hidden' && this.contentEl.isShown?.() !== false;
   }
   iniciarAnimacion() {
     if (this.anim) return;
     const intervalo = Platform.isMobile ? 50 : 33;
     const paso = (t) => {
-      this.anim = window.requestAnimationFrame(paso);
+      if (this.cerrada) { this.anim = null; return; }
+      this.animWin = this.ventana; this.anim = this.animWin.requestAnimationFrame(paso);
       if (!this.debeAnimar() || t - (this.ultimoCuadro || 0) < intervalo) return;
       this.ultimoCuadro = t; this.tiempo = t; this.dibujar();
     };
-    this.anim = window.requestAnimationFrame(paso);
+    this.animWin = this.ventana; this.anim = this.animWin.requestAnimationFrame(paso);
   }
   puntoEn(A, B, u, radial) {
     const q = (a, b, c, d) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
@@ -1146,56 +1253,56 @@ class VistaMapa extends ItemView {
     if (A.capa === B.capa) { const dx = 26 + Math.abs(B.y - A.y) * 0.12; return [q(A.x, A.x + dx, B.x + dx, B.x), q(A.y, A.y, B.y, B.y)]; }
     const mx = (A.x + B.x) / 2; return [q(A.x, mx, mx, B.x), q(A.y, A.y, B.y, B.y)];
   }
+  // [1.33] Cada pulso decide si sale al empezar SU viaje y lo termina: antes el grupo que pulsaba
+  // cambiaba cada 2,6 s sin mirar dónde iba cada pulso (516 cortados a mitad de curva cada 30 s
+  // en el cerebro real), y la selección «(i·7 + turno·13) % k» dejaba turnos enteros sin ningún
+  // pulso cuando k compartía un factor con 7. Ahora el sorteo es por enlace y por viaje, con
+  // una probabilidad que da ~45 pulsos en pantalla: parejo y sin cortes.
   dibujarPulsos(ctx, sk, color) {
     if (!this.debeAnimar()) return;
-    const t = this.tiempo || 0, radial = !!this.dist, pares = [];
-    if (this.camino) for (let i = 0; i < this.camino.length - 1; i++) pares.push([this.camino[i], this.camino[i + 1], i / Math.max(this.camino.length - 1, 1), '#FFFFFF']);
-    else {
+    const t = this.tiempo || 0, radial = !!this.dist, pares = [];   // [de, a, u, tono, radial]
+    const dur = this.camino ? 2200 : 1700;
+    if (this.camino) for (let i = 0; i < this.camino.length - 1; i++) pares.push([this.camino[i], this.camino[i + 1], ((t / dur) - i / Math.max(this.camino.length - 1, 1) + 1) % 1, '#FFFFFF']);
+    else if (!radial) {
       const c = this.foco || this.sobre;
       const vis = this.E.filter((e) => this.visible(this.porId[e.a]) && this.visible(this.porId[e.b]));
-      let lista;
-      if (c) lista = vis.filter((e) => e.a === c || e.b === c);
-      else { const cont = vis.filter((e) => Math.abs(this.porId[e.a].capa - this.porId[e.b].capa) === 1 || e.superE), k = Math.max(1, Math.ceil(cont.length / 45)), turno = Math.floor(t / 2600);
-        lista = cont.filter((_, i) => (i * 7 + turno * 13) % k === 0); }
+      const lista = c ? vis.filter((e) => e.a === c || e.b === c) : vis.filter((e) => Math.abs(this.porId[e.a].capa - this.porId[e.b].capa) === 1 || e.superE);
+      const p = c ? 1 : Math.min(1, 45 / Math.max(1, lista.length));
       for (const [i, e] of lista.entries()) {
+        const fase = (i * 0.618) % 1, viaje = Math.floor(t / dur + fase);
+        if (p < 1 && sorteo(i, viaje) >= p) continue;
         const A = this.porId[e.a], B = this.porId[e.b];
-        const [de, a] = radial ? (this.dist[e.a] <= this.dist[e.b] ? [e.a, e.b] : [e.b, e.a]) : A.capa <= B.capa ? [e.a, e.b] : [e.b, e.a];
-        pares.push([de, a, (i * 0.618) % 1, color((A.capa >= B.capa ? A : B).tema)]);
+        const [de, a] = A.capa <= B.capa ? [e.a, e.b] : [e.b, e.a];
+        pares.push([de, a, (t / dur + fase) % 1, color((A.capa >= B.capa ? A : B).tema)]);
       }
-    }
-    // Radial: una onda que sale del centro, llega al anillo 1 y sigue al anillo 2.
-    if (radial && !this.camino) {
-      pares.length = 0;
+    } else {
+      // Radial: ondas que salen del centro, llegan al anillo 1 y siguen al anillo 2. Dos ondas
+      // desfasadas medio ciclo, para que siempre haya algo en movimiento.
       const vis = this.E.filter((e) => this.visible(this.porId[e.a]) && this.visible(this.porId[e.b]) && Math.abs(this.dist[e.a] - this.dist[e.b]) === 1);
       const sobre = this.sobre && this.sobre !== this.foco ? this.sobre : null;
-      const turno = Math.floor(t / 3400);
+      const ciclo = 1700 * 2.6;
       for (const nivel of [0, 1]) {
         let tramo = vis.filter((e) => Math.min(this.dist[e.a], this.dist[e.b]) === nivel);
-        if (sobre) tramo = tramo.filter((e) => e.a === sobre || e.b === sobre || nivel === 0 && (e.a === sobre || e.b === sobre || this.ady[sobre].includes(e.a) || this.ady[sobre].includes(e.b)));
-        const k = Math.max(1, Math.ceil(tramo.length / (nivel === 0 ? 60 : 70)));
-        tramo.filter((_, i) => (i * 7 + turno * 13) % k === 0).forEach((e, i) => {
-          const A = this.porId[e.a], B = this.porId[e.b];
-          const [de, a] = this.dist[e.a] <= this.dist[e.b] ? [e.a, e.b] : [e.b, e.a];
-          pares.push([de, a, nivel + ((i * 0.618) % 1) * 0.25, color((this.dist[e.a] >= this.dist[e.b] ? A : B).tema), true]);
-        });
+        if (sobre) tramo = tramo.filter((e) => e.a === sobre || e.b === sobre || nivel === 0 && (this.ady[sobre].includes(e.a) || this.ady[sobre].includes(e.b)));
+        const p = Math.min(1, (nivel === 0 ? 60 : 70) / 2 / Math.max(1, tramo.length));
+        for (const onda of [0, 1]) {
+          const to = t + onda * ciclo / 2, vuelta = Math.floor(to / ciclo) * 2 + onda;
+          tramo.forEach((e, i) => {
+            if (p < 1 && sorteo(i + nivel * 100003, vuelta) >= p) return;
+            const local = (to % ciclo) / 1700 - (nivel + ((i * 0.618) % 1) * 0.25);
+            if (local < 0 || local > 1) return;
+            const A = this.porId[e.a], B = this.porId[e.b];
+            const [de, a] = this.dist[e.a] <= this.dist[e.b] ? [e.a, e.b] : [e.b, e.a];
+            pares.push([de, a, local, color((this.dist[e.a] >= this.dist[e.b] ? A : B).tema), true]);
+          });
+        }
       }
     }
-    const dur = this.camino ? 2200 : 1700, ciclo = 1700 * 2.6;
     ctx.globalCompositeOperation = 'lighter';
-    for (const [de, a, fase, tono, onda] of pares) {
-      if (onda) {
-        const local = (t % ciclo) / 1700 - fase;
-        if (local < 0 || local > 1) continue;
-        const A = this.porId[de], B = this.porId[a]; if (!A || !B) continue;
-        const [x, y] = this.puntoEn(A, B, local, true);
-        ctx.fillStyle = rgba(tono, 0.25); ctx.beginPath(); ctx.arc(x, y, 6 / sk, 0, 6.283); ctx.fill();
-        ctx.fillStyle = rgba('#FFFFFF', 0.95); ctx.beginPath(); ctx.arc(x, y, 1.7 / sk, 0, 6.283); ctx.fill();
-        continue;
-      }
+    for (const [de, a, u, tono, onda] of pares) {
       const A = this.porId[de], B = this.porId[a]; if (!A || !B) continue;
-      const u = this.camino ? ((t / dur) - fase + 1) % 1 : ((t / dur) + fase) % 1;
       const [x, y] = this.puntoEn(A, B, u, radial);
-      ctx.fillStyle = rgba(tono, 0.22); ctx.beginPath(); ctx.arc(x, y, 6 / sk, 0, 6.283); ctx.fill();
+      ctx.fillStyle = rgba(tono, onda ? 0.25 : 0.22); ctx.beginPath(); ctx.arc(x, y, 6 / sk, 0, 6.283); ctx.fill();
       ctx.fillStyle = rgba('#FFFFFF', 0.95); ctx.beginPath(); ctx.arc(x, y, 1.7 / sk, 0, 6.283); ctx.fill();
     }
     ctx.globalCompositeOperation = 'source-over';
@@ -1220,6 +1327,8 @@ class VistaMapa extends ItemView {
     [...this.colapsados].forEach((t) => { if (!this.D.temas[t]) this.colapsados.delete(t); });
     const conEnlaces = this.D.nodos.filter((n) => n.enlaces && n.enlaces.length).length;
     const nFuentes = this.D.nodos.filter((n) => n.fuente).length, fuera = this.D.config?.sinCapa.length || 0;
+    // Un lector de pantalla no ve el lienzo: al menos sabe qué es y cuánto hay.
+    this.lienzo?.setAttribute?.('aria-label', T('{0} · {1} nodos · {2} enlaces', NOMBRE, this.D.nodos.length - nFuentes, this.D.aristas.length));
     this.marca.setText(T('{0} · {1} nodos · {2} enlaces', NOMBRE, this.D.nodos.length - nFuentes, this.D.aristas.length) + (nFuentes ? T(' · {0} archivos citados', nFuentes) : '') + (conEnlaces ? T(' · {0} con enlaces', conEnlaces) : '') + (fuera ? T(' · {0} fuera del mapa', fuera) : ''));
     // Avisos de configuración, una vez por sesión: una carpeta sin notas suele ser una ruta mal
     // escrita en «Carpetas → capa»; notas sin capa son notas que el usuario cree que ve y no ve.
@@ -1286,8 +1395,7 @@ class VistaMapa extends ItemView {
     // Revelado progresivo: cada capa muestra sus notas más conectadas; el resto se trae buscando o tocando.
     // [1.31] En pantalla angosta el tope baja solo a lo que cabe a 13 px por nota: 73 nodos
     // en la altura de un teléfono eran puntos pegados. Lo demás sigue apareciendo al buscar.
-    const cabe = this.angosto() && this.H ? Math.max(12, Math.floor((this.H - 230) / 13)) : Infinity;
-    const max = Math.min(cabe, Math.max(10, Number(this.plugin.ajustes.maxPorCapa) || 150));
+    const max = this.topeUsado = this.topePorCapa();
     this.ocultas = {};
     // Fuentes bajo demanda: no ocupan lugar ni cuentan como ocultas; aparecen junto a la nota
     // enfocada que las cita y se van con ella. Sus relaciones siguen vivas para buscar y contar.
@@ -1306,6 +1414,13 @@ class VistaMapa extends ItemView {
     this.medir(); this.pedir();
   }
 
+  // [1.31] En pantalla angosta el tope baja a lo que cabe a 13 px por nota. [1.33] Con el tamaño
+  // real: la primera carga corría antes de medir (H = 0) y en el teléfono mostraba las 83 notas.
+  topePorCapa() {
+    if (!this.W || !this.H) { const r = this.contentEl?.getBoundingClientRect?.(); if (r?.width) { this.W = r.width; this.H = r.height; } }
+    const cabe = this.angosto() && this.H ? Math.max(12, Math.floor((this.H - 230) / 13)) : Infinity;
+    return Math.min(cabe, Math.max(10, Number(this.plugin.ajustes.maxPorCapa) || 150));
+  }
   // Vacíos: pares de temas con muchos menos enlaces de los esperables para su tamaño.
   calcularVacios(tope = 6) {
     const ultima = this.D.capas.length - 1;
@@ -1378,6 +1493,14 @@ class VistaMapa extends ItemView {
       b.onclick = () => { this.solo = this.solo === id ? null : id; this.pintarChips(); this.pedir(); };
       b.oncontextmenu = (e) => { e.preventDefault(); this.alternarColapso(id); };
     }
+    this.marcarDesborde();
+  }
+  // [1.33] En el teléfono los chips van en una fila con desplazamiento y sin barra: nada decía que
+  // había 4 temas más a la derecha. Un degradado en el borde lo dice, y se va al llegar al final.
+  marcarDesborde() {
+    const c = this.chips; if (!c || c.scrollWidth === undefined) return;
+    c.toggleClass('desborda-der', c.scrollLeft + c.clientWidth < c.scrollWidth - 2);
+    c.toggleClass('desborda-izq', c.scrollLeft > 2);
   }
   pintarEstado() {
     const t = [];
@@ -1488,9 +1611,17 @@ class VistaMapa extends ItemView {
     this.anchoLogico = Math.max(this.W, this.angosto() ? 190 * n : 0);
     this.escala = this.W / this.anchoLogico;
     const barraAbajo = this.barra ? this.barra.getBoundingClientRect().bottom - r.top : 0;
-    const Hl = this.H / this.escala, arriba = Math.max(this.angosto() ? 150 : 118, barraAbajo + 52) / this.escala, abajo = (this.angosto() ? 70 : 90) / this.escala;
-    const reserva = !this.angosto() && this.panel?.hasClass('abierto') ? Math.min(400, this.W * 0.32) / this.escala : 0;
-    const margen = this.angosto() ? 70 : Math.max(120, this.W * 0.1), paso = (this.anchoLogico - reserva - 2 * margen) / (n - 1);
+    // [1.33] En el teléfono los botones de zoom (44 px, sobre la barra de Obsidian) tapaban las
+    // últimas notas de las columnas de la derecha: abajo se reserva hasta donde empiezan.
+    const zoomArriba = this.angosto() ? this.contentEl.querySelector?.('.mn-zoom')?.getBoundingClientRect?.().top : null;
+    const bajoZoom = zoomArriba ? r.bottom - zoomArriba + 10 : 0;
+    const Hl = this.H / this.escala, arriba = Math.max(this.angosto() ? 150 : 118, barraAbajo + 52) / this.escala, abajo = Math.max(this.angosto() ? 70 : 90, bajoZoom) / this.escala;
+    const margen = this.angosto() ? 70 : Math.max(120, this.W * 0.1);
+    // [1.33] Se reserva lo que el panel mide de verdad (380 px + margen). Antes era el 32 % del
+    // ancho: bajo ~1.250 px la capa de temas quedaba entera debajo del panel.
+    const anchoPanel = !this.angosto() && this.panel?.hasClass('abierto') ? (this.panel.getBoundingClientRect?.().width || 380) : 0;
+    const reserva = anchoPanel ? Math.max(Math.min(400, this.W * 0.32), anchoPanel + 40 - margen) / this.escala : 0;
+    const paso = (this.anchoLogico - reserva - 2 * margen) / (n - 1);
     this.capas = this.D.capas.map((c, i) => {
       const col = this.N.filter((x) => x.capa === i && !x.oculto), alto = Hl - arriba - abajo;
       const gap = Math.min(alto / Math.max(col.length, 1), this.angosto() ? 46 : 28), y0 = arriba + (alto - gap * (col.length - 1)) / 2;
@@ -1503,7 +1634,14 @@ class VistaMapa extends ItemView {
     const dist = { [this.foco]: 0 }, padre = {}, cola = [this.foco];
     while (cola.length) { const u = cola.shift(); if (dist[u] >= 2) continue; for (const v of this.ady[u]) if (!(v in dist)) { dist[v] = dist[u] + 1; padre[v] = u; cola.push(v); } }
     this.dist = dist;
-    const cx = this.W / 2, cy = this.H * (this.angosto() ? 0.42 : 0.52), paso = Math.min(this.W, this.H) * (this.angosto() ? 0.15 : 0.16);
+    // [1.33] Los anillos caben entre la barra y el borde de abajo: antes el exterior pasaba bajo la
+    // barra y se cortaba abajo (radio 0,16·2·1,6 = 51 % del alto, con el centro al 52 %).
+    const raizR = this.contentEl.getBoundingClientRect(), barraAbajo = this.barra ? this.barra.getBoundingClientRect().bottom - raizR.top : 0;
+    const arriba = Math.max(barraAbajo + 28, 40), abajo = this.H - (this.angosto() ? 70 : 44);
+    const cx = this.W / 2, cy = (arriba + abajo) / 2, maxR = Math.max(60, Math.min((abajo - arriba) / 2, this.W / 2 - 20));
+    const paso = Math.min(this.W, this.H) * (this.angosto() ? 0.15 : 0.16);
+    const crudo = [1, 2].map((d) => { const k = this.N.filter((n) => dist[n.id] === d).length; return paso * d * (1 + Math.min(0.6, Math.min(k, 80) / 90)); });
+    const escalaR = Math.min(1, maxR / Math.max(...crudo, 1));
     const orden = Object.fromEntries(Object.keys(this.D.temas).map((t, i) => [t, i]));
     const angulo = { [this.foco]: 0 };
     const centro = this.porId[this.foco]; centro.x = cx; centro.y = cy;
@@ -1517,7 +1655,7 @@ class VistaMapa extends ItemView {
       }
       if (!anillo.length) break;
       anillo.sort((p, q) => (d > 1 ? (angulo[padre[p.id]] ?? 0) - (angulo[padre[q.id]] ?? 0) : 0) || (orden[p.tema] ?? 99) - (orden[q.tema] ?? 99));
-      const radio = paso * d * (1 + Math.min(0.6, anillo.length / 90));
+      const radio = paso * d * (1 + Math.min(0.6, anillo.length / 90)) * escalaR;
       anillo.forEach((n, i) => { const a = (i / anillo.length) * Math.PI * 2 - Math.PI / 2; angulo[n.id] = a; n.x = cx + Math.cos(a) * radio; n.y = cy + Math.sin(a) * radio; });
       this.anillos.push({ d, radio, n: anillo.length, cx, cy });
     }
@@ -1535,13 +1673,47 @@ class VistaMapa extends ItemView {
     if (this.radial) { this.medir(); this.encuadrar(); this.pintarEstado(); }
     this.abrirPanel(n);
     if (centrar && !this.radial) { const v = this.vista; v.x = this.W * (this.angosto() ? 0.5 : 0.42) - n.x * v.k; v.y = this.H * (this.angosto() ? 0.3 : 0.5) - n.y * v.k; }
+    if (!this.radial) this.asegurarVisible(n);
     this.pedir();
   }
+  // [1.33] Tocar una nota abre el panel (en el teléfono, una hoja que ocupa la mitad de abajo) sin
+  // mover el mapa: una nota de la mitad inferior quedaba tapada con todos sus vecinos. Si queda
+  // fuera de lo que se ve, el mapa se corre lo justo para ponerla en el centro del espacio libre.
+  asegurarVisible(n) {
+    if (!n || !this.W || !this.contentEl?.getBoundingClientRect) return;
+    const raiz = this.contentEl.getBoundingClientRect(), v = this.vista;
+    const panel = this.panel?.hasClass?.('abierto') ? this.panel.getBoundingClientRect() : null;
+    const barra = this.barra ? this.barra.getBoundingClientRect().bottom - raiz.top : 0;
+    let x0 = 8, x1 = this.W - 8, y0 = barra + 8, y1 = this.H - 50;
+    if (panel && panel.width) { if (this.angosto() || panel.width > this.W * 0.9) y1 = Math.min(y1, panel.top - raiz.top - 12); else x1 = Math.min(x1, panel.left - raiz.left - 12); }
+    if (x1 - x0 < 40 || y1 - y0 < 40) return;
+    const sx = n.x * v.k + v.x, sy = n.y * v.k + v.y;
+    if (sx < x0 || sx > x1) v.x = (x0 + x1) / 2 - n.x * v.k;
+    if (sy < y0 || sy > y1) v.y = (y0 + y1) / 2 - n.y * v.k;
+  }
   // Busca en el índice completo: notas ocultas por el límite, miembros de temas colapsados y fuentes.
+  // [1.33] Por palabras, en cualquier orden, sin tildes, guiones ni mayúsculas, y también por alias.
   buscarTodo(q) {
-    const sa = (x) => sinAcentos(String(x || ''));
-    const qq = sa(q), puntaje = (n) => (sa(n.titulo).startsWith(qq) ? 0 : sa(n.titulo).includes(qq) ? 1 : 2) + (n.fuente ? 0.5 : 0);
-    return this.D.nodos.filter((n) => sa(n.titulo + ' ' + n.ruta).includes(qq)).sort((a, b) => puntaje(a) - puntaje(b) || b.grado - a.grado).slice(0, 8);
+    const palabras = palabrasBusqueda(q); if (!palabras.length) return [];
+    const qq = palabras.join(' '), puntaje = (n) => { const t = textoBusqueda(n.titulo); return (t.startsWith(qq) ? 0 : t.includes(qq) ? 1 : 2) + (n.fuente ? 0.5 : 0); };
+    return this.D.nodos.filter((n) => coincide(palabras, n.titulo, n.ruta, ...(n.alias || []))).sort((a, b) => puntaje(a) - puntaje(b) || b.grado - a.grado).slice(0, 8);
+  }
+  // Lo que no está en el mapa también se encuentra: material crudo sin citar, notas fuera de
+  // toda capa, adjuntos. Se abren en Obsidian; el mapa no tiene dónde ponerlos.
+  buscarFuera(q, tope = 6) {
+    const palabras = palabrasBusqueda(q); if (!palabras.length) return [];
+    const enMapa = this.base || {}, conf = this.app.vault.configDir;
+    const archivos = this.app.vault.getFiles ? this.app.vault.getFiles() : this.app.vault.getMarkdownFiles();
+    const out = [];
+    for (const f of archivos) {
+      if (enMapa[f.path] || enMapa['raw:' + f.path] || (conf && f.path.startsWith(conf + '/'))) continue;
+      if (coincide(palabras, f.basename, f.path)) out.push({ id: f.path, ruta: f.path, titulo: f.basename || nombreNota(f.path), externo: true });
+      if (out.length >= 200) break;
+    }
+    const qq = palabras.join(' ');
+    // Primero las notas, después los adjuntos (una captura no tapa el texto que la explica).
+    const orden = (n) => (n.ruta.endsWith('.md') ? 0 : 2) + (textoBusqueda(n.titulo).startsWith(qq) ? 0 : 1);
+    return out.sort((a, b) => orden(a) - orden(b) || b.ruta.localeCompare(a.ruta)).slice(0, tope);
   }
   // Llega a cualquier nodo del índice: expande el tema si estaba colapsado, y lo fuerza a la vista.
   irA(id) {
@@ -1550,12 +1722,18 @@ class VistaMapa extends ItemView {
     if (n.fuente && this.plugin.ajustes.fuentes === 'demanda') { const v = this.adyBase[id]; const primera = v && [...v][0]; if (primera) { this.enfocar(primera, true); return; } }
     this.enfocar(id, true);
   }
-  pedir() { this.sucio = true; if (!this.pendiente && !this.cerrada) { this.pendiente = true; window.requestAnimationFrame(() => { this.pendiente = false; if (!this.cerrada) this.dibujar(); }); } }
+  pedir() { this.sucio = true; if (!this.pendiente && !this.cerrada) { this.pendiente = true; this.ventana.requestAnimationFrame(() => { this.pendiente = false; if (!this.cerrada) this.dibujar(); }); } }
   visible(n) {
     if (this.dist) { if (!(n.id in this.dist)) return false; }
     else if (n.oculto) return false;
     return (!this.conEnlace || (n.enlaces && n.enlaces.length) || n.capa === this.D.capas.length - 1)
-      && (!this.filtro || (n.titulo + ' ' + n.id).toLowerCase().includes(this.filtro));
+      && (!this.filtro || this.pasaFiltro(n));
+  }
+  // visible() corre miles de veces por cuadro: las palabras y el texto de cada nota se normalizan una vez.
+  pasaFiltro(n) {
+    if (this.filtroPalabras?.q !== this.filtro) this.filtroPalabras = { q: this.filtro, p: palabrasBusqueda(this.filtro) };
+    if (n._busca === undefined) n._busca = textoBusqueda([n.titulo, n.id, ...(n.alias || [])].join(' '));
+    return this.filtroPalabras.p.every((p) => n._busca.includes(p));
   }
   problemas(n) {
     if (n.fuente) return n.rota ? [T('referencia rota: el archivo no existe')] : [];
@@ -1612,7 +1790,7 @@ class VistaMapa extends ItemView {
     const dpr = this.dpr || 1, w = Math.round(W * dpr), h = Math.round(H * dpr);
     if (!this.capaA || this.capaA.width !== w || this.capaA.height !== h) {
       try {
-        this.capaA = document.createElement('canvas'); this.capaB = document.createElement('canvas');
+        this.capaA = this.documento.createElement('canvas'); this.capaB = this.documento.createElement('canvas');
         this.capaA.width = this.capaB.width = w; this.capaA.height = this.capaB.height = h;
         this.ctxA = this.capaA.getContext('2d'); this.ctxB = this.capaB.getContext('2d');
       } catch { this.ctxA = null; }
@@ -1644,7 +1822,9 @@ class VistaMapa extends ItemView {
 
     ctx.save(); ctx.translate(vista.x, vista.y); ctx.scale(vista.k, vista.k);
     if (!this.familia) this.familia = getComputedStyle(this.contentEl).getPropertyValue('--font-monospace').trim() || 'ui-monospace, Menlo, monospace';
-    const sk = Math.sqrt(vista.k), f = (peso, tam) => `${peso} ${tam / sk}px ${this.familia}`;
+    // [1.33] En el teléfono el mapa se achica (k ≈ 0,5) y el texto bajaba a 7,5 px: ilegible. Ahí el
+    // texto se achica menos que el mapa, hasta un 88 % de su tamaño.
+    const sk = this.angosto() && vista.k < 1 ? Math.min(Math.sqrt(vista.k), vista.k / 0.88) : Math.sqrt(vista.k), f = (peso, tam) => `${peso} ${tam / sk}px ${this.familia}`;
     const color = (t) => this.colorTema(t);
     const radial = !!this.dist, ultima = this.D.capas.length - 1;
     const enCamino = this.camino ? new Set(this.camino) : null;
@@ -1657,7 +1837,11 @@ class VistaMapa extends ItemView {
       for (const a of this.anillos) {
         ctx.strokeStyle = 'rgba(170,185,255,.16)'; ctx.lineWidth = 1 / vista.k; ctx.setLineDash([4 / vista.k, 4 / vista.k]);
         ctx.beginPath(); ctx.arc(a.cx, a.cy, a.radio, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
-        ctx.fillStyle = '#FF6B6B'; ctx.font = f(400, 10.5); ctx.fillText(`${a.d} salto${a.d > 1 ? 's' : ''} · ${a.n}`, a.cx + 6, a.cy - a.radio - 6);
+        // [1.33] Traducido (decía «salto» también en inglés) y con su caja reservada: iba encima del
+        // rótulo de la nota de arriba del anillo y se tapaban.
+        const etq = `${T('{0} salto(s)', a.d)} · ${a.n}`;
+        ctx.fillStyle = '#FF6B6B'; ctx.font = f(400, 10.5); ctx.fillText(etq, a.cx + 6, a.cy - a.radio - 20 / sk);
+        cajas.push({ x: a.cx + 4, y: a.cy - a.radio - 20 / sk - 12 / sk, w: ctx.measureText(etq).width + 4, h: 16 / sk });
       }
     } else {
       this.capas.forEach((c, i) => {
@@ -1786,19 +1970,31 @@ class VistaMapa extends ItemView {
     const esFijo = (n) => n.id === centro || n.id === sobreRadial || (enCamino && enCamino.has(n.id)) || n.agrupados || (!radial && n.capa === ultima);
     rotulos.sort((p, q) => (esFijo(q) ? 1 : 0) - (esFijo(p) ? 1 : 0) || (nivel ? (nivel[p.id] ?? 3) - (nivel[q.id] ?? 3) : 0) || p.y - q.y);
     const aire = 3 / vista.k;
+    const panelR = !radial && !this.angosto() && this.panel?.hasClass?.('abierto') ? this.panel.getBoundingClientRect() : null;
+    const izqRaiz = panelR ? this.contentEl.getBoundingClientRect().left : 0;
+    const bordeIzq = (4 - vista.x) / vista.k;
+    const bordeDer = Math.min((this.W - 4 - vista.x) / vista.k, panelR ? (panelR.left - izqRaiz - 8 - vista.x) / vista.k : Infinity);
     for (const n of rotulos) {
       const fijo = esFijo(n);
       // Solo la hub del tema lleva el nombre del tema; sus hermanas de la última capa conservan su
       // título. Antes todas se rotulaban igual y se veían «dos Derecho tributario».
       const esHub = n.virtual || (n.capa === ultima && this.hubs[n.tema] === n.id);
       let texto = (esHub || n.agrupados) && this.D.temas[n.tema] ? this.D.temas[n.tema][0] : n.titulo;
-      if (n.agrupados) texto += ` · ${n.agrupados + 1} notas`;
+      if (n.agrupados) texto += T(' · {0} notas', n.agrupados + 1);
       const fuerte = fijo || n.capa === ultima, tam = n.capa === ultima || n.agrupados ? 13 : 11.5;
       ctx.font = f(fuerte ? 600 : 500, tam);
-      const w = ctx.measureText(texto).width, pad = 4 / vista.k, h = tam / sk + 6 / vista.k, r = 12 / vista.k;
+      const pad = 4 / vista.k, h = tam / sk + 6 / vista.k, r = 12 / vista.k;
+      let w = ctx.measureText(texto).width;
       let izquierda = radial ? n.x < this.porId[this.foco].x - 1 : n.capa === ultima;
-      // [1.29.2] Si el rótulo no cabe a la derecha del lienzo, va a la izquierda del nodo.
-      if (!izquierda && !radial && n.x + r + w + pad * 2 > this.anchoLogico - 6 / vista.k) izquierda = true;
+      // [1.29.2] Si el rótulo no cabe a la derecha, va a la izquierda del nodo. [1.33] «Cabe» es
+      // hasta el borde visible o el panel abierto, y si a la izquierda se sale, vuelve a la derecha.
+      const ancho = w + pad * 2 + r;
+      if (!izquierda && n.x + ancho > bordeDer) izquierda = true;
+      if (izquierda && n.x - ancho < bordeIzq && n.x + ancho <= bordeDer) izquierda = false;
+      // Si no cabe a ningún lado (un título largo en el teléfono), se acorta con «…» al aire que hay.
+      const aireLado = (izquierda ? n.x - bordeIzq : bordeDer - n.x) - r - pad * 2;
+      if (w > aireLado && aireLado > 40 / vista.k) { while (texto.length > 4 && ctx.measureText(texto + '…').width > aireLado) texto = texto.slice(0, -1); texto += '…'; }
+      w = ctx.measureText(texto).width;
       const x = izquierda ? n.x - r - w - pad * 2 : n.x + r, y = n.y - h / 2;
       const caja = { x: x - aire, y: y - aire, w: w + pad * 2 + aire * 2, h: h + aire * 2 };
       const choca = cajas.some((c) => caja.x < c.x + c.w && c.x < caja.x + caja.w && caja.y < c.y + c.h && c.y < caja.y + caja.h);
@@ -2090,7 +2286,7 @@ class VistaMapa extends ItemView {
       paso.onclick = () => (n.fuente || n.virtual ? null : this.abrirNota(n.ruta));
       if (i < ruta.length - 1) { const m = this.motivo[id + '|' + ruta[i + 1]], fr = this.frase[id + '|' + ruta[i + 1]]; lista.createDiv({ cls: 'mn-salto', text: m ? '↓ ' + m : fr ? '↓ en el texto: «' + fr.texto + '»' : '↓ enlazadas' }); }
     });
-    p.addClass('abierto');
+    p.addClass('abierto'); this.medir(); this.pedir(); // [1.33] sin esto la capa de temas quedaba bajo el panel
   }
   panelVacios() {
     const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
@@ -2131,7 +2327,7 @@ class VistaMapa extends ItemView {
         await pl.guardar(); h.remove(); this.pintarChips();
       });
     }
-    p.addClass('abierto');
+    p.addClass('abierto'); this.medir(); this.pedir(); // [1.33] sin esto la capa de temas quedaba bajo el panel
   }
   // La bandeja: archivos de las carpetas de fuentes que ninguna nota del mapa cita. Es una lista al
   // costado, no puntos en el lienzo: no reordena nada. Y dice solo «sin cita reconocida».
@@ -2585,7 +2781,7 @@ class AjustesMapa extends PluginSettingTab {
         interruptor('Seguir la nota activa', 'Al abrir una nota, el mapa la enfoca.', 'seguirActiva'),
         interruptor('Animación', 'Pulsos de luz por los enlaces, solo con el mapa visible. Se apaga si el sistema pide menos movimiento.', 'animacion'),
       ] },
-      { name: T('Conecta tu inteligencia artificial (opcional)'), aliases: ['IA', 'AI', 'API key', 'Claude', 'OpenAI', 'Gemini', 'Ollama'],
+      { name: T('Conecta tu inteligencia artificial (opcional)'), aliases: ['IA', 'AI', 'API key', 'Claude', 'OpenAI', 'Gemini', 'OpenRouter', 'Ollama'],
         render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty(); el.addClass('mn-ajuste-ia'); this.pintarIA(el); } },
       { type: 'group', items: [
         interruptor('Segunda revisión', 'Una segunda llamada revisa que el motivo sea fiel (negaciones, estados, pendientes). Cuesta el doble y bloquea errores de matiz.', 'dobleVerificacion'),
@@ -2689,9 +2885,21 @@ export default class MapaNeuronal extends Plugin {
     const limpio = String(texto).trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
     try { return JSON.parse(limpio); } catch { throw new Error(T('La IA no devolvió un resultado legible. Prueba con otro modelo.')); }
   }
+  // Un 429 de cuota DIARIA (la capa gratis de Gemini: 20 llamadas por modelo al día) no mejora
+  // reintentando a los 9 s que sugiere el servicio: solo gasta. Devuelve el tope si lo dice.
+  cuotaDiaria(r) {
+    let j = {}; try { j = r.json || {}; } catch { /* cuerpo que no es JSON */ }
+    const v = (j.error?.details || []).flatMap((d) => d?.violations || []).find((x) => /PerDay/i.test(String(x.quotaId || '')));
+    if (v) return { tope: v.quotaValue || '?', modelo: v.quotaDimensions?.model || '' };
+    // OpenRouter: «Rate limit exceeded: free-models-per-day», con el tope en las cabeceras.
+    if (/per-day|per day/i.test(String(j.error?.message || ''))) return { tope: r.headers?.['x-ratelimit-limit'] || j.error?.metadata?.headers?.['X-RateLimit-Limit'] || '?', modelo: '' };
+    return null;
+  }
   revisarRespuesta(r, nombre, local) {
     const j = r.json || {};
-    if (r.status === 401 || r.status === 403) throw new Error(T('{0} rechazó la llave ({1}).', nombre, r.status));
+    if (r.status === 401 || r.status === 403) throw fatal(T('{0} rechazó la llave ({1}).', nombre, r.status));
+    const diaria = r.status === 429 && this.cuotaDiaria(r);
+    if (diaria) throw fatal(T('{0}: se agotó la cuota diaria de {1} ({2} llamadas al día en la capa gratis). Elige otro modelo o activa la facturación; mañana se renueva.', nombre, diaria.modelo || this.ajustes.modeloIA, diaria.tope));
     if (r.status === 429) throw new Error(T('{0} alcanzó su límite de uso (429). Intenta más tarde.', nombre));
     // El consejo tiene que corresponder al proveedor: a quien usa Gemini no se le puede decir que
     // revise si su servidor local está corriendo. Y un 5xx remoto no es culpa de su configuración:
@@ -2699,7 +2907,7 @@ export default class MapaNeuronal extends Plugin {
     if (r.status === 0 || r.status >= 500) throw new Error(local
       ? T('{0} no respondió ({1}). Revisa que Ollama o LM Studio esté corriendo en este computador.', nombre, r.status)
       : T('{0} no respondió ({1}): su servicio está caído o sobrecargado. No es tu configuración; vuelve a intentar en un rato.', nombre, r.status));
-    if (r.status >= 400) throw new Error(T('{0} respondió {1}: {2}', nombre, r.status, j.error?.message || 'error'));
+    if (r.status >= 400) throw fatal(T('{0} respondió {1}: {2}', nombre, r.status, j.error?.message || 'error'));
     return j;
   }
   // Pedir y, si el servicio está sobrecargado, volver a intentar. Un 503 o un 429 en la capa
@@ -2713,13 +2921,20 @@ export default class MapaNeuronal extends Plugin {
     // la pantalla en «Leyendo…» para siempre. Una IA local lenta tiene más margen.
     const plazo = this.plazoIA || (local ? 180000 : 90000);
     for (let i = 0; ; i++) {
+      // [1.33] El tope diario cuenta cada llamada real (los dos pasos y los reintentos), no una
+      // estimación hecha antes de empezar: con tope 30 se llegaron a registrar 78.
+      if (this.cupo !== null && this.cupo !== undefined) {
+        if (this.cupo <= 0) throw fatal(T('Se llegó al tope diario de llamadas automáticas. Lo que falta queda para la próxima vez.'));
+        this.cupo--;
+      }
+      this.llamadasHechas = (this.llamadasHechas || 0) + 1;
       let reloj;
       const r = await Promise.race([
         requestUrl(Object.assign({ method: 'POST', throw: false }, opciones)),
         new Promise((ok) => { reloj = window.setTimeout(() => ok({ status: -1, json: {} }), plazo); }),
       ]).finally(() => window.clearTimeout(reloj));
       if (r.status === -1) throw new Error(T('{0} no respondió en {1} s. Vuelve a intentar en un rato.', nombre, Math.round(plazo / 1000)));
-      const vale = r.status === 0 || r.status === 429 || r.status >= 500;
+      const vale = r.status === 0 || (r.status === 429 && !this.cuotaDiaria(r)) || r.status >= 500;
       if (!vale || i >= esperas.length) return this.revisarRespuesta(r, nombre, local);
       // Con un 429 el servicio suele decir cuánto esperar. Si pide más de 20 s, mejor avisar ya
       // que dejar a la persona mirando «Leyendo…»: con la cuota gratis agotada, esperar no sirve.
@@ -2755,13 +2970,22 @@ export default class MapaNeuronal extends Plugin {
     return (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
   }
   async pedirCompatible(prov, llave, modelo, sistema, usuario, esquema) {
-    const url = prov === 'local' ? (this.ajustes.urlLocal || PROVEEDORES.local.url) : PROVEEDORES.openai.url;
+    const url = prov === 'local' ? (this.ajustes.urlLocal || PROVEEDORES.local.url) : (PROVEEDORES[prov] || PROVEEDORES.openai).url;
     const headers = { 'content-type': 'application/json' };
     if (llave) headers.authorization = `Bearer ${llave}`;
+    // OpenRouter pide (opcional) quién llama: aparece así en su panel de uso.
+    if (prov === 'openrouter') Object.assign(headers, { 'HTTP-Referer': 'https://github.com/DBB-FC/why-graph', 'X-Title': NOMBRE });
     const cuerpo = { model: modelo, messages: [{ role: 'system', content: sistema }, { role: 'user', content: usuario }],
       response_format: prov === 'local' ? { type: 'json_object' } : { type: 'json_schema', json_schema: { name: 'respuesta', strict: true, schema: esquema } } };
+    // Que OpenRouter enrute solo a servidores que respetan el esquema JSON, no a uno que lo ignore.
+    if (prov === 'openrouter') cuerpo.provider = { require_parameters: true };
     if (prov === 'local') cuerpo.messages[0].content += '\nResponde SOLO con un objeto JSON con estas claves: ' + Object.keys(esquema.properties).join(', ') + '.';
-    const j = await this.pedirReintentando({ url, headers, body: JSON.stringify(cuerpo) }, prov === 'local' ? 'La IA local' : 'OpenAI', prov === 'local');
+    const nombre = prov === 'local' ? 'La IA local' : prov === 'openrouter' ? 'OpenRouter' : 'OpenAI';
+    const j = await this.pedirReintentando({ url, headers, body: JSON.stringify(cuerpo) }, nombre, prov === 'local');
+    // OpenRouter puede responder 200 con el error del modelo de abajo dentro del cuerpo.
+    const err = j.error || j.choices?.[0]?.error;
+    if (err) throw new Error(T('{0} respondió {1}: {2}', nombre, err.code || 200, err.message || 'error'));
+    if (j.choices?.[0]?.finish_reason === 'length') throw new Error(T('La respuesta quedó cortada. Reintenta.'));
     return j.choices?.[0]?.message?.content || '';
   }
   async pedirGemini(llave, modelo, sistema, usuario, esquema) {
@@ -2770,7 +2994,12 @@ export default class MapaNeuronal extends Plugin {
     const cuerpo = { systemInstruction: { parts: [{ text: sistema }] }, contents: [{ role: 'user', parts: [{ text: usuario }] }],
       generationConfig: { responseMimeType: 'application/json', responseSchema: limpiar(esquema) } };
     const j = await this.pedirReintentando({ url, headers: { 'content-type': 'application/json' }, body: JSON.stringify(cuerpo) }, 'Gemini');
-    return (j.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('');
+    // [1.33] Antes una respuesta cortada o bloqueada llegaba como «resultado ilegible, prueba otro modelo».
+    const c = j.candidates?.[0], fin = c?.finishReason;
+    if (!c && j.promptFeedback?.blockReason) throw new Error(T('Gemini bloqueó el material ({0}).', j.promptFeedback.blockReason));
+    if (fin === 'MAX_TOKENS') throw new Error(T('La respuesta quedó cortada. Reintenta.'));
+    if (fin && !['STOP', 'FINISH_REASON_UNSPECIFIED'].includes(fin)) throw new Error(T('Gemini bloqueó el material ({0}).', fin));
+    return (c?.content?.parts || []).filter((x) => !x.thought).map((x) => x.text || '').join('');
   }
   async sugerir(fr) {
     const leer = async (ruta) => { const f = this.app.vault.getFileByPath(ruta); return f ? this.app.vault.cachedRead(f) : ''; };
@@ -2928,7 +3157,7 @@ export default class MapaNeuronal extends Plugin {
   async leerRegistroIngesta() {
     const a = this.app.vault.adapter, r = this.rutaRegistroIngesta();
     try {
-      if (a && await a.exists(r)) { const j = JSON.parse(await a.read(r)); return { archivos: j.archivos || {}, parrafos: j.parrafos || {}, uso: j.uso, bloqueo: j.bloqueo }; }
+      if (a && await a.exists(r)) { const j = JSON.parse(await a.read(r)); return { archivos: j.archivos || {}, parrafos: j.parrafos || {}, uso: j.uso, bloqueo: j.bloqueo, ultimoError: j.ultimoError }; }
     } catch { /* registro dañado: se parte de cero; lo peor que pasa es reenviar material */ }
     return { archivos: {}, parrafos: {} };
   }
@@ -2940,6 +3169,7 @@ export default class MapaNeuronal extends Plugin {
   avisarVistas(tipo) { for (const h of this.app.workspace.getLeavesOfType(VISTA)) h.view.alCambiarNovedades?.(tipo); }
   async buscarNovedades(material, automatica = false) {
     const st = this.nov = { fase: 'buscando', material, detenido: false, aplicadas: 0, automatica, progreso: { hechas: 0, n: 1, fase: 1, t0: Date.now() } };
+    const hechasAntes = this.llamadasHechas || 0; this.errorFatal = null;
     this.avisarVistas('inicio');
     try {
       st.prop = await this.proponerIngesta(material.piezas, (hechas, n, fase) => {
@@ -2951,16 +3181,23 @@ export default class MapaNeuronal extends Plugin {
       });
     } catch (e) { st.prop = { novedades: [], contradicciones: [], avisos: [e.message], tandas: 0, leidas: 0 }; }
     st.fase = 'revisar';
-    await this.anotarUso(st.prop.leidas);
+    const error = this.errorFatal || st.prop.fallos?.[0]?.error || (st.prop.avisos || [])[0] || null;
+    // Las llamadas que de verdad salieron (reintentos incluidos); las tandas leídas solo si no se
+    // pudo contar ninguna (una IA reemplazada en pruebas).
+    await this.anotarUso(((this.llamadasHechas || 0) - hechasAntes) || st.prop.leidas || 0, error);
     const utiles = st.prop.novedades.filter((n) => n.estado === 'nuevo').length;
     const abierto = this.app.workspace.getLeavesOfType(VISTA).some((h) => h.view.novAbierto);
     if (!abierto && utiles) new Notice(T('Novedades listas: {0}. Tócalas en la barra del mapa.', utiles));
+    // [1.33] Una ingesta automática que falla entera ya no pasa en silencio.
+    else if (!abierto && error && !st.prop.exitosas) new Notice(T('Novedades: no se pudo leer el material. {0}', error), 15000);
     this.avisarVistas('listo');
     return st;
   }
-  async anotarUso(llamadas) {
+  async anotarUso(llamadas, error) {
     const reg = await this.leerRegistroIngesta(), h = hoy();
     reg.uso = { fecha: h, llamadas: (reg.uso?.fecha === h ? reg.uso.llamadas : 0) + llamadas };
+    // El último error queda escrito: antes solo vivía en el panel y al cerrarlo no había rastro.
+    if (error) reg.ultimoError = { fecha: new Date().toISOString(), modelo: this.ajustes.modeloIA, mensaje: String(error).slice(0, 500) };
     await this.escribirRegistroIngesta(reg);
   }
   // Un identificador por dispositivo (localStorage, no viaja por Sync): para saber quién preparó qué.
@@ -2987,7 +3224,8 @@ export default class MapaNeuronal extends Plugin {
     }
     reg.bloqueo = { dispositivo: yo, hasta: ahora + 12 * 3600 * 1000 };
     await this.escribirRegistroIngesta(reg);
-    await this.buscarNovedades(material, true);
+    this.cupo = tope - usadas;
+    try { await this.buscarNovedades(material, true); } finally { this.cupo = null; }
     return 'hecho';
   }
 
@@ -3057,30 +3295,35 @@ export default class MapaNeuronal extends Plugin {
       let nuevo = texto;
       if (antes && antes.huella === sellos[f.path].huella) nuevo = '';
       else if (antes && texto.length > antes.largo && huella(texto.slice(0, antes.largo)) === antes.huella) nuevo = texto.slice(antes.largo);
-      const quedan = [], hs = [];
+      const quedan = [];
       for (const par of nuevo.split(/\n\s*\n/)) {
         if (!par.trim()) continue;
         const n = par.replace(/\s+/g, ' ').trim().toLowerCase();
         // Los párrafos cortos («## Notas», «- ok») se repiten sin ser la misma información.
+        let h = null;
         if (n.length >= 40) {
-          const h = 'p' + huella(n);
+          h = 'p' + huella(n);
           if (reg.parrafos[h] || vistos.has(h)) continue;
-          vistos.add(h); hs.push(h);
+          vistos.add(h);
         }
-        quedan.push(par);
+        quedan.push([par, h]);
       }
       if (!quedan.length) { repetidos++; continue; }
+      // [1.33] Cada huella va en la pieza (o piezas) que lleva su párrafo. Antes iban todas en la
+      // primera: si la 1 salía bien y la 2 fallaba, los párrafos de la 2 quedaban como enviados
+      // y no se volvían a mandar nunca.
       const trozos = [];
-      let actual = '';
-      for (const par of quedan) {
+      let actual = null;
+      for (const [par, h] of quedan) {
         for (let i = 0; i < par.length; i += TROZO) {
           const pedazo = par.slice(i, i + TROZO);
-          if (actual && actual.length + pedazo.length + 2 > TROZO) { trozos.push(actual); actual = ''; }
-          actual = actual ? `${actual}\n\n${pedazo}` : pedazo;
+          if (actual && actual.texto.length + pedazo.length + 2 > TROZO) { trozos.push(actual); actual = null; }
+          actual = actual ? { texto: `${actual.texto}\n\n${pedazo}`, hs: actual.hs } : { texto: pedazo, hs: [] };
+          if (h && !actual.hs.includes(h)) actual.hs.push(h);
         }
       }
       if (actual) trozos.push(actual);
-      trozos.forEach((t, i) => piezas.push({ ruta: f.path, texto: t, parte: i + 1, partes: trozos.length, hs: i === 0 ? hs : [] }));
+      trozos.forEach((t, i) => piezas.push({ ruta: f.path, texto: t.texto, parte: i + 1, partes: trozos.length, hs: t.hs, mtime: f.stat?.mtime ?? 0 }));
     }
     // El sello de fecha avanza hasta el archivo más nuevo leído, no hasta «ahora»: lo que llegue
     // mientras la persona revisa sigue pendiente para la próxima vez.
@@ -3095,13 +3338,19 @@ export default class MapaNeuronal extends Plugin {
     const reg = await this.leerRegistroIngesta();
     const fallidas = new Set(material.piezas.filter((x) => !x.ok).map((x) => x.ruta));
     for (const [ruta, sello] of Object.entries(material.sellos)) if (!fallidas.has(ruta)) reg.archivos[ruta] = sello;
-    for (const x of material.piezas) if (x.ok) for (const h of x.hs) reg.parrafos[h] = 1;
+    const pendientes = new Set(material.piezas.filter((x) => !x.ok).flatMap((x) => x.hs));
+    for (const x of material.piezas) if (x.ok) for (const h of x.hs) if (!pendientes.has(h)) reg.parrafos[h] = 1;
     const claves = Object.keys(reg.parrafos);
     if (claves.length > PARRAFOS_RECORDADOS) for (const k of claves.slice(0, claves.length - PARRAFOS_RECORDADOS)) delete reg.parrafos[k];
     // Revisado: el bloqueo de este dispositivo se suelta y otro ya puede preparar lo que siga.
     if (reg.bloqueo?.dispositivo === this.idDispositivo()) delete reg.bloqueo;
     await this.escribirRegistroIngesta(reg);
-    if (!fallidas.size && material.hasta) { this.ajustes.ultimaIngesta = new Date(material.hasta).toISOString(); await this.guardar(); }
+    // [1.33] Con fallos, el sello avanza hasta justo antes del archivo fallido más viejo: antes no
+    // avanzaba nada y la ventana de 7 días seguía corriendo, así que lo fallido que quedaba atrás
+    // salía de la ventana sin haberse leído nunca.
+    const hasta = fallidas.size ? Math.min(...material.piezas.filter((x) => !x.ok).map((x) => x.mtime || 0)) - 1 : material.hasta;
+    const antes = Date.parse(this.ajustes.ultimaIngesta || '') || 0;
+    if (hasta > 0 && hasta > antes) { this.ajustes.ultimaIngesta = new Date(hasta).toISOString(); await this.guardar(); }
   }
 
   // Reparte tandas entre `paralelo` trabajadores. avance(hechas, total, fase) devuelve false
@@ -3115,7 +3364,7 @@ export default class MapaNeuronal extends Plugin {
         const k = siguiente++;
         // Una tanda que falla (cuota, red, JSON roto) no se lleva lo recibido de las demás.
         try { resultados[k] = { ok: true, g: await fn(tandas[k]) }; }
-        catch (e) { resultados[k] = { ok: false, error: e.message }; }
+        catch (e) { resultados[k] = { ok: false, error: e.message }; if (e.fatal) { parar = true; this.errorFatal = e.message; } }
         hechas++;
       }
     };

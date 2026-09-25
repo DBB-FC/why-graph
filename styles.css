@@ -70,7 +70,7 @@
 /* v1.3 — panel que explica */
 .mn-raiz .mn-panel { background: #0A0F26; box-shadow: 0 10px 40px rgba(0,0,0,.55); }
 .mn-ojo2 { display: flex; align-items: center; gap: 7px; font: 600 11px var(--font-monospace); letter-spacing: .06em; text-transform: uppercase; color: rgba(230,234,255,.7); }
-.mn-meta { font: 11.5px var(--font-monospace); color: rgba(230,234,255,.5); margin-top: 2px; }
+.mn-meta { font: 11.5px var(--font-monospace); color: rgba(230,234,255,.6); margin-top: 2px; }
 .mn-raiz .mn-panel button.mn-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; font: 500 12px var(--font-interface); color: #E6EAFF; background: rgba(40,48,110,.55); border: 1px solid rgba(170,185,255,.22); border-radius: 7px; box-shadow: none; cursor: pointer; }
 .mn-raiz .mn-panel button.mn-btn:hover { background: rgba(60,70,150,.7); }
 .mn-raiz .mn-panel button.mn-btn-primario { background: #E6EAFF; color: #060A18; border-color: #E6EAFF; }
@@ -80,19 +80,19 @@
 .mn-explica { margin: 12px 0 2px; padding: 12px; background: rgba(40,48,110,.35); border-radius: 10px; display: grid; gap: 7px; }
 .mn-resumen2 { font: 14px/1.5 var(--font-interface); color: #fff; }
 .mn-rol { font: 12.5px/1.45 var(--font-interface); color: #E6EAFF; padding-left: 12px; border-left: 2px solid #B79CFF; }
-.mn-capa { font: 11.5px/1.4 var(--font-monospace); color: rgba(230,234,255,.5); }
+.mn-capa { font: 11.5px/1.4 var(--font-monospace); color: rgba(230,234,255,.6); }
 .mn-grupo2 { margin: 16px 0 4px; }
 .mn-grupo2-fila { display: flex; justify-content: space-between; align-items: baseline; font: 600 13px var(--font-interface); color: #fff; }
 .mn-cuenta { font: 500 11px var(--font-monospace); color: rgba(230,234,255,.55); background: rgba(40,48,110,.6); border-radius: 999px; padding: 1px 8px; }
-.mn-ayuda { font: 11.5px/1.35 var(--font-interface); color: rgba(230,234,255,.5); margin-top: 1px; }
-.mn-motivo.mn-tenue { color: rgba(230,234,255,.38); font-style: italic; }
+.mn-ayuda { font: 11.5px/1.35 var(--font-interface); color: rgba(230,234,255,.6); margin-top: 1px; }
+.mn-motivo.mn-tenue { color: rgba(230,234,255,.56); font-style: italic; }
 .mn-fichas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .mn-raiz .mn-panel button.mn-ficha { height: auto; padding: 3px 8px; font: 11.5px var(--font-monospace); color: #E6EAFF; background: rgba(40,48,110,.45); border: 1px solid rgba(170,185,255,.18); border-radius: 6px; box-shadow: none; cursor: pointer; }
 .mn-raiz .mn-panel button.mn-ficha.fuente { border-color: rgba(255,107,107,.45); }
 
 /* v1.5 — frase real y sugerencias de IA */
 .mn-frase { font: 12.5px/1.4 var(--font-interface); color: rgba(230,234,255,.72); }
-.mn-frase-etq { font: 11px var(--font-monospace); color: rgba(230,234,255,.45); }
+.mn-frase-etq { font: 11px var(--font-monospace); color: rgba(230,234,255,.62); }
 .mn-ia { margin-top: 6px; }
 .mn-raiz .mn-panel button.mn-btn-ia { height: 26px; font-size: 11.5px; background: rgba(183,156,255,.18); border-color: rgba(183,156,255,.45); }
 .mn-ia-estado { font: 12px var(--font-interface); color: #B79CFF; }
@@ -126,11 +126,12 @@
 .mn-ia-guardado { margin-top: 8px; font: 600 12px var(--font-interface); color: #34D17A; }
 
 /* 1.27 — buscador con resultados, y la bandeja de fuentes sin vínculo */
-.mn-raiz .mn-resultados { position: absolute; z-index: 6; top: 100%; left: 0; min-width: 260px; max-width: 420px; max-height: 50vh; overflow: auto; display: none; background: rgba(10,14,36,.96); border: 1px solid rgba(170,185,255,.22); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
-.mn-raiz .mn-resultados[style*="display: block"], .mn-raiz .mn-resultados.mostrar { display: block; }
+.mn-raiz .mn-resultados { position: absolute; z-index: 6; top: 100%; left: 0; min-width: min(260px, 100%); max-width: min(420px, 100%); max-height: 50vh; overflow: auto; display: none; background: rgba(10,14,36,.96); border: 1px solid rgba(170,185,255,.22); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+.mn-raiz .mn-resultados.mostrar { display: block; }
+.mn-raiz .mn-resultado.externo { color: rgba(230,234,255,.72); }
 .mn-raiz .mn-resultado { padding: 5px 8px; font: 12px var(--font-monospace); color: #E6EAFF; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mn-raiz .mn-resultado:hover { background: rgba(40,48,110,.55); }
-.mn-raiz .mn-resultado .mn-tenue { color: rgba(230,234,255,.45); }
+.mn-raiz .mn-resultado .mn-tenue { color: rgba(230,234,255,.62); }
 .mn-raiz .mn-panel .mn-motivo.mn-cita { color: #8BE9FD; cursor: pointer; }
 .mn-raiz .mn-panel .mn-motivo.mn-cita:hover { text-decoration: underline; }
 
@@ -168,7 +169,7 @@
 .mn-raiz .mn-panel .mn-nov-fila.hecha .mn-nov-texto::before { content: '✓ '; }
 .mn-raiz .mn-panel .mn-nov-fila.descartada { opacity: .4; }
 .mn-raiz .mn-panel .mn-nov-plegable { margin: 10px 0; }
-.mn-raiz .mn-panel .mn-nov-plegable summary { cursor: pointer; font: 12px var(--font-interface); color: #AEB6DA; padding: 4px 0; }
+.mn-raiz .mn-panel .mn-nov-plegable summary { cursor: pointer; font: 12px var(--font-interface); color: #AEB6DA; padding: 5px 0; }
 /* 1.32 — Conexiones que faltan: «revisar primero» en la barra y temas clave en el panel. */
 .mn-raiz button.mn-chip.mn-chip-revisar { border-color: rgba(255,107,157,.55); color: #FF9CC0; }
 .mn-raiz .mn-panel .mn-temas-clave { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
@@ -196,3 +197,23 @@
 .mn-raiz .mn-panel .mn-temas-clave button.mn-ficha { display: inline-flex; align-items: center; gap: 6px; }
 /* «Dejar aquí» es texto, no un ícono: el botón toma el ancho de su texto. */
 .mn-raiz .mn-panel .mn-nov-recortes .mn-nov-botones button.mn-btn { width: auto; padding: 0 10px; }
+
+/* 1.33 — auditoría UI/UX. Contraste: «en el texto:» y los textos tenues pasan de 3,2–4,0 a más de 4,5.
+   Teclado: lo clicable que no es botón recibe foco (src/main.js) y aquí se ve dónde está. */
+.mn-raiz [role="button"]:focus-visible, .mn-raiz .mn-resultado:focus-visible { outline: 2px solid #B79CFF; outline-offset: 1px; border-radius: 6px; }
+.mn-raiz .mn-resultado:focus { background: rgba(40,48,110,.55); }
+/* Objetivos: 24 px mínimo en el computador (WCAG 2.5.8); en el teléfono 40 px, y 44 los de zoom. */
+.mn-raiz .mn-panel button.mn-ficha { min-height: 24px; }
+.is-phone .mn-raiz button.mn-chip, .mn-raiz.angosto button.mn-chip, .is-phone .mn-raiz input.mn-buscar, .mn-raiz.angosto input.mn-buscar { min-height: 40px; }
+.is-phone .mn-raiz .mn-panel button.mn-btn, .mn-raiz.angosto .mn-panel button.mn-btn { height: 40px; min-width: 40px; }
+.is-phone .mn-raiz .mn-panel button.mn-ficha, .mn-raiz.angosto .mn-panel button.mn-ficha { min-height: 36px; }
+.is-phone .mn-raiz .mn-zoom button, .mn-raiz.angosto .mn-zoom button { width: 44px; height: 44px; }
+.is-phone .mn-raiz .mn-resultado, .mn-raiz.angosto .mn-resultado { padding: 11px 10px; }
+.is-phone .mn-raiz .mn-panel summary, .mn-raiz.angosto .mn-panel summary { padding: 10px 0; }
+/* Chips con más a los lados: el borde se desvanece donde sigue la fila. */
+.mn-chips.desborda-der { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+.mn-chips.desborda-izq { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
+.mn-chips.desborda-izq.desborda-der { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+/* En pantalla angosta el mapa se corre para mostrar la nota tocada y pasa por detrás de la barra:
+   sin fondo, los rótulos y los chips se mezclaban. */
+.is-phone .mn-raiz .mn-barra, .mn-raiz.angosto .mn-barra { background: rgba(6,10,24,.88); border-radius: 12px; padding: 6px; margin: -6px; box-shadow: 0 8px 20px rgba(6,10,24,.85); }

@@ -57,10 +57,12 @@ P.removeClass = function (...c) { this.classList.remove(...c); return this; };
 P.toggleClass = function (c, v) { this.classList.toggle(c, v); return this; };
 P.hasClass = function (c) { return this.classList.contains(c); };
 P.setCssProps = function (o) { for (const [k, v] of Object.entries(o)) this.style.setProperty(k, v); return this; };
-P.show = function () { this.style.display = ''; return this; };
-P.hide = function () { this.style.display = 'none'; return this; };
-P.isShown = function () { return this.style.display !== 'none'; };
-P.toggle = function (v) { this.style.display = v ? '' : 'none'; return this; };
+// Copia fiel de enhance.js de Obsidian: show() NUNCA escribe «block», solo quita el «none».
+// Un doble más generoso escondió en 1.27 una lista de resultados que en Obsidian no se veía.
+P.show = function () { if (this.style.display === 'none') { this.style.display = this.getAttribute('data-display') || ''; this.removeAttribute('data-display'); } return this; };
+P.hide = function () { const d = this.style.display; if (d !== 'none') { this.style.display = 'none'; if (d) this.setAttribute('data-display', d); else this.removeAttribute('data-display'); } return this; };
+P.isShown = function () { return !!this.offsetParent; };
+P.toggle = function (v) { return v ? this.show() : this.hide(); };
 
 // ── El módulo «obsidian», lo mínimo para dibujar ───────────────────────────────
 class Componente {
@@ -113,12 +115,15 @@ window.exports = window.module.exports;
     }
     return o;
   };
+  const archivo = (p) => ({ path: p, name: p.split('/').pop(), basename: base(p), extension: p.split('.').pop(), stat: { mtime: 0, ctime: 0, size: (notas[p] || '').length } });
   const resolved = {};
   for (const p of rutas) { resolved[p] = {}; for (const x of notas[p].matchAll(/\[\[([^\]|#]+)/g)) { const d = porBase[x[1].trim()]; if (d) resolved[p][d] = 1; } }
   const app = {
     vault: {
-      getMarkdownFiles: () => rutas.map((p) => ({ path: p, basename: base(p) })),
-      getFileByPath: (p) => (notas[p] !== undefined ? { path: p, basename: base(p) } : null),
+      // Como TFile: name y stat también, o el código que ordena por nombre revienta solo aquí.
+      getMarkdownFiles: () => rutas.filter((p) => p.endsWith('.md')).map(archivo),
+      getFiles: () => rutas.map(archivo),
+      getFileByPath: (p) => (notas[p] !== undefined ? archivo(p) : null),
       getFolderByPath: () => null, createFolder: async () => {}, create: async () => {}, createBinary: async () => {},
       append: async () => {}, process: async () => {}, cachedRead: async (f) => notas[f.path], read: async (f) => notas[f.path],
     },
@@ -195,6 +200,18 @@ window.exports = window.module.exports;
     ] } };
     v.contarNovedades();
     await v.panelNovedades();
+  } else if (vista === 'buscar') {
+    // Escribe en el buscador como una persona y mide si la lista se VE (estilo calculado).
+    const caja = document.querySelector('.mn-buscar'), lista = document.querySelector('.mn-resultados');
+    caja.value = q.get('q') || ''; caja.dispatchEvent(new Event('input'));
+    await new Promise((r) => setTimeout(r, 0));   // el observador marca las filas en la vuelta siguiente
+    caja.focus(); caja.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    const activo = document.activeElement;
+    const pre = document.createElement('pre'); pre.id = 'diag';
+    pre.textContent = JSON.stringify({ display: getComputedStyle(lista).display, alto: lista.getBoundingClientRect().height,
+      filas: [...lista.querySelectorAll('.mn-resultado')].map((x) => x.textContent),
+      teclado: { rol: activo?.getAttribute('role'), fila: !!activo?.classList.contains('mn-resultado') } });
+    document.body.appendChild(pre);
   } else if (q.get('foco')) {
     const n = buscar(q.get('foco'));
     if (n) v.enfocar(n.id, true); else document.title = 'ERROR: no encuentro esa nota';

@@ -21,7 +21,8 @@ diccionario `EN` al inicio de `src/main.js`; la prueba te avisa si se te olvidó
 
 Otra prueba dibuja la pantalla de ajustes en Chrome sin ventana y falla si se corta a la mitad: una
 excepción dentro de `display()` deja la pantalla a medio dibujar sin ningún error visible, y el resto
-simplemente no aparece. Se salta sola donde no hay Chrome instalado.
+simplemente no aparece. También escribe en el buscador y comprueba que la lista de resultados se vea.
+En tu equipo se salta sola si no hay Chrome; en CI es obligatoria y falla si no lo encuentra.
 
 ## Lo que el plugin promete, y tiene que seguir prometiendo
 

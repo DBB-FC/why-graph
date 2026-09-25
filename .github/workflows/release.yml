@@ -37,7 +37,9 @@ jobs:
         run: npx eslint src/
 
       - name: Construir y probar (mapa, escritura, IA, idioma)
-        # La prueba de interfaz necesita Chrome y se salta sola si no está.
+        # La prueba de interfaz usa el Chrome del runner; en CI falla si no lo encuentra.
+        env:
+          CHROME: /usr/bin/google-chrome   # viene instalado en ubuntu-latest
         run: npm test
 
       # Deja constancia criptográfica de que estos archivos se construyeron desde ESTE

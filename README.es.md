@@ -160,9 +160,15 @@ pensamiento está en una sola pila indiferenciada.
 El mapa funciona **sin ninguna IA**. Si conectas una, puede proponer motivos para los enlaces que no
 tienen, y resúmenes breves para las notas sin descripción.
 
-Soportados: **Anthropic (Claude)**, **OpenAI**, **Google (Gemini)**, y cualquier **servidor local
+Soportados: **Anthropic (Claude)**, **OpenAI**, **Google (Gemini)**, **OpenRouter** (una llave para
+cientos de modelos, algunos gratis; el modelo se escribe como `google/gemini-3.1-flash-lite`), y cualquier **servidor local
 compatible con OpenAI** (Ollama, LM Studio, LocalAI) — la opción local **no necesita llave, ni
 internet, ni cuesta nada**. Los motivos se escriben en el idioma de tus notas, no en el de la interfaz.
+
+> **La capa gratis de Gemini y las Novedades.** Algunos modelos de Gemini permiten solo 20 llamadas
+> al día por modelo en la capa gratis, y revisar una semana de material crudo puede pedir más. Cuando
+> la cuota se acaba, el plugin se detiene, lo dice y deja lo demás para la próxima vez: elige un
+> modelo más liviano o activa la facturación si ingieres mucho.
 
 Se aplican tres candados, sea cual sea el proveedor:
 
@@ -401,7 +407,9 @@ LLM wiki, con sus fuentes crudas en una carpeta— el mapa ve también de dónde
 - **Fuentes sin vínculo.** En «⋯ herramientas», una lista de los archivos de tus carpetas de
   fuentes que ninguna nota del mapa cita, con el contador «citadas: X de Y» y su alcance. Dice solo
   eso: no dice si los procesaste. El significado se lo da tu flujo, no el plugin.
-- **El buscador** encuentra fuentes, notas ocultas y miembros de temas colapsados.
+- **El buscador** encuentra fuentes, notas ocultas y miembros de temas colapsados: por palabras, en
+  cualquier orden, sin importar tildes ni guiones, y por `aliases`. Lo que no está en el mapa (material
+  crudo sin citar, notas fuera de toda capa) también aparece, y se abre en Obsidian.
 
 Una cita es una ruta explícita: entre acentos graves, en un `[[wikilink]]`, en un enlace, o suelta
 hasta el primer espacio. Citar una carpeta no equivale a citar cada archivo que contiene.
