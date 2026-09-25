@@ -127,7 +127,8 @@
 
 /* 1.27 — buscador con resultados, y la bandeja de fuentes sin vínculo */
 .mn-raiz .mn-resultados { position: absolute; z-index: 6; top: 100%; left: 0; min-width: 260px; max-width: 420px; max-height: 50vh; overflow: auto; display: none; background: rgba(10,14,36,.96); border: 1px solid rgba(170,185,255,.22); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
-.mn-raiz .mn-resultados[style*="display: block"], .mn-raiz .mn-resultados.mostrar { display: block; }
+.mn-raiz .mn-resultados.mostrar { display: block; }
+.mn-raiz .mn-resultado.externo { color: rgba(230,234,255,.72); }
 .mn-raiz .mn-resultado { padding: 5px 8px; font: 12px var(--font-monospace); color: #E6EAFF; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mn-raiz .mn-resultado:hover { background: rgba(40,48,110,.55); }
 .mn-raiz .mn-resultado .mn-tenue { color: rgba(230,234,255,.45); }

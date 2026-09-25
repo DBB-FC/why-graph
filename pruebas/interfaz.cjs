@@ -24,6 +24,11 @@ fs.writeFileSync(path.join(dir, 'vault.js'), 'window.__VAULT = ' + fs.readFileSy
 const dom = execFileSync(CHROME, ['--headless', '--disable-gpu', '--window-size=900,900',
   '--virtual-time-budget=5000', '--dump-dom', `file://${dir}/mirador.html?vista=ajustes`], { encoding: 'utf8', maxBuffer: 64e6 });
 
+// El buscador, escrito como lo haría una persona: la lista de resultados tiene que VERSE.
+// Hasta 1.32 no se veía nunca en Obsidian (show() deja display vacío y el CSS la ocultaba).
+const domBuscar = execFileSync(CHROME, ['--headless', '--disable-gpu', '--window-size=1400,900',
+  '--virtual-time-budget=5000', '--dump-dom', `file://${dir}/mirador.html?vista=buscar&q=tostadora`], { encoding: 'utf8', maxBuffer: 64e6 });
+
 for (const f of ['main.js', 'styles.css', 'vault.js']) fs.unlinkSync(path.join(dir, f));
 
 const m = dom.match(/<pre id="diag">([\s\S]*?)<\/pre>/);
@@ -37,7 +42,12 @@ if (!d.pie) fallos.push('falta el pie con la versión y la marca');
 else if (!/\d+\.\d+\.\d+/.test(d.pie)) fallos.push(`el pie no muestra la versión: «${d.pie}»`);
 if (!d.logo) fallos.push('el logo de la marca no carga su imagen');
 if (!d.probar.length) fallos.push('falta el botón de probar la conexión');
+const mb = domBuscar.match(/<pre id="diag">([\s\S]*?)<\/pre>/);
+const b = mb ? JSON.parse(mb[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')) : null;
+if (!b) fallos.push('el buscador no llegó a probarse');
+else if (b.display === 'none' || !b.alto) fallos.push(`la lista de resultados del buscador no se ve (display: ${b.display})`);
+else if (!b.filas.some((x) => /tostadora/i.test(x))) fallos.push(`el buscador no encontró la nota: ${JSON.stringify(b.filas)}`);
 
-console.log(`interfaz: ${d.ajustes} ajustes · pie «${d.pie}» · logo ${d.logo ? 'sí' : 'NO'} · ${d.probar.length ? 'con' : 'SIN'} botón de prueba`);
+console.log(`interfaz: buscador ${b && b.alto ? `visible, ${b.filas.length} resultado(s)` : 'NO se ve'} · ${d.ajustes} ajustes · pie «${d.pie}» · logo ${d.logo ? 'sí' : 'NO'} · ${d.probar.length ? 'con' : 'SIN'} botón de prueba`);
 fallos.forEach((f) => console.log('   ✕ ' + f));
 process.exit(fallos.length ? 1 : 0);

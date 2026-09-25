@@ -159,9 +159,15 @@ of your thinking is sitting in one undifferentiated pile.
 The map works with **no AI at all**. If you connect one, it can propose reasons for links that have
 none, and short summaries for notes that have no description.
 
-Supported: **Anthropic (Claude)**, **OpenAI**, **Google (Gemini)**, and any **OpenAI-compatible
+Supported: **Anthropic (Claude)**, **OpenAI**, **Google (Gemini)**, **OpenRouter** (one key for
+hundreds of models, some of them free — model ids look like `google/gemini-3.1-flash-lite`), and any **OpenAI-compatible
 local server** (Ollama, LM Studio, LocalAI) — the local option needs **no key, no internet and no
 cost**. Reasons are written in the language of your notes, not of the interface.
+
+> **Gemini's free tier and What's new.** Some Gemini models allow only 20 calls a day per model
+> on the free tier, and one review of a week of raw material can take more than that. When the
+> quota runs out the plugin stops, says so, and keeps the rest for next time — pick a lighter
+> model or enable billing if you ingest a lot.
 
 Three locks apply, whatever provider you pick:
 
@@ -398,7 +404,9 @@ does, with its raw sources in a folder — the map also shows where each thing c
 - **Unlinked sources.** Under "⋯ tools", a list of the files in your source folders that no note
   on the map cites, with the counter "cited: X of Y" and its scope. It says only that: not
   whether you processed them. Your workflow gives it meaning, not the plugin.
-- **Search** finds sources, hidden notes and members of collapsed topics.
+- **Search** finds sources, hidden notes and members of collapsed topics — word by word, in any
+  order, ignoring accents and hyphens, and by `aliases`. Files that are not on the map (uncited
+  raw material, notes outside every layer) are listed too, and open in Obsidian.
 
 A citation is an explicit path: in backticks, in a `[[wikilink]]`, in a link, or bare up to the
 first space. Citing a folder is not the same as citing every file inside it.

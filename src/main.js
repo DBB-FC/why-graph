@@ -4,6 +4,19 @@
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
  *
+ * v1.33 (25.09.2026): la auditoría forense sobre el cerebro real —
+ *   · Buscador: la lista de resultados por fin se ve en Obsidian (show() deja display vacío y el
+ *     CSS la tenía oculta). Busca por palabras en cualquier orden, sin tildes ni guiones, por alias,
+ *     y también lo que no está en el mapa (material crudo sin citar, notas fuera de capa): se abre.
+ *   · Pulsos: cada uno sale al empezar su viaje y lo termina (antes 516 cortes cada 30 s) y nunca
+ *     quedan en cero; la animación usa la ventana del mapa y sigue en una ventana aparte.
+ *   · Ingesta: los párrafos de una pieza fallida ya no quedan como enviados; el tope diario cuenta
+ *     cada llamada real (los dos pasos y los reintentos); la cuota diaria de Gemini no se reintenta
+ *     y detiene la corrida con un aviso claro; respuestas cortadas o bloqueadas se dicen como son;
+ *     el último error queda en ingesta.json; con fallos el sello avanza sin saltar lo fallido.
+ *   · Fuentes anidadas (raw, raw/articles, raw/daily/*): gana la más específica, sin doble conteo.
+ *   · Motivos: «- [[a]] · [[b]] — motivo» vale para cada nota; enlaces con ruta, ancla o mayúsculas.
+ *   · OpenRouter como quinto proveedor: una llave para muchos modelos, con esquema JSON exigido.
  * v1.32 (23.09.2026): Novedades — el material sin procesar se vuelve líneas para el wiki. Nunca
  *   dos veces lo mismo (huellas en ingesta.json), tandas en paralelo, dos pasos (buscar con cita
  *   verificada; comparar con la página: nuevo / ya estaba / choca), aprobar = insertar una línea
@@ -108,6 +121,15 @@ const EN = {
   // barra y guía
   'buscar nota…': 'search note…',
   'No hay notas con ese nombre': 'No notes with that name',
+  'fuera del mapa': 'not on the map',
+  'Crea la llave en openrouter.ai/keys. Una sola llave da acceso a modelos de Anthropic, Google, OpenAI y abiertos; los que terminan en «:free» no cuestan, con límite diario.':
+    'Create the key at openrouter.ai/keys. One key reaches models from Anthropic, Google, OpenAI and open ones; those ending in «:free» cost nothing, with a daily limit.',
+  'El identificador como aparece en openrouter.ai/models, con el proveedor delante: por ejemplo google/gemini-3.1-flash-lite.':
+    'The identifier as shown on openrouter.ai/models, with the provider in front: for example google/gemini-3.1-flash-lite.',
+  'Se llegó al tope diario de llamadas automáticas. Lo que falta queda para la próxima vez.': 'The daily limit of automatic calls was reached. The rest is kept for next time.',
+  '{0}: se agotó la cuota diaria de {1} ({2} llamadas al día en la capa gratis). Elige otro modelo o activa la facturación; mañana se renueva.': '{0}: the daily quota for {1} is used up ({2} calls a day on the free tier). Pick another model or enable billing; it resets tomorrow.',
+  'Gemini bloqueó el material ({0}).': 'Gemini blocked the material ({0}).',
+  'Novedades: no se pudo leer el material. {0}': 'What\'s new: the material could not be read. {0}',
   '⋯ herramientas': '⋯ tools',
   'Alejar': 'Zoom out',
   'Encuadrar': 'Fit to screen',
@@ -601,6 +623,9 @@ const PROVEEDORES = {
   claude: { nombre: 'Claude (Anthropic)', url: 'https://api.anthropic.com/v1/messages', llave: true, ayuda: 'Crea la llave en console.anthropic.com, sección API keys. Una suscripción de Claude (Pro o Max) no sirve: la API se paga por uso.', modeloAyuda: 'claude-opus-5 es el más preciso (97,7 % en nuestra prueba). claude-sonnet-5 y claude-haiku-4-5 son más baratos.', modelo: 'claude-opus-5' },
   openai: { nombre: 'OpenAI (ChatGPT)', url: 'https://api.openai.com/v1/chat/completions', llave: true, ayuda: 'Crea la llave en platform.openai.com. Una suscripción de ChatGPT no sirve: la API se paga por uso.', modeloAyuda: 'Escribe el identificador del modelo, como aparece en la documentación de OpenAI.', modelo: '' },
   gemini: { nombre: 'Google Gemini', url: 'https://generativelanguage.googleapis.com/v1beta/models', llave: true, ayuda: 'Crea la llave en aistudio.google.com. Tiene una capa gratuita con límites de uso.', modeloAyuda: 'Escribe el identificador del modelo, como aparece en la documentación de Gemini.', modelo: '' },
+  // [1.33] Una llave para muchos modelos (Anthropic, Google, OpenAI, abiertos), algunos gratis («:free»).
+  // Habla el mismo protocolo que OpenAI: va por pedirCompatible.
+  openrouter: { nombre: 'OpenRouter', url: 'https://openrouter.ai/api/v1/chat/completions', llave: true, ayuda: 'Crea la llave en openrouter.ai/keys. Una sola llave da acceso a modelos de Anthropic, Google, OpenAI y abiertos; los que terminan en «:free» no cuestan, con límite diario.', modeloAyuda: 'El identificador como aparece en openrouter.ai/models, con el proveedor delante: por ejemplo google/gemini-3.1-flash-lite.', modelo: '' },
   local: { nombre: 'IA local (Ollama, LM Studio)', url: 'http://localhost:11434/v1/chat/completions', llave: false, ayuda: 'Gratis y sin enviar tus notas a internet. Necesitas Ollama o LM Studio corriendo en este computador. No funciona en el celular.', modeloAyuda: 'El nombre del modelo que descargaste, por ejemplo el que muestra «ollama list».', modelo: '' },
 };
 // Fuentes: rutas explícitas a archivos de las carpetas configuradas. Se aceptan tildes y espacios
@@ -611,7 +636,9 @@ function carpetasFuentesDe(s) {
   return String(s.carpetasFuentes || '').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
     const grupo = l.endsWith('/*'); const ruta = (grupo ? l.slice(0, -2) : l).replace(/^\/+|\/+$/g, '');
     return ruta ? { ruta, grupo } : null;
-  }).filter(Boolean);
+  // [1.33] La más específica primero: con «raw», «raw/articles» y «raw/daily/*» ganaba siempre
+  // «raw»; el agrupado por día nunca se aplicaba y el inventario contaba 494 archivos dos veces.
+  }).filter(Boolean).sort((a, b) => b.ruta.length - a.ruta.length);
 }
 function citasDe(texto, carpetas) {
   if (!carpetas.length) return [];
@@ -644,14 +671,21 @@ function nodoFuenteDe(ruta, carpetas) {
 function inventarioFuentes(app, carpetas) {
   const todos = (app.vault.getFiles ? app.vault.getFiles() : app.vault.getMarkdownFiles()).map((f) => f.path);
   const items = [];
+  // Cada archivo cuenta una vez, en su carpeta más específica (carpetas viene ordenada así).
+  const suya = (r) => carpetas.find((x) => r.startsWith(x.ruta + '/'));
   for (const c of carpetas) {
-    const dentro = todos.filter((r) => r.startsWith(c.ruta + '/'));
+    const dentro = todos.filter((r) => suya(r) === c);
     if (c.grupo) { const subs = new Set(dentro.map((r) => r.slice(c.ruta.length + 1).split('/')[0]).filter((s) => dentro.some((r) => r.startsWith(c.ruta + '/' + s + '/')))); for (const s of subs) items.push({ ruta: c.ruta + '/' + s, titulo: s, carpeta: c, grupo: true }); }
     else for (const r of dentro) items.push({ ruta: r, titulo: r.slice(c.ruta.length + 1), carpeta: c });
   }
   return items;
 }
-const MOTIVO = /^- \[\[([^\]|#]+)\]\]\s+—\s+(.+)$/gm;
+// «- [[nota]] — motivo», y también «- [[a]] · [[b]] — motivo» (un motivo para varias) o con alias.
+const MOTIVO = /^- ((?:\[\[[^\]]+\]\][\s·,]*)+)\s+—\s+(.+)$/gm;
+// Clave de un enlace para compararlo con el nombre del archivo: Obsidian no distingue mayúsculas,
+// y «[[wiki/tecnico/x#sección|X]]» apunta a x.
+const claveEnlace = (t) => String(t || '').split('|')[0].split('#')[0].trim().replace(/\.md$/i, '').split('/').pop().toLowerCase();
+const enlacesEnLinea = (l) => [...l.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => claveEnlace(m[1]));
 const rgba = (h, a) => { const v = parseInt(String(h).replace('#', ''), 16) || 0xC9D1FF; return `rgba(${v >> 16},${(v >> 8) & 255},${v & 255},${a})`; };
 // Fecha LOCAL, no UTC: en Chile, después de las 21:00 toISOString() ya es el día siguiente (lección del 01.09).
 // Huella corta de un texto (cyrb53, 53 bits): dice «esto ya se envió» sin guardar el texto.
@@ -661,6 +695,16 @@ const huella = (t) => {
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+};
+// Un error que no se arregla reintentando (llave, cuota diaria, modelo inexistente, tope): la
+// ingesta deja de mandar tandas en vez de gastar el resto de la cuota en el mismo error.
+const fatal = (mensaje) => Object.assign(new Error(mensaje), { fatal: true });
+// Número fijo en [0, 1) para un par de enteros: el mismo enlace en el mismo viaje sortea siempre
+// lo mismo, así un pulso que salió no desaparece al cuadro siguiente.
+const sorteo = (i, j) => {
+  let h = Math.imul(i ^ Math.imul(j + 0x9E3779B9, 0x85EBCA6B), 0xC2B2AE35);
+  h ^= h >>> 15; h = Math.imul(h, 0x2C1B3C6D); h ^= h >>> 12; h = Math.imul(h, 0x297A2D39); h ^= h >>> 15;
+  return (h >>> 0) / 4294967296;
 };
 // «*.mini.md» → expresión regular. Sin «/» se compara con el nombre; con «/», con la ruta.
 const comoPatron = (g) => new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]') + '$', 'i');
@@ -757,7 +801,8 @@ async function construir(app, s) {
     if (tema && !cfg.temas[tema]) cfg.temas[tema] = [tema, PALETA[Object.keys(cfg.temas).length % PALETA.length]];
     nodos[f.path] = { id: f.path, capa, ruta: f.path, titulo: String(fm.title || f.basename).slice(0, 90), tema,
       propio: !!tema, updated: fm.updated ? String(fm.updated) : null, resumenAprobado: fm.resumen ? String(fm.resumen) : null,
-      enlaces: enlacesDe(fm, s), hub: fm.hub === true || String(fm.hub).toLowerCase() === 'true' };
+      enlaces: enlacesDe(fm, s), hub: fm.hub === true || String(fm.hub).toLowerCase() === 'true',
+      alias: [].concat(fm.aliases || fm.alias || []).map(String).filter(Boolean).slice(0, 12) };
     porRuta[f.path] = f.path;
   }
   // Validación de la config: carpetas que no tienen ninguna nota y notas que no caen en capa alguna.
@@ -781,17 +826,17 @@ async function construir(app, s) {
     const texto = archivo ? await app.vault.cachedRead(archivo) : '';
     nodos[id].resumen = nodos[id].resumenAprobado || resumir(texto);
     const curados = {};
-    for (const m of texto.matchAll(MOTIVO)) curados[m[1].trim()] = m[2].trim();
-    const lineas = texto.split('\n'), finCuerpo = (() => { const i = lineas.findIndex((l) => l.startsWith('## ' + (s.seccionMotivos || 'Conexiones'))); return i < 0 ? lineas.length : i; })();
+    for (const m of texto.matchAll(MOTIVO)) for (const k of enlacesEnLinea(m[1])) if (!curados[k]) curados[k] = m[2].trim();
+    const lineas = texto.split('\n'), clavesDe = [], finCuerpo = (() => { const i = lineas.findIndex((l) => l.startsWith('## ' + (s.seccionMotivos || 'Conexiones'))); return i < 0 ? lineas.length : i; })();
     for (const destino of Object.keys(resueltos[id] || {})) {
       if (!porRuta[destino] || destino === id) continue;
-      const base = destino.split('/').pop().replace(/\.md$/, '');
+      const base = claveEnlace(destino);
       poner(id, destino, curados[base] || '');
       if (!curados[base]) {
         const k = id < destino ? id + '|' + destino : destino + '|' + id;
         if (!frases[k]) for (let i = 0; i < finCuerpo; i++) {
           const l = lineas[i];
-          if (l.includes('[[' + base + ']]') || l.includes('[[' + base + '|')) { frases[k] = { origen: id, destino, linea: i + 1, texto: limpiarFrase(l) }; break; }
+          if (l.includes('[[') && (clavesDe[i] ??= enlacesEnLinea(l)).includes(base)) { frases[k] = { origen: id, destino, linea: i + 1, texto: limpiarFrase(l) }; break; }
         }
       }
     }
@@ -886,6 +931,10 @@ const PISTAS = [
   [-1, ['template', 'plantilla', 'attachment', 'adjunto', 'asset', 'archive', 'archivo', 'excalidraw', 'trash', 'papelera']],
 ];
 function sinAcentos(t) { return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+// Buscar: «Segundo cerebro», «segundo-cerebro» y «cerebro segundo» son la misma búsqueda.
+const textoBusqueda = (t) => sinAcentos(String(t || '')).replace(/[-_./\\|·,;:()[\]]+/g, ' ').replace(/\s+/g, ' ').trim();
+const palabrasBusqueda = (q) => textoBusqueda(q).split(' ').filter(Boolean);
+const coincide = (palabras, ...campos) => { const t = textoBusqueda(campos.join(' ')); return palabras.every((p) => t.includes(p)); };
 // Lo que nunca va al mapa, con cualquier plantilla.
 const PISTAS_OCULTAS = PISTAS[PISTAS.length - 1];
 function sugerirCapa(nombre, pistas = PISTAS, porDefecto = 2) {
@@ -1078,7 +1127,12 @@ class VistaMapa extends ItemView {
   getDisplayText() { return NOMBRE; }
   getIcon() { return 'brain-circuit'; }
 
+  // [1.33] La ventana del mapa, no la principal: con el mapa en una ventana aparte (o la principal
+  // minimizada) el requestAnimationFrame de la principal se congela y los pulsos se detenían.
+  get ventana() { return this.contentEl?.win || window; }
+  get documento() { return this.contentEl?.doc || document; }
   async onOpen() {
+    this.cerrada = false;
     const raiz = this.contentEl; raiz.empty(); raiz.addClass('mn-raiz');
     this.lienzo = raiz.createEl('canvas', { cls: 'mn-lienzo' });
     this.ctx = this.lienzo.getContext('2d');
@@ -1086,15 +1140,30 @@ class VistaMapa extends ItemView {
     this.marca = barra.createDiv({ cls: 'mn-marca', text: NOMBRE });
     const buscar = barra.createEl('input', { type: 'search', placeholder: T('buscar nota…'), cls: 'mn-buscar' });
     this.resultados = barra.createDiv('mn-resultados');
-    const elegir = (n) => { buscar.value = ''; this.filtro = ''; this.resultados.empty(); this.resultados.hide(); this.irA(n.id); };
+    // [1.33] La lista se muestra con una clase, no con show()/toggle(): en Obsidian esos dejan
+    // style.display vacío, el CSS la tenía oculta por defecto y los resultados nunca se veían.
+    const cerrarLista = () => { this.resultados.empty(); this.resultados.removeClass('mostrar'); };
+    const limpiar = () => { buscar.value = ''; this.filtro = ''; cerrarLista(); this.pedir(); };
+    const elegir = (n) => { limpiar(); if (n.externo) this.abrirNota(n.ruta); else this.irA(n.id); };
+    const resultados = () => (this.filtro ? [...this.buscarTodo(this.filtro), ...this.buscarFuera(this.filtro)] : []);
     this.registerDomEvent(buscar, 'input', () => {
-      this.filtro = buscar.value.trim().toLowerCase(); this.pedir();
+      this.filtro = buscar.value.trim(); this.pedir();
       this.resultados.empty();
-      const lista = this.filtro ? this.buscarTodo(this.filtro) : [];
-      this.resultados.toggle(lista.length > 0);
-      for (const n of lista) { const fila = this.resultados.createDiv({ cls: 'mn-resultado' + (n.fuente ? ' fuente' : '') , text: (n.fuente ? '📄 ' : '') + n.titulo }); fila.createSpan({ cls: 'mn-tenue', text: ' ' + (n.fuente ? n.ruta : n.ruta.split('/').slice(0, -1).join('/')) }); fila.onclick = () => elegir(n); }
+      if (!this.filtro) return cerrarLista();
+      const lista = resultados();
+      this.resultados.addClass('mostrar');
+      if (!lista.length) { this.resultados.createDiv({ cls: 'mn-resultado mn-tenue', text: T('No hay notas con ese nombre') }); return; }
+      for (const n of lista) {
+        const fila = this.resultados.createDiv({ cls: 'mn-resultado' + (n.fuente ? ' fuente' : '') + (n.externo ? ' externo' : ''), text: (n.fuente || n.externo ? '📄 ' : '') + n.titulo });
+        fila.createSpan({ cls: 'mn-tenue', text: ' ' + (n.externo ? `${n.ruta} · ${T('fuera del mapa')}` : n.fuente ? n.ruta : n.ruta.split('/').slice(0, -1).join('/')) });
+        fila.onclick = () => elegir(n);
+      }
     });
-    this.registerDomEvent(buscar, 'keydown', (e) => { if (e.key !== 'Enter' || !this.filtro) return; const n = this.buscarTodo(this.filtro)[0]; if (n) elegir(n); else new Notice(T('No hay notas con ese nombre')); });
+    this.registerDomEvent(buscar, 'keydown', (e) => {
+      if (e.key === 'Escape') { limpiar(); return; }
+      if (e.key !== 'Enter' || !this.filtro) return;
+      const n = resultados()[0]; if (n) elegir(n); else new Notice(T('No hay notas con ese nombre'));
+    });
     this.chips = barra.createDiv('mn-chips');
     // Solo aparece si hay material nuevo: una barra sin nada que hacer no muestra este chip.
     this.chipNovedades = barra.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
@@ -1122,22 +1191,23 @@ class VistaMapa extends ItemView {
     if (!this.plugin.ajustes.configurado && !this.plugin.ajustes.carpetas.trim()) new AsistenteCapas(this.app, this.plugin).open();
     this.iniciarAnimacion();
   }
-  async onClose() { this.cerrada = true; this.observador?.disconnect(); if (this.anim) window.cancelAnimationFrame(this.anim); this.anim = null; }
+  async onClose() { this.cerrada = true; this.observador?.disconnect(); if (this.anim) (this.animWin || window).cancelAnimationFrame(this.anim); this.anim = null; }
 
   // ── animación: pulsos que viajan por los enlaces, en el sentido en que se compila ──
   debeAnimar() {
     return this.plugin.ajustes.animacion && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-      && document.visibilityState === 'visible' && this.contentEl.isShown?.() !== false;
+      && this.documento.visibilityState !== 'hidden' && this.contentEl.isShown?.() !== false;
   }
   iniciarAnimacion() {
     if (this.anim) return;
     const intervalo = Platform.isMobile ? 50 : 33;
     const paso = (t) => {
-      this.anim = window.requestAnimationFrame(paso);
+      if (this.cerrada) { this.anim = null; return; }
+      this.animWin = this.ventana; this.anim = this.animWin.requestAnimationFrame(paso);
       if (!this.debeAnimar() || t - (this.ultimoCuadro || 0) < intervalo) return;
       this.ultimoCuadro = t; this.tiempo = t; this.dibujar();
     };
-    this.anim = window.requestAnimationFrame(paso);
+    this.animWin = this.ventana; this.anim = this.animWin.requestAnimationFrame(paso);
   }
   puntoEn(A, B, u, radial) {
     const q = (a, b, c, d) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
@@ -1146,56 +1216,56 @@ class VistaMapa extends ItemView {
     if (A.capa === B.capa) { const dx = 26 + Math.abs(B.y - A.y) * 0.12; return [q(A.x, A.x + dx, B.x + dx, B.x), q(A.y, A.y, B.y, B.y)]; }
     const mx = (A.x + B.x) / 2; return [q(A.x, mx, mx, B.x), q(A.y, A.y, B.y, B.y)];
   }
+  // [1.33] Cada pulso decide si sale al empezar SU viaje y lo termina: antes el grupo que pulsaba
+  // cambiaba cada 2,6 s sin mirar dónde iba cada pulso (516 cortados a mitad de curva cada 30 s
+  // en el cerebro real), y la selección «(i·7 + turno·13) % k» dejaba turnos enteros sin ningún
+  // pulso cuando k compartía un factor con 7. Ahora el sorteo es por enlace y por viaje, con
+  // una probabilidad que da ~45 pulsos en pantalla: parejo y sin cortes.
   dibujarPulsos(ctx, sk, color) {
     if (!this.debeAnimar()) return;
-    const t = this.tiempo || 0, radial = !!this.dist, pares = [];
-    if (this.camino) for (let i = 0; i < this.camino.length - 1; i++) pares.push([this.camino[i], this.camino[i + 1], i / Math.max(this.camino.length - 1, 1), '#FFFFFF']);
-    else {
+    const t = this.tiempo || 0, radial = !!this.dist, pares = [];   // [de, a, u, tono, radial]
+    const dur = this.camino ? 2200 : 1700;
+    if (this.camino) for (let i = 0; i < this.camino.length - 1; i++) pares.push([this.camino[i], this.camino[i + 1], ((t / dur) - i / Math.max(this.camino.length - 1, 1) + 1) % 1, '#FFFFFF']);
+    else if (!radial) {
       const c = this.foco || this.sobre;
       const vis = this.E.filter((e) => this.visible(this.porId[e.a]) && this.visible(this.porId[e.b]));
-      let lista;
-      if (c) lista = vis.filter((e) => e.a === c || e.b === c);
-      else { const cont = vis.filter((e) => Math.abs(this.porId[e.a].capa - this.porId[e.b].capa) === 1 || e.superE), k = Math.max(1, Math.ceil(cont.length / 45)), turno = Math.floor(t / 2600);
-        lista = cont.filter((_, i) => (i * 7 + turno * 13) % k === 0); }
+      const lista = c ? vis.filter((e) => e.a === c || e.b === c) : vis.filter((e) => Math.abs(this.porId[e.a].capa - this.porId[e.b].capa) === 1 || e.superE);
+      const p = c ? 1 : Math.min(1, 45 / Math.max(1, lista.length));
       for (const [i, e] of lista.entries()) {
+        const fase = (i * 0.618) % 1, viaje = Math.floor(t / dur + fase);
+        if (p < 1 && sorteo(i, viaje) >= p) continue;
         const A = this.porId[e.a], B = this.porId[e.b];
-        const [de, a] = radial ? (this.dist[e.a] <= this.dist[e.b] ? [e.a, e.b] : [e.b, e.a]) : A.capa <= B.capa ? [e.a, e.b] : [e.b, e.a];
-        pares.push([de, a, (i * 0.618) % 1, color((A.capa >= B.capa ? A : B).tema)]);
+        const [de, a] = A.capa <= B.capa ? [e.a, e.b] : [e.b, e.a];
+        pares.push([de, a, (t / dur + fase) % 1, color((A.capa >= B.capa ? A : B).tema)]);
       }
-    }
-    // Radial: una onda que sale del centro, llega al anillo 1 y sigue al anillo 2.
-    if (radial && !this.camino) {
-      pares.length = 0;
+    } else {
+      // Radial: ondas que salen del centro, llegan al anillo 1 y siguen al anillo 2. Dos ondas
+      // desfasadas medio ciclo, para que siempre haya algo en movimiento.
       const vis = this.E.filter((e) => this.visible(this.porId[e.a]) && this.visible(this.porId[e.b]) && Math.abs(this.dist[e.a] - this.dist[e.b]) === 1);
       const sobre = this.sobre && this.sobre !== this.foco ? this.sobre : null;
-      const turno = Math.floor(t / 3400);
+      const ciclo = 1700 * 2.6;
       for (const nivel of [0, 1]) {
         let tramo = vis.filter((e) => Math.min(this.dist[e.a], this.dist[e.b]) === nivel);
-        if (sobre) tramo = tramo.filter((e) => e.a === sobre || e.b === sobre || nivel === 0 && (e.a === sobre || e.b === sobre || this.ady[sobre].includes(e.a) || this.ady[sobre].includes(e.b)));
-        const k = Math.max(1, Math.ceil(tramo.length / (nivel === 0 ? 60 : 70)));
-        tramo.filter((_, i) => (i * 7 + turno * 13) % k === 0).forEach((e, i) => {
-          const A = this.porId[e.a], B = this.porId[e.b];
-          const [de, a] = this.dist[e.a] <= this.dist[e.b] ? [e.a, e.b] : [e.b, e.a];
-          pares.push([de, a, nivel + ((i * 0.618) % 1) * 0.25, color((this.dist[e.a] >= this.dist[e.b] ? A : B).tema), true]);
-        });
+        if (sobre) tramo = tramo.filter((e) => e.a === sobre || e.b === sobre || nivel === 0 && (this.ady[sobre].includes(e.a) || this.ady[sobre].includes(e.b)));
+        const p = Math.min(1, (nivel === 0 ? 60 : 70) / 2 / Math.max(1, tramo.length));
+        for (const onda of [0, 1]) {
+          const to = t + onda * ciclo / 2, vuelta = Math.floor(to / ciclo) * 2 + onda;
+          tramo.forEach((e, i) => {
+            if (p < 1 && sorteo(i + nivel * 100003, vuelta) >= p) return;
+            const local = (to % ciclo) / 1700 - (nivel + ((i * 0.618) % 1) * 0.25);
+            if (local < 0 || local > 1) return;
+            const A = this.porId[e.a], B = this.porId[e.b];
+            const [de, a] = this.dist[e.a] <= this.dist[e.b] ? [e.a, e.b] : [e.b, e.a];
+            pares.push([de, a, local, color((this.dist[e.a] >= this.dist[e.b] ? A : B).tema), true]);
+          });
+        }
       }
     }
-    const dur = this.camino ? 2200 : 1700, ciclo = 1700 * 2.6;
     ctx.globalCompositeOperation = 'lighter';
-    for (const [de, a, fase, tono, onda] of pares) {
-      if (onda) {
-        const local = (t % ciclo) / 1700 - fase;
-        if (local < 0 || local > 1) continue;
-        const A = this.porId[de], B = this.porId[a]; if (!A || !B) continue;
-        const [x, y] = this.puntoEn(A, B, local, true);
-        ctx.fillStyle = rgba(tono, 0.25); ctx.beginPath(); ctx.arc(x, y, 6 / sk, 0, 6.283); ctx.fill();
-        ctx.fillStyle = rgba('#FFFFFF', 0.95); ctx.beginPath(); ctx.arc(x, y, 1.7 / sk, 0, 6.283); ctx.fill();
-        continue;
-      }
+    for (const [de, a, u, tono, onda] of pares) {
       const A = this.porId[de], B = this.porId[a]; if (!A || !B) continue;
-      const u = this.camino ? ((t / dur) - fase + 1) % 1 : ((t / dur) + fase) % 1;
       const [x, y] = this.puntoEn(A, B, u, radial);
-      ctx.fillStyle = rgba(tono, 0.22); ctx.beginPath(); ctx.arc(x, y, 6 / sk, 0, 6.283); ctx.fill();
+      ctx.fillStyle = rgba(tono, onda ? 0.25 : 0.22); ctx.beginPath(); ctx.arc(x, y, 6 / sk, 0, 6.283); ctx.fill();
       ctx.fillStyle = rgba('#FFFFFF', 0.95); ctx.beginPath(); ctx.arc(x, y, 1.7 / sk, 0, 6.283); ctx.fill();
     }
     ctx.globalCompositeOperation = 'source-over';
@@ -1538,10 +1608,28 @@ class VistaMapa extends ItemView {
     this.pedir();
   }
   // Busca en el índice completo: notas ocultas por el límite, miembros de temas colapsados y fuentes.
+  // [1.33] Por palabras, en cualquier orden, sin tildes, guiones ni mayúsculas, y también por alias.
   buscarTodo(q) {
-    const sa = (x) => sinAcentos(String(x || ''));
-    const qq = sa(q), puntaje = (n) => (sa(n.titulo).startsWith(qq) ? 0 : sa(n.titulo).includes(qq) ? 1 : 2) + (n.fuente ? 0.5 : 0);
-    return this.D.nodos.filter((n) => sa(n.titulo + ' ' + n.ruta).includes(qq)).sort((a, b) => puntaje(a) - puntaje(b) || b.grado - a.grado).slice(0, 8);
+    const palabras = palabrasBusqueda(q); if (!palabras.length) return [];
+    const qq = palabras.join(' '), puntaje = (n) => { const t = textoBusqueda(n.titulo); return (t.startsWith(qq) ? 0 : t.includes(qq) ? 1 : 2) + (n.fuente ? 0.5 : 0); };
+    return this.D.nodos.filter((n) => coincide(palabras, n.titulo, n.ruta, ...(n.alias || []))).sort((a, b) => puntaje(a) - puntaje(b) || b.grado - a.grado).slice(0, 8);
+  }
+  // Lo que no está en el mapa también se encuentra: material crudo sin citar, notas fuera de
+  // toda capa, adjuntos. Se abren en Obsidian; el mapa no tiene dónde ponerlos.
+  buscarFuera(q, tope = 6) {
+    const palabras = palabrasBusqueda(q); if (!palabras.length) return [];
+    const enMapa = this.base || {}, conf = this.app.vault.configDir;
+    const archivos = this.app.vault.getFiles ? this.app.vault.getFiles() : this.app.vault.getMarkdownFiles();
+    const out = [];
+    for (const f of archivos) {
+      if (enMapa[f.path] || enMapa['raw:' + f.path] || (conf && f.path.startsWith(conf + '/'))) continue;
+      if (coincide(palabras, f.basename, f.path)) out.push({ id: f.path, ruta: f.path, titulo: f.basename || nombreNota(f.path), externo: true });
+      if (out.length >= 200) break;
+    }
+    const qq = palabras.join(' ');
+    // Primero las notas, después los adjuntos (una captura no tapa el texto que la explica).
+    const orden = (n) => (n.ruta.endsWith('.md') ? 0 : 2) + (textoBusqueda(n.titulo).startsWith(qq) ? 0 : 1);
+    return out.sort((a, b) => orden(a) - orden(b) || b.ruta.localeCompare(a.ruta)).slice(0, tope);
   }
   // Llega a cualquier nodo del índice: expande el tema si estaba colapsado, y lo fuerza a la vista.
   irA(id) {
@@ -1550,12 +1638,18 @@ class VistaMapa extends ItemView {
     if (n.fuente && this.plugin.ajustes.fuentes === 'demanda') { const v = this.adyBase[id]; const primera = v && [...v][0]; if (primera) { this.enfocar(primera, true); return; } }
     this.enfocar(id, true);
   }
-  pedir() { this.sucio = true; if (!this.pendiente && !this.cerrada) { this.pendiente = true; window.requestAnimationFrame(() => { this.pendiente = false; if (!this.cerrada) this.dibujar(); }); } }
+  pedir() { this.sucio = true; if (!this.pendiente && !this.cerrada) { this.pendiente = true; this.ventana.requestAnimationFrame(() => { this.pendiente = false; if (!this.cerrada) this.dibujar(); }); } }
   visible(n) {
     if (this.dist) { if (!(n.id in this.dist)) return false; }
     else if (n.oculto) return false;
     return (!this.conEnlace || (n.enlaces && n.enlaces.length) || n.capa === this.D.capas.length - 1)
-      && (!this.filtro || (n.titulo + ' ' + n.id).toLowerCase().includes(this.filtro));
+      && (!this.filtro || this.pasaFiltro(n));
+  }
+  // visible() corre miles de veces por cuadro: las palabras y el texto de cada nota se normalizan una vez.
+  pasaFiltro(n) {
+    if (this.filtroPalabras?.q !== this.filtro) this.filtroPalabras = { q: this.filtro, p: palabrasBusqueda(this.filtro) };
+    if (n._busca === undefined) n._busca = textoBusqueda([n.titulo, n.id, ...(n.alias || [])].join(' '));
+    return this.filtroPalabras.p.every((p) => n._busca.includes(p));
   }
   problemas(n) {
     if (n.fuente) return n.rota ? [T('referencia rota: el archivo no existe')] : [];
@@ -1612,7 +1706,7 @@ class VistaMapa extends ItemView {
     const dpr = this.dpr || 1, w = Math.round(W * dpr), h = Math.round(H * dpr);
     if (!this.capaA || this.capaA.width !== w || this.capaA.height !== h) {
       try {
-        this.capaA = document.createElement('canvas'); this.capaB = document.createElement('canvas');
+        this.capaA = this.documento.createElement('canvas'); this.capaB = this.documento.createElement('canvas');
         this.capaA.width = this.capaB.width = w; this.capaA.height = this.capaB.height = h;
         this.ctxA = this.capaA.getContext('2d'); this.ctxB = this.capaB.getContext('2d');
       } catch { this.ctxA = null; }
@@ -2585,7 +2679,7 @@ class AjustesMapa extends PluginSettingTab {
         interruptor('Seguir la nota activa', 'Al abrir una nota, el mapa la enfoca.', 'seguirActiva'),
         interruptor('Animación', 'Pulsos de luz por los enlaces, solo con el mapa visible. Se apaga si el sistema pide menos movimiento.', 'animacion'),
       ] },
-      { name: T('Conecta tu inteligencia artificial (opcional)'), aliases: ['IA', 'AI', 'API key', 'Claude', 'OpenAI', 'Gemini', 'Ollama'],
+      { name: T('Conecta tu inteligencia artificial (opcional)'), aliases: ['IA', 'AI', 'API key', 'Claude', 'OpenAI', 'Gemini', 'OpenRouter', 'Ollama'],
         render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty(); el.addClass('mn-ajuste-ia'); this.pintarIA(el); } },
       { type: 'group', items: [
         interruptor('Segunda revisión', 'Una segunda llamada revisa que el motivo sea fiel (negaciones, estados, pendientes). Cuesta el doble y bloquea errores de matiz.', 'dobleVerificacion'),
@@ -2689,9 +2783,21 @@ export default class MapaNeuronal extends Plugin {
     const limpio = String(texto).trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
     try { return JSON.parse(limpio); } catch { throw new Error(T('La IA no devolvió un resultado legible. Prueba con otro modelo.')); }
   }
+  // Un 429 de cuota DIARIA (la capa gratis de Gemini: 20 llamadas por modelo al día) no mejora
+  // reintentando a los 9 s que sugiere el servicio: solo gasta. Devuelve el tope si lo dice.
+  cuotaDiaria(r) {
+    let j = {}; try { j = r.json || {}; } catch { /* cuerpo que no es JSON */ }
+    const v = (j.error?.details || []).flatMap((d) => d?.violations || []).find((x) => /PerDay/i.test(String(x.quotaId || '')));
+    if (v) return { tope: v.quotaValue || '?', modelo: v.quotaDimensions?.model || '' };
+    // OpenRouter: «Rate limit exceeded: free-models-per-day», con el tope en las cabeceras.
+    if (/per-day|per day/i.test(String(j.error?.message || ''))) return { tope: r.headers?.['x-ratelimit-limit'] || j.error?.metadata?.headers?.['X-RateLimit-Limit'] || '?', modelo: '' };
+    return null;
+  }
   revisarRespuesta(r, nombre, local) {
     const j = r.json || {};
-    if (r.status === 401 || r.status === 403) throw new Error(T('{0} rechazó la llave ({1}).', nombre, r.status));
+    if (r.status === 401 || r.status === 403) throw fatal(T('{0} rechazó la llave ({1}).', nombre, r.status));
+    const diaria = r.status === 429 && this.cuotaDiaria(r);
+    if (diaria) throw fatal(T('{0}: se agotó la cuota diaria de {1} ({2} llamadas al día en la capa gratis). Elige otro modelo o activa la facturación; mañana se renueva.', nombre, diaria.modelo || this.ajustes.modeloIA, diaria.tope));
     if (r.status === 429) throw new Error(T('{0} alcanzó su límite de uso (429). Intenta más tarde.', nombre));
     // El consejo tiene que corresponder al proveedor: a quien usa Gemini no se le puede decir que
     // revise si su servidor local está corriendo. Y un 5xx remoto no es culpa de su configuración:
@@ -2699,7 +2805,7 @@ export default class MapaNeuronal extends Plugin {
     if (r.status === 0 || r.status >= 500) throw new Error(local
       ? T('{0} no respondió ({1}). Revisa que Ollama o LM Studio esté corriendo en este computador.', nombre, r.status)
       : T('{0} no respondió ({1}): su servicio está caído o sobrecargado. No es tu configuración; vuelve a intentar en un rato.', nombre, r.status));
-    if (r.status >= 400) throw new Error(T('{0} respondió {1}: {2}', nombre, r.status, j.error?.message || 'error'));
+    if (r.status >= 400) throw fatal(T('{0} respondió {1}: {2}', nombre, r.status, j.error?.message || 'error'));
     return j;
   }
   // Pedir y, si el servicio está sobrecargado, volver a intentar. Un 503 o un 429 en la capa
@@ -2713,13 +2819,20 @@ export default class MapaNeuronal extends Plugin {
     // la pantalla en «Leyendo…» para siempre. Una IA local lenta tiene más margen.
     const plazo = this.plazoIA || (local ? 180000 : 90000);
     for (let i = 0; ; i++) {
+      // [1.33] El tope diario cuenta cada llamada real (los dos pasos y los reintentos), no una
+      // estimación hecha antes de empezar: con tope 30 se llegaron a registrar 78.
+      if (this.cupo !== null && this.cupo !== undefined) {
+        if (this.cupo <= 0) throw fatal(T('Se llegó al tope diario de llamadas automáticas. Lo que falta queda para la próxima vez.'));
+        this.cupo--;
+      }
+      this.llamadasHechas = (this.llamadasHechas || 0) + 1;
       let reloj;
       const r = await Promise.race([
         requestUrl(Object.assign({ method: 'POST', throw: false }, opciones)),
         new Promise((ok) => { reloj = window.setTimeout(() => ok({ status: -1, json: {} }), plazo); }),
       ]).finally(() => window.clearTimeout(reloj));
       if (r.status === -1) throw new Error(T('{0} no respondió en {1} s. Vuelve a intentar en un rato.', nombre, Math.round(plazo / 1000)));
-      const vale = r.status === 0 || r.status === 429 || r.status >= 500;
+      const vale = r.status === 0 || (r.status === 429 && !this.cuotaDiaria(r)) || r.status >= 500;
       if (!vale || i >= esperas.length) return this.revisarRespuesta(r, nombre, local);
       // Con un 429 el servicio suele decir cuánto esperar. Si pide más de 20 s, mejor avisar ya
       // que dejar a la persona mirando «Leyendo…»: con la cuota gratis agotada, esperar no sirve.
@@ -2755,13 +2868,22 @@ export default class MapaNeuronal extends Plugin {
     return (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
   }
   async pedirCompatible(prov, llave, modelo, sistema, usuario, esquema) {
-    const url = prov === 'local' ? (this.ajustes.urlLocal || PROVEEDORES.local.url) : PROVEEDORES.openai.url;
+    const url = prov === 'local' ? (this.ajustes.urlLocal || PROVEEDORES.local.url) : (PROVEEDORES[prov] || PROVEEDORES.openai).url;
     const headers = { 'content-type': 'application/json' };
     if (llave) headers.authorization = `Bearer ${llave}`;
+    // OpenRouter pide (opcional) quién llama: aparece así en su panel de uso.
+    if (prov === 'openrouter') Object.assign(headers, { 'HTTP-Referer': 'https://github.com/DBB-FC/why-graph', 'X-Title': NOMBRE });
     const cuerpo = { model: modelo, messages: [{ role: 'system', content: sistema }, { role: 'user', content: usuario }],
       response_format: prov === 'local' ? { type: 'json_object' } : { type: 'json_schema', json_schema: { name: 'respuesta', strict: true, schema: esquema } } };
+    // Que OpenRouter enrute solo a servidores que respetan el esquema JSON, no a uno que lo ignore.
+    if (prov === 'openrouter') cuerpo.provider = { require_parameters: true };
     if (prov === 'local') cuerpo.messages[0].content += '\nResponde SOLO con un objeto JSON con estas claves: ' + Object.keys(esquema.properties).join(', ') + '.';
-    const j = await this.pedirReintentando({ url, headers, body: JSON.stringify(cuerpo) }, prov === 'local' ? 'La IA local' : 'OpenAI', prov === 'local');
+    const nombre = prov === 'local' ? 'La IA local' : prov === 'openrouter' ? 'OpenRouter' : 'OpenAI';
+    const j = await this.pedirReintentando({ url, headers, body: JSON.stringify(cuerpo) }, nombre, prov === 'local');
+    // OpenRouter puede responder 200 con el error del modelo de abajo dentro del cuerpo.
+    const err = j.error || j.choices?.[0]?.error;
+    if (err) throw new Error(T('{0} respondió {1}: {2}', nombre, err.code || 200, err.message || 'error'));
+    if (j.choices?.[0]?.finish_reason === 'length') throw new Error(T('La respuesta quedó cortada. Reintenta.'));
     return j.choices?.[0]?.message?.content || '';
   }
   async pedirGemini(llave, modelo, sistema, usuario, esquema) {
@@ -2770,7 +2892,12 @@ export default class MapaNeuronal extends Plugin {
     const cuerpo = { systemInstruction: { parts: [{ text: sistema }] }, contents: [{ role: 'user', parts: [{ text: usuario }] }],
       generationConfig: { responseMimeType: 'application/json', responseSchema: limpiar(esquema) } };
     const j = await this.pedirReintentando({ url, headers: { 'content-type': 'application/json' }, body: JSON.stringify(cuerpo) }, 'Gemini');
-    return (j.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('');
+    // [1.33] Antes una respuesta cortada o bloqueada llegaba como «resultado ilegible, prueba otro modelo».
+    const c = j.candidates?.[0], fin = c?.finishReason;
+    if (!c && j.promptFeedback?.blockReason) throw new Error(T('Gemini bloqueó el material ({0}).', j.promptFeedback.blockReason));
+    if (fin === 'MAX_TOKENS') throw new Error(T('La respuesta quedó cortada. Reintenta.'));
+    if (fin && !['STOP', 'FINISH_REASON_UNSPECIFIED'].includes(fin)) throw new Error(T('Gemini bloqueó el material ({0}).', fin));
+    return (c?.content?.parts || []).filter((x) => !x.thought).map((x) => x.text || '').join('');
   }
   async sugerir(fr) {
     const leer = async (ruta) => { const f = this.app.vault.getFileByPath(ruta); return f ? this.app.vault.cachedRead(f) : ''; };
@@ -2928,7 +3055,7 @@ export default class MapaNeuronal extends Plugin {
   async leerRegistroIngesta() {
     const a = this.app.vault.adapter, r = this.rutaRegistroIngesta();
     try {
-      if (a && await a.exists(r)) { const j = JSON.parse(await a.read(r)); return { archivos: j.archivos || {}, parrafos: j.parrafos || {}, uso: j.uso, bloqueo: j.bloqueo }; }
+      if (a && await a.exists(r)) { const j = JSON.parse(await a.read(r)); return { archivos: j.archivos || {}, parrafos: j.parrafos || {}, uso: j.uso, bloqueo: j.bloqueo, ultimoError: j.ultimoError }; }
     } catch { /* registro dañado: se parte de cero; lo peor que pasa es reenviar material */ }
     return { archivos: {}, parrafos: {} };
   }
@@ -2940,6 +3067,7 @@ export default class MapaNeuronal extends Plugin {
   avisarVistas(tipo) { for (const h of this.app.workspace.getLeavesOfType(VISTA)) h.view.alCambiarNovedades?.(tipo); }
   async buscarNovedades(material, automatica = false) {
     const st = this.nov = { fase: 'buscando', material, detenido: false, aplicadas: 0, automatica, progreso: { hechas: 0, n: 1, fase: 1, t0: Date.now() } };
+    const hechasAntes = this.llamadasHechas || 0; this.errorFatal = null;
     this.avisarVistas('inicio');
     try {
       st.prop = await this.proponerIngesta(material.piezas, (hechas, n, fase) => {
@@ -2951,16 +3079,23 @@ export default class MapaNeuronal extends Plugin {
       });
     } catch (e) { st.prop = { novedades: [], contradicciones: [], avisos: [e.message], tandas: 0, leidas: 0 }; }
     st.fase = 'revisar';
-    await this.anotarUso(st.prop.leidas);
+    const error = this.errorFatal || st.prop.fallos?.[0]?.error || (st.prop.avisos || [])[0] || null;
+    // Las llamadas que de verdad salieron (reintentos incluidos); las tandas leídas solo si no se
+    // pudo contar ninguna (una IA reemplazada en pruebas).
+    await this.anotarUso(((this.llamadasHechas || 0) - hechasAntes) || st.prop.leidas || 0, error);
     const utiles = st.prop.novedades.filter((n) => n.estado === 'nuevo').length;
     const abierto = this.app.workspace.getLeavesOfType(VISTA).some((h) => h.view.novAbierto);
     if (!abierto && utiles) new Notice(T('Novedades listas: {0}. Tócalas en la barra del mapa.', utiles));
+    // [1.33] Una ingesta automática que falla entera ya no pasa en silencio.
+    else if (!abierto && error && !st.prop.exitosas) new Notice(T('Novedades: no se pudo leer el material. {0}', error), 15000);
     this.avisarVistas('listo');
     return st;
   }
-  async anotarUso(llamadas) {
+  async anotarUso(llamadas, error) {
     const reg = await this.leerRegistroIngesta(), h = hoy();
     reg.uso = { fecha: h, llamadas: (reg.uso?.fecha === h ? reg.uso.llamadas : 0) + llamadas };
+    // El último error queda escrito: antes solo vivía en el panel y al cerrarlo no había rastro.
+    if (error) reg.ultimoError = { fecha: new Date().toISOString(), modelo: this.ajustes.modeloIA, mensaje: String(error).slice(0, 500) };
     await this.escribirRegistroIngesta(reg);
   }
   // Un identificador por dispositivo (localStorage, no viaja por Sync): para saber quién preparó qué.
@@ -2987,7 +3122,8 @@ export default class MapaNeuronal extends Plugin {
     }
     reg.bloqueo = { dispositivo: yo, hasta: ahora + 12 * 3600 * 1000 };
     await this.escribirRegistroIngesta(reg);
-    await this.buscarNovedades(material, true);
+    this.cupo = tope - usadas;
+    try { await this.buscarNovedades(material, true); } finally { this.cupo = null; }
     return 'hecho';
   }
 
@@ -3057,30 +3193,35 @@ export default class MapaNeuronal extends Plugin {
       let nuevo = texto;
       if (antes && antes.huella === sellos[f.path].huella) nuevo = '';
       else if (antes && texto.length > antes.largo && huella(texto.slice(0, antes.largo)) === antes.huella) nuevo = texto.slice(antes.largo);
-      const quedan = [], hs = [];
+      const quedan = [];
       for (const par of nuevo.split(/\n\s*\n/)) {
         if (!par.trim()) continue;
         const n = par.replace(/\s+/g, ' ').trim().toLowerCase();
         // Los párrafos cortos («## Notas», «- ok») se repiten sin ser la misma información.
+        let h = null;
         if (n.length >= 40) {
-          const h = 'p' + huella(n);
+          h = 'p' + huella(n);
           if (reg.parrafos[h] || vistos.has(h)) continue;
-          vistos.add(h); hs.push(h);
+          vistos.add(h);
         }
-        quedan.push(par);
+        quedan.push([par, h]);
       }
       if (!quedan.length) { repetidos++; continue; }
+      // [1.33] Cada huella va en la pieza (o piezas) que lleva su párrafo. Antes iban todas en la
+      // primera: si la 1 salía bien y la 2 fallaba, los párrafos de la 2 quedaban como enviados
+      // y no se volvían a mandar nunca.
       const trozos = [];
-      let actual = '';
-      for (const par of quedan) {
+      let actual = null;
+      for (const [par, h] of quedan) {
         for (let i = 0; i < par.length; i += TROZO) {
           const pedazo = par.slice(i, i + TROZO);
-          if (actual && actual.length + pedazo.length + 2 > TROZO) { trozos.push(actual); actual = ''; }
-          actual = actual ? `${actual}\n\n${pedazo}` : pedazo;
+          if (actual && actual.texto.length + pedazo.length + 2 > TROZO) { trozos.push(actual); actual = null; }
+          actual = actual ? { texto: `${actual.texto}\n\n${pedazo}`, hs: actual.hs } : { texto: pedazo, hs: [] };
+          if (h && !actual.hs.includes(h)) actual.hs.push(h);
         }
       }
       if (actual) trozos.push(actual);
-      trozos.forEach((t, i) => piezas.push({ ruta: f.path, texto: t, parte: i + 1, partes: trozos.length, hs: i === 0 ? hs : [] }));
+      trozos.forEach((t, i) => piezas.push({ ruta: f.path, texto: t.texto, parte: i + 1, partes: trozos.length, hs: t.hs, mtime: f.stat?.mtime ?? 0 }));
     }
     // El sello de fecha avanza hasta el archivo más nuevo leído, no hasta «ahora»: lo que llegue
     // mientras la persona revisa sigue pendiente para la próxima vez.
@@ -3095,13 +3236,19 @@ export default class MapaNeuronal extends Plugin {
     const reg = await this.leerRegistroIngesta();
     const fallidas = new Set(material.piezas.filter((x) => !x.ok).map((x) => x.ruta));
     for (const [ruta, sello] of Object.entries(material.sellos)) if (!fallidas.has(ruta)) reg.archivos[ruta] = sello;
-    for (const x of material.piezas) if (x.ok) for (const h of x.hs) reg.parrafos[h] = 1;
+    const pendientes = new Set(material.piezas.filter((x) => !x.ok).flatMap((x) => x.hs));
+    for (const x of material.piezas) if (x.ok) for (const h of x.hs) if (!pendientes.has(h)) reg.parrafos[h] = 1;
     const claves = Object.keys(reg.parrafos);
     if (claves.length > PARRAFOS_RECORDADOS) for (const k of claves.slice(0, claves.length - PARRAFOS_RECORDADOS)) delete reg.parrafos[k];
     // Revisado: el bloqueo de este dispositivo se suelta y otro ya puede preparar lo que siga.
     if (reg.bloqueo?.dispositivo === this.idDispositivo()) delete reg.bloqueo;
     await this.escribirRegistroIngesta(reg);
-    if (!fallidas.size && material.hasta) { this.ajustes.ultimaIngesta = new Date(material.hasta).toISOString(); await this.guardar(); }
+    // [1.33] Con fallos, el sello avanza hasta justo antes del archivo fallido más viejo: antes no
+    // avanzaba nada y la ventana de 7 días seguía corriendo, así que lo fallido que quedaba atrás
+    // salía de la ventana sin haberse leído nunca.
+    const hasta = fallidas.size ? Math.min(...material.piezas.filter((x) => !x.ok).map((x) => x.mtime || 0)) - 1 : material.hasta;
+    const antes = Date.parse(this.ajustes.ultimaIngesta || '') || 0;
+    if (hasta > 0 && hasta > antes) { this.ajustes.ultimaIngesta = new Date(hasta).toISOString(); await this.guardar(); }
   }
 
   // Reparte tandas entre `paralelo` trabajadores. avance(hechas, total, fase) devuelve false
@@ -3115,7 +3262,7 @@ export default class MapaNeuronal extends Plugin {
         const k = siguiente++;
         // Una tanda que falla (cuota, red, JSON roto) no se lleva lo recibido de las demás.
         try { resultados[k] = { ok: true, g: await fn(tandas[k]) }; }
-        catch (e) { resultados[k] = { ok: false, error: e.message }; }
+        catch (e) { resultados[k] = { ok: false, error: e.message }; if (e.fatal) { parar = true; this.errorFatal = e.message; } }
         hechas++;
       }
     };
