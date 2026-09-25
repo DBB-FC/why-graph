@@ -209,5 +209,59 @@ const respuesta = (obj) => ({ status: 200, json: { choices: [{ message: { conten
     p.cierto('radial: siempre hay una onda en movimiento', b.minimo > 0);
   }
 
+  // ── 10. UI/UX (auditoría del 25.09): disposición con el panel, el teléfono y el radial ────────
+  {
+    // Un vault con 4 capas y una columna larga, como el real.
+    const notas = {};
+    for (let i = 0; i < 60; i++) notas[`c/k${i}.md`] = `[[e${i % 20}]] [[t${i % 4}]]`;
+    for (let j = 0; j < 20; j++) notas[`e/e${j}.md`] = `[[t${j % 4}]]`;
+    for (let j = 0; j < 30; j++) notas[`d/d${j}.md`] = `[[k${j}]] [[e${j % 20}]]`;
+    for (let j = 0; j < 4; j++) notas[`t/t${j}.md`] = 'tema';
+    const { app } = vaultSimulado(notas);
+    const vista = (ancho, alto, extra) => {
+      const v = new VistaMapa({}, { ajustes: ajustes(Object.assign({ capas: 'A|\nB|\nC|\nD|', carpetas: 'd = 0\ne = 1\nc = 2\nt = 3' }, extra)), tieneIA: () => false, app, recortesSueltos: () => [], ingestaLista: () => false });
+      const caja = (o) => Object.assign(el(), { getBoundingClientRect: () => Object.assign({ top: 0, left: 0, right: ancho, bottom: alto, width: ancho, height: alto }, o) });
+      v.app = app; v.contentEl = caja({}); v.lienzo = { style: {}, setAttribute() {}, getContext: () => contexto2D(), getBoundingClientRect: () => ({ width: ancho, height: alto, top: 0, left: 0 }) };
+      v.ctx = v.lienzo.getContext(); v.marca = el(); v.chips = el(); v.estado = el(); v.guia = el();
+      v.barra = caja({ bottom: 90, height: 80 }); v.panel = caja({}); v.panel.hasClass = () => false;
+      return { v, caja };
+    };
+    // Teléfono: el tope por capa ya vale en la primera carga, sin esperar un cambio de tamaño.
+    const tel = vista(390, 844).v; await tel.recargar();
+    const cabe = Math.max(12, Math.floor((844 - 230) / 13));
+    p.cierto('teléfono: desde la primera carga cada capa muestra solo lo que cabe', tel.N.filter((n) => n.capa === 2 && !n.oculto).length <= cabe && tel.ocultas[2] > 0);
+    // Tocar una nota de la mitad de abajo: la hoja del panel no la tapa.
+    const t2 = vista(390, 844); await t2.v.recargar(); t2.v.medir(); t2.v.encuadrar();
+    t2.v.panel = t2.caja({ top: 420, left: 8, width: 374, height: 380 }); t2.v.panel.hasClass = (c) => c === 'abierto';
+    t2.v.abrirPanel = () => {};
+    const abajoDelTodo = t2.v.N.filter((n) => !n.oculto && n.capa === 1).sort((a, b) => b.y - a.y)[0];
+    t2.v.enfocar(abajoDelTodo.id, false);
+    const sy = abajoDelTodo.y * t2.v.vista.k + t2.v.vista.y;
+    p.cierto('teléfono: la nota tocada queda entre la barra y la hoja del panel', sy > 90 && sy < 420);
+    // Ventana de 820 px con el panel abierto: la capa de temas queda a la izquierda del panel.
+    const t3 = vista(820, 1000); await t3.v.recargar();
+    t3.v.panel = t3.caja({ left: 426, width: 382 }); t3.v.panel.hasClass = (c) => c === 'abierto';
+    t3.v.medir(); t3.v.encuadrar();
+    const ultima = Math.max(...t3.v.N.filter((n) => n.capa === 3).map((n) => n.x * t3.v.vista.k + t3.v.vista.x));
+    p.cierto('820 px con panel: la última capa no queda debajo del panel', ultima < 426);
+    // Radial con anillos llenos (70 y 80 notas, como el cerebro): caben entre la barra y el borde de abajo.
+    const grande = { 'e/centro.md': Array.from({ length: 70 }, (_, i) => `[[a${i}]]`).join(' ') };
+    for (let i = 0; i < 70; i++) grande[`c/a${i}.md`] = `[[b${i}]] [[b${(i + 35) % 80}]]`;
+    for (let i = 0; i < 80; i++) grande[`d/b${i}.md`] = 'x';
+    const g = vaultSimulado(grande);
+    const t4v = new VistaMapa({}, { ajustes: ajustes({ capas: 'A|\nB|\nC|', carpetas: 'd = 0\ne = 1\nc = 2' }), tieneIA: () => false, app: g.app, recortesSueltos: () => [], ingestaLista: () => false });
+    const caja4 = (o) => Object.assign(el(), { getBoundingClientRect: () => Object.assign({ top: 0, left: 0, right: 1440, bottom: 860, width: 1440, height: 860 }, o) });
+    Object.assign(t4v, { app: g.app, contentEl: caja4({}), barra: caja4({ bottom: 90, height: 80 }), panel: caja4({}), marca: el(), chips: el(), estado: el(), guia: el() });
+    t4v.panel.hasClass = () => false; t4v.lienzo = { style: {}, setAttribute() {}, getContext: () => contexto2D(), getBoundingClientRect: () => ({ width: 1440, height: 860, top: 0, left: 0 }) }; t4v.ctx = t4v.lienzo.getContext();
+    await t4v.recargar(); t4v.radial = true; t4v.foco = 'e/centro.md'; t4v.medir(); t4v.encuadrar();
+    const t4 = { v: t4v };
+    const ys = t4.v.N.filter((n) => n.id in t4.v.dist).map((n) => n.y);
+    p.cierto('radial: ningún nodo pasa bajo la barra ni se sale por abajo', Math.min(...ys) >= 90 && Math.max(...ys) <= 860 - 20);
+    // Textos del lienzo que antes estaban fijos en español.
+    const dichos = []; const ctx = contexto2D(); ctx.fillText = (s) => dichos.push(String(s));
+    t4.v.ctx = ctx; t4.v.capaA = null; t4.v.dibujarEscena(ctx, true);
+    p.cierto('radial en inglés: el rótulo del anillo dice «hop», no «salto»', dichos.some((s) => /hop/.test(s)) && !dichos.some((s) => /salto/.test(s)));
+  }
+
   process.exit(p.cerrar() ? 1 : 0);
 })().catch((e) => { console.error("   ✕ se cortó: " + e.message); p.cerrar(); process.exit(1); });

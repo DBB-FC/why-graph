@@ -17,6 +17,14 @@
  *   · Fuentes anidadas (raw, raw/articles, raw/daily/*): gana la más específica, sin doble conteo.
  *   · Motivos: «- [[a]] · [[b]] — motivo» vale para cada nota; enlaces con ruta, ancla o mayúsculas.
  *   · OpenRouter como quinto proveedor: una llave para muchos modelos, con esquema JSON exigido.
+ *   · UI/UX (auditoría medida con la sonda sobre el vault real, 14 escenarios): tocar una nota la deja
+ *     a la vista aunque el panel o la hoja del teléfono se abran encima; el panel reserva su ancho
+ *     real (bajo ~1.250 px tapaba la capa de temas); rótulos que no invaden el panel ni se salen de
+ *     la pantalla (se acortan con «…»); radial dentro del espacio libre y con su rótulo traducido;
+ *     el tope por capa del teléfono vale desde la primera carga; texto del lienzo ≥ 9 px en el
+ *     teléfono; filas del panel y resultados accesibles con teclado (↓ ↑ Enter Esc); lienzo con
+ *     nombre para lectores de pantalla; objetivos táctiles de 40–44 px; chips que avisan que hay
+ *     más; contraste ≥ 4,5 en los textos tenues.
  * v1.32 (23.09.2026): Novedades — el material sin procesar se vuelve líneas para el wiki. Nunca
  *   dos veces lo mismo (huellas en ingesta.json), tandas en paralelo, dos pasos (buscar con cita
  *   verificada; comparar con la página: nuevo / ya estaba / choca), aprobar = insertar una línea
@@ -122,6 +130,8 @@ const EN = {
   'buscar nota…': 'search note…',
   'No hay notas con ese nombre': 'No notes with that name',
   'fuera del mapa': 'not on the map',
+  '{0} salto(s)': '{0} hop(s)',
+  ' · {0} notas': ' · {0} notes',
   'Crea la llave en openrouter.ai/keys. Una sola llave da acceso a modelos de Anthropic, Google, OpenAI y abiertos; los que terminan en «:free» no cuestan, con límite diario.':
     'Create the key at openrouter.ai/keys. One key reaches models from Anthropic, Google, OpenAI and open ones; those ending in «:free» cost nothing, with a daily limit.',
   'El identificador como aparece en openrouter.ai/models, con el proveedor delante: por ejemplo google/gemini-3.1-flash-lite.':
@@ -1134,7 +1144,7 @@ class VistaMapa extends ItemView {
   async onOpen() {
     this.cerrada = false;
     const raiz = this.contentEl; raiz.empty(); raiz.addClass('mn-raiz');
-    this.lienzo = raiz.createEl('canvas', { cls: 'mn-lienzo' });
+    this.lienzo = raiz.createEl('canvas', { cls: 'mn-lienzo', attr: { role: 'img' } });
     this.ctx = this.lienzo.getContext('2d');
     const barra = raiz.createDiv('mn-barra'); this.barra = barra;
     this.marca = barra.createDiv({ cls: 'mn-marca', text: NOMBRE });
@@ -1154,17 +1164,28 @@ class VistaMapa extends ItemView {
       this.resultados.addClass('mostrar');
       if (!lista.length) { this.resultados.createDiv({ cls: 'mn-resultado mn-tenue', text: T('No hay notas con ese nombre') }); return; }
       for (const n of lista) {
-        const fila = this.resultados.createDiv({ cls: 'mn-resultado' + (n.fuente ? ' fuente' : '') + (n.externo ? ' externo' : ''), text: (n.fuente || n.externo ? '📄 ' : '') + n.titulo });
+        // title: en el teléfono el nombre largo queda cortado con «…»; así se puede leer entero.
+        const fila = this.resultados.createDiv({ cls: 'mn-resultado' + (n.fuente ? ' fuente' : '') + (n.externo ? ' externo' : ''), text: (n.fuente || n.externo ? '📄 ' : '') + n.titulo, attr: { title: `${n.titulo} — ${n.ruta}` } });
         fila.createSpan({ cls: 'mn-tenue', text: ' ' + (n.externo ? `${n.ruta} · ${T('fuera del mapa')}` : n.fuente ? n.ruta : n.ruta.split('/').slice(0, -1).join('/')) });
         fila.onclick = () => elegir(n);
       }
     });
+    // [1.33] Con el teclado: ↓ entra en la lista, ↑/↓ recorren, Enter abre, Esc vuelve a escribir.
+    const filas = () => [...this.resultados.querySelectorAll('.mn-resultado[role="button"], .mn-resultado[tabindex]')];
+    this.registerDomEvent(this.resultados, 'keydown', (e) => {
+      const l = filas(), i = l.indexOf(e.target);
+      if (e.key === 'ArrowDown' && i < l.length - 1) { e.preventDefault(); l[i + 1].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); (i > 0 ? l[i - 1] : buscar).focus(); }
+      else if (e.key === 'Escape') { e.preventDefault(); buscar.focus(); cerrarLista(); }
+    });
     this.registerDomEvent(buscar, 'keydown', (e) => {
+      if (e.key === 'ArrowDown') { const l = filas(); if (l.length) { e.preventDefault(); l[0].focus(); } return; }
       if (e.key === 'Escape') { limpiar(); return; }
       if (e.key !== 'Enter' || !this.filtro) return;
       const n = resultados()[0]; if (n) elegir(n); else new Notice(T('No hay notas con ese nombre'));
     });
     this.chips = barra.createDiv('mn-chips');
+    this.registerDomEvent(this.chips, 'scroll', () => this.marcarDesborde(), { passive: true });
     // Solo aparece si hay material nuevo: una barra sin nada que hacer no muestra este chip.
     this.chipNovedades = barra.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
     this.chipNovedades.onclick = () => this.panelNovedades();
@@ -1178,8 +1199,24 @@ class VistaMapa extends ItemView {
     this.guia = raiz.createDiv({ cls: 'mn-guia', text: T('Toca una nota para ver por qué se conecta.') });
     this.panel = raiz.createDiv('mn-panel');
 
+    // [1.33] Las filas del panel y de la búsqueda son <div> con onclick: con el teclado no se podía
+    // llegar a ninguna. Todo lo clicable que no es un botón recibe foco y rol de botón, y Enter o
+    // Espacio lo activan. Un observador lo aplica a lo que cada panel dibuja, sin tocar cada uno.
+    const accesibles = () => { for (const r of [this.panel, this.resultados]) for (const e of r.querySelectorAll?.('div, span') || []) if (e.onclick && !e.hasAttribute('tabindex')) { e.setAttribute('tabindex', '0'); e.setAttribute('role', 'button'); } };
+    if (typeof MutationObserver !== 'undefined' && this.panel instanceof Node) {
+      this.observadorTeclado = new MutationObserver(accesibles);
+      for (const r of [this.panel, this.resultados]) this.observadorTeclado.observe(r, { childList: true, subtree: true });
+    }
+    this.registerDomEvent(raiz, 'keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target?.getAttribute?.('role') === 'button' && e.target.onclick) { e.preventDefault(); e.target.click(); }
+    });
     this.registrarGestos();
-    this.observador = new ResizeObserver(() => { const antes = this.escala; this.medir(); if (this.vista.k === antes && !this.dist) this.vista.k = this.escala; this.pedir(); });
+    this.observador = new ResizeObserver(() => {
+      const antes = this.escala; this.medir(); this.marcarDesborde();
+      // Girar el teléfono o angostar el panel cambia cuántas notas caben por capa: se rehace.
+      if (this.topeUsado !== undefined && this.topePorCapa() !== this.topeUsado) this.rehacer();
+      if (this.vista.k === antes && !this.dist) this.vista.k = this.escala; this.pedir();
+    });
     this.observador.observe(raiz);
     this.registerEvent(this.app.workspace.on('file-open', (f) => {
       if (!this.plugin.ajustes.seguirActiva || !f || this.eligiendo) return;
@@ -1191,7 +1228,7 @@ class VistaMapa extends ItemView {
     if (!this.plugin.ajustes.configurado && !this.plugin.ajustes.carpetas.trim()) new AsistenteCapas(this.app, this.plugin).open();
     this.iniciarAnimacion();
   }
-  async onClose() { this.cerrada = true; this.observador?.disconnect(); if (this.anim) (this.animWin || window).cancelAnimationFrame(this.anim); this.anim = null; }
+  async onClose() { this.cerrada = true; this.observador?.disconnect(); this.observadorTeclado?.disconnect(); if (this.anim) (this.animWin || window).cancelAnimationFrame(this.anim); this.anim = null; }
 
   // ── animación: pulsos que viajan por los enlaces, en el sentido en que se compila ──
   debeAnimar() {
@@ -1290,6 +1327,8 @@ class VistaMapa extends ItemView {
     [...this.colapsados].forEach((t) => { if (!this.D.temas[t]) this.colapsados.delete(t); });
     const conEnlaces = this.D.nodos.filter((n) => n.enlaces && n.enlaces.length).length;
     const nFuentes = this.D.nodos.filter((n) => n.fuente).length, fuera = this.D.config?.sinCapa.length || 0;
+    // Un lector de pantalla no ve el lienzo: al menos sabe qué es y cuánto hay.
+    this.lienzo?.setAttribute?.('aria-label', T('{0} · {1} nodos · {2} enlaces', NOMBRE, this.D.nodos.length - nFuentes, this.D.aristas.length));
     this.marca.setText(T('{0} · {1} nodos · {2} enlaces', NOMBRE, this.D.nodos.length - nFuentes, this.D.aristas.length) + (nFuentes ? T(' · {0} archivos citados', nFuentes) : '') + (conEnlaces ? T(' · {0} con enlaces', conEnlaces) : '') + (fuera ? T(' · {0} fuera del mapa', fuera) : ''));
     // Avisos de configuración, una vez por sesión: una carpeta sin notas suele ser una ruta mal
     // escrita en «Carpetas → capa»; notas sin capa son notas que el usuario cree que ve y no ve.
@@ -1356,8 +1395,7 @@ class VistaMapa extends ItemView {
     // Revelado progresivo: cada capa muestra sus notas más conectadas; el resto se trae buscando o tocando.
     // [1.31] En pantalla angosta el tope baja solo a lo que cabe a 13 px por nota: 73 nodos
     // en la altura de un teléfono eran puntos pegados. Lo demás sigue apareciendo al buscar.
-    const cabe = this.angosto() && this.H ? Math.max(12, Math.floor((this.H - 230) / 13)) : Infinity;
-    const max = Math.min(cabe, Math.max(10, Number(this.plugin.ajustes.maxPorCapa) || 150));
+    const max = this.topeUsado = this.topePorCapa();
     this.ocultas = {};
     // Fuentes bajo demanda: no ocupan lugar ni cuentan como ocultas; aparecen junto a la nota
     // enfocada que las cita y se van con ella. Sus relaciones siguen vivas para buscar y contar.
@@ -1376,6 +1414,13 @@ class VistaMapa extends ItemView {
     this.medir(); this.pedir();
   }
 
+  // [1.31] En pantalla angosta el tope baja a lo que cabe a 13 px por nota. [1.33] Con el tamaño
+  // real: la primera carga corría antes de medir (H = 0) y en el teléfono mostraba las 83 notas.
+  topePorCapa() {
+    if (!this.W || !this.H) { const r = this.contentEl?.getBoundingClientRect?.(); if (r?.width) { this.W = r.width; this.H = r.height; } }
+    const cabe = this.angosto() && this.H ? Math.max(12, Math.floor((this.H - 230) / 13)) : Infinity;
+    return Math.min(cabe, Math.max(10, Number(this.plugin.ajustes.maxPorCapa) || 150));
+  }
   // Vacíos: pares de temas con muchos menos enlaces de los esperables para su tamaño.
   calcularVacios(tope = 6) {
     const ultima = this.D.capas.length - 1;
@@ -1448,6 +1493,14 @@ class VistaMapa extends ItemView {
       b.onclick = () => { this.solo = this.solo === id ? null : id; this.pintarChips(); this.pedir(); };
       b.oncontextmenu = (e) => { e.preventDefault(); this.alternarColapso(id); };
     }
+    this.marcarDesborde();
+  }
+  // [1.33] En el teléfono los chips van en una fila con desplazamiento y sin barra: nada decía que
+  // había 4 temas más a la derecha. Un degradado en el borde lo dice, y se va al llegar al final.
+  marcarDesborde() {
+    const c = this.chips; if (!c || c.scrollWidth === undefined) return;
+    c.toggleClass('desborda-der', c.scrollLeft + c.clientWidth < c.scrollWidth - 2);
+    c.toggleClass('desborda-izq', c.scrollLeft > 2);
   }
   pintarEstado() {
     const t = [];
@@ -1558,9 +1611,17 @@ class VistaMapa extends ItemView {
     this.anchoLogico = Math.max(this.W, this.angosto() ? 190 * n : 0);
     this.escala = this.W / this.anchoLogico;
     const barraAbajo = this.barra ? this.barra.getBoundingClientRect().bottom - r.top : 0;
-    const Hl = this.H / this.escala, arriba = Math.max(this.angosto() ? 150 : 118, barraAbajo + 52) / this.escala, abajo = (this.angosto() ? 70 : 90) / this.escala;
-    const reserva = !this.angosto() && this.panel?.hasClass('abierto') ? Math.min(400, this.W * 0.32) / this.escala : 0;
-    const margen = this.angosto() ? 70 : Math.max(120, this.W * 0.1), paso = (this.anchoLogico - reserva - 2 * margen) / (n - 1);
+    // [1.33] En el teléfono los botones de zoom (44 px, sobre la barra de Obsidian) tapaban las
+    // últimas notas de las columnas de la derecha: abajo se reserva hasta donde empiezan.
+    const zoomArriba = this.angosto() ? this.contentEl.querySelector?.('.mn-zoom')?.getBoundingClientRect?.().top : null;
+    const bajoZoom = zoomArriba ? r.bottom - zoomArriba + 10 : 0;
+    const Hl = this.H / this.escala, arriba = Math.max(this.angosto() ? 150 : 118, barraAbajo + 52) / this.escala, abajo = Math.max(this.angosto() ? 70 : 90, bajoZoom) / this.escala;
+    const margen = this.angosto() ? 70 : Math.max(120, this.W * 0.1);
+    // [1.33] Se reserva lo que el panel mide de verdad (380 px + margen). Antes era el 32 % del
+    // ancho: bajo ~1.250 px la capa de temas quedaba entera debajo del panel.
+    const anchoPanel = !this.angosto() && this.panel?.hasClass('abierto') ? (this.panel.getBoundingClientRect?.().width || 380) : 0;
+    const reserva = anchoPanel ? Math.max(Math.min(400, this.W * 0.32), anchoPanel + 40 - margen) / this.escala : 0;
+    const paso = (this.anchoLogico - reserva - 2 * margen) / (n - 1);
     this.capas = this.D.capas.map((c, i) => {
       const col = this.N.filter((x) => x.capa === i && !x.oculto), alto = Hl - arriba - abajo;
       const gap = Math.min(alto / Math.max(col.length, 1), this.angosto() ? 46 : 28), y0 = arriba + (alto - gap * (col.length - 1)) / 2;
@@ -1573,7 +1634,14 @@ class VistaMapa extends ItemView {
     const dist = { [this.foco]: 0 }, padre = {}, cola = [this.foco];
     while (cola.length) { const u = cola.shift(); if (dist[u] >= 2) continue; for (const v of this.ady[u]) if (!(v in dist)) { dist[v] = dist[u] + 1; padre[v] = u; cola.push(v); } }
     this.dist = dist;
-    const cx = this.W / 2, cy = this.H * (this.angosto() ? 0.42 : 0.52), paso = Math.min(this.W, this.H) * (this.angosto() ? 0.15 : 0.16);
+    // [1.33] Los anillos caben entre la barra y el borde de abajo: antes el exterior pasaba bajo la
+    // barra y se cortaba abajo (radio 0,16·2·1,6 = 51 % del alto, con el centro al 52 %).
+    const raizR = this.contentEl.getBoundingClientRect(), barraAbajo = this.barra ? this.barra.getBoundingClientRect().bottom - raizR.top : 0;
+    const arriba = Math.max(barraAbajo + 28, 40), abajo = this.H - (this.angosto() ? 70 : 44);
+    const cx = this.W / 2, cy = (arriba + abajo) / 2, maxR = Math.max(60, Math.min((abajo - arriba) / 2, this.W / 2 - 20));
+    const paso = Math.min(this.W, this.H) * (this.angosto() ? 0.15 : 0.16);
+    const crudo = [1, 2].map((d) => { const k = this.N.filter((n) => dist[n.id] === d).length; return paso * d * (1 + Math.min(0.6, Math.min(k, 80) / 90)); });
+    const escalaR = Math.min(1, maxR / Math.max(...crudo, 1));
     const orden = Object.fromEntries(Object.keys(this.D.temas).map((t, i) => [t, i]));
     const angulo = { [this.foco]: 0 };
     const centro = this.porId[this.foco]; centro.x = cx; centro.y = cy;
@@ -1587,7 +1655,7 @@ class VistaMapa extends ItemView {
       }
       if (!anillo.length) break;
       anillo.sort((p, q) => (d > 1 ? (angulo[padre[p.id]] ?? 0) - (angulo[padre[q.id]] ?? 0) : 0) || (orden[p.tema] ?? 99) - (orden[q.tema] ?? 99));
-      const radio = paso * d * (1 + Math.min(0.6, anillo.length / 90));
+      const radio = paso * d * (1 + Math.min(0.6, anillo.length / 90)) * escalaR;
       anillo.forEach((n, i) => { const a = (i / anillo.length) * Math.PI * 2 - Math.PI / 2; angulo[n.id] = a; n.x = cx + Math.cos(a) * radio; n.y = cy + Math.sin(a) * radio; });
       this.anillos.push({ d, radio, n: anillo.length, cx, cy });
     }
@@ -1605,7 +1673,23 @@ class VistaMapa extends ItemView {
     if (this.radial) { this.medir(); this.encuadrar(); this.pintarEstado(); }
     this.abrirPanel(n);
     if (centrar && !this.radial) { const v = this.vista; v.x = this.W * (this.angosto() ? 0.5 : 0.42) - n.x * v.k; v.y = this.H * (this.angosto() ? 0.3 : 0.5) - n.y * v.k; }
+    if (!this.radial) this.asegurarVisible(n);
     this.pedir();
+  }
+  // [1.33] Tocar una nota abre el panel (en el teléfono, una hoja que ocupa la mitad de abajo) sin
+  // mover el mapa: una nota de la mitad inferior quedaba tapada con todos sus vecinos. Si queda
+  // fuera de lo que se ve, el mapa se corre lo justo para ponerla en el centro del espacio libre.
+  asegurarVisible(n) {
+    if (!n || !this.W || !this.contentEl?.getBoundingClientRect) return;
+    const raiz = this.contentEl.getBoundingClientRect(), v = this.vista;
+    const panel = this.panel?.hasClass?.('abierto') ? this.panel.getBoundingClientRect() : null;
+    const barra = this.barra ? this.barra.getBoundingClientRect().bottom - raiz.top : 0;
+    let x0 = 8, x1 = this.W - 8, y0 = barra + 8, y1 = this.H - 50;
+    if (panel && panel.width) { if (this.angosto() || panel.width > this.W * 0.9) y1 = Math.min(y1, panel.top - raiz.top - 12); else x1 = Math.min(x1, panel.left - raiz.left - 12); }
+    if (x1 - x0 < 40 || y1 - y0 < 40) return;
+    const sx = n.x * v.k + v.x, sy = n.y * v.k + v.y;
+    if (sx < x0 || sx > x1) v.x = (x0 + x1) / 2 - n.x * v.k;
+    if (sy < y0 || sy > y1) v.y = (y0 + y1) / 2 - n.y * v.k;
   }
   // Busca en el índice completo: notas ocultas por el límite, miembros de temas colapsados y fuentes.
   // [1.33] Por palabras, en cualquier orden, sin tildes, guiones ni mayúsculas, y también por alias.
@@ -1738,7 +1822,9 @@ class VistaMapa extends ItemView {
 
     ctx.save(); ctx.translate(vista.x, vista.y); ctx.scale(vista.k, vista.k);
     if (!this.familia) this.familia = getComputedStyle(this.contentEl).getPropertyValue('--font-monospace').trim() || 'ui-monospace, Menlo, monospace';
-    const sk = Math.sqrt(vista.k), f = (peso, tam) => `${peso} ${tam / sk}px ${this.familia}`;
+    // [1.33] En el teléfono el mapa se achica (k ≈ 0,5) y el texto bajaba a 7,5 px: ilegible. Ahí el
+    // texto se achica menos que el mapa, hasta un 88 % de su tamaño.
+    const sk = this.angosto() && vista.k < 1 ? Math.min(Math.sqrt(vista.k), vista.k / 0.88) : Math.sqrt(vista.k), f = (peso, tam) => `${peso} ${tam / sk}px ${this.familia}`;
     const color = (t) => this.colorTema(t);
     const radial = !!this.dist, ultima = this.D.capas.length - 1;
     const enCamino = this.camino ? new Set(this.camino) : null;
@@ -1751,7 +1837,11 @@ class VistaMapa extends ItemView {
       for (const a of this.anillos) {
         ctx.strokeStyle = 'rgba(170,185,255,.16)'; ctx.lineWidth = 1 / vista.k; ctx.setLineDash([4 / vista.k, 4 / vista.k]);
         ctx.beginPath(); ctx.arc(a.cx, a.cy, a.radio, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
-        ctx.fillStyle = '#FF6B6B'; ctx.font = f(400, 10.5); ctx.fillText(`${a.d} salto${a.d > 1 ? 's' : ''} · ${a.n}`, a.cx + 6, a.cy - a.radio - 6);
+        // [1.33] Traducido (decía «salto» también en inglés) y con su caja reservada: iba encima del
+        // rótulo de la nota de arriba del anillo y se tapaban.
+        const etq = `${T('{0} salto(s)', a.d)} · ${a.n}`;
+        ctx.fillStyle = '#FF6B6B'; ctx.font = f(400, 10.5); ctx.fillText(etq, a.cx + 6, a.cy - a.radio - 20 / sk);
+        cajas.push({ x: a.cx + 4, y: a.cy - a.radio - 20 / sk - 12 / sk, w: ctx.measureText(etq).width + 4, h: 16 / sk });
       }
     } else {
       this.capas.forEach((c, i) => {
@@ -1880,19 +1970,31 @@ class VistaMapa extends ItemView {
     const esFijo = (n) => n.id === centro || n.id === sobreRadial || (enCamino && enCamino.has(n.id)) || n.agrupados || (!radial && n.capa === ultima);
     rotulos.sort((p, q) => (esFijo(q) ? 1 : 0) - (esFijo(p) ? 1 : 0) || (nivel ? (nivel[p.id] ?? 3) - (nivel[q.id] ?? 3) : 0) || p.y - q.y);
     const aire = 3 / vista.k;
+    const panelR = !radial && !this.angosto() && this.panel?.hasClass?.('abierto') ? this.panel.getBoundingClientRect() : null;
+    const izqRaiz = panelR ? this.contentEl.getBoundingClientRect().left : 0;
+    const bordeIzq = (4 - vista.x) / vista.k;
+    const bordeDer = Math.min((this.W - 4 - vista.x) / vista.k, panelR ? (panelR.left - izqRaiz - 8 - vista.x) / vista.k : Infinity);
     for (const n of rotulos) {
       const fijo = esFijo(n);
       // Solo la hub del tema lleva el nombre del tema; sus hermanas de la última capa conservan su
       // título. Antes todas se rotulaban igual y se veían «dos Derecho tributario».
       const esHub = n.virtual || (n.capa === ultima && this.hubs[n.tema] === n.id);
       let texto = (esHub || n.agrupados) && this.D.temas[n.tema] ? this.D.temas[n.tema][0] : n.titulo;
-      if (n.agrupados) texto += ` · ${n.agrupados + 1} notas`;
+      if (n.agrupados) texto += T(' · {0} notas', n.agrupados + 1);
       const fuerte = fijo || n.capa === ultima, tam = n.capa === ultima || n.agrupados ? 13 : 11.5;
       ctx.font = f(fuerte ? 600 : 500, tam);
-      const w = ctx.measureText(texto).width, pad = 4 / vista.k, h = tam / sk + 6 / vista.k, r = 12 / vista.k;
+      const pad = 4 / vista.k, h = tam / sk + 6 / vista.k, r = 12 / vista.k;
+      let w = ctx.measureText(texto).width;
       let izquierda = radial ? n.x < this.porId[this.foco].x - 1 : n.capa === ultima;
-      // [1.29.2] Si el rótulo no cabe a la derecha del lienzo, va a la izquierda del nodo.
-      if (!izquierda && !radial && n.x + r + w + pad * 2 > this.anchoLogico - 6 / vista.k) izquierda = true;
+      // [1.29.2] Si el rótulo no cabe a la derecha, va a la izquierda del nodo. [1.33] «Cabe» es
+      // hasta el borde visible o el panel abierto, y si a la izquierda se sale, vuelve a la derecha.
+      const ancho = w + pad * 2 + r;
+      if (!izquierda && n.x + ancho > bordeDer) izquierda = true;
+      if (izquierda && n.x - ancho < bordeIzq && n.x + ancho <= bordeDer) izquierda = false;
+      // Si no cabe a ningún lado (un título largo en el teléfono), se acorta con «…» al aire que hay.
+      const aireLado = (izquierda ? n.x - bordeIzq : bordeDer - n.x) - r - pad * 2;
+      if (w > aireLado && aireLado > 40 / vista.k) { while (texto.length > 4 && ctx.measureText(texto + '…').width > aireLado) texto = texto.slice(0, -1); texto += '…'; }
+      w = ctx.measureText(texto).width;
       const x = izquierda ? n.x - r - w - pad * 2 : n.x + r, y = n.y - h / 2;
       const caja = { x: x - aire, y: y - aire, w: w + pad * 2 + aire * 2, h: h + aire * 2 };
       const choca = cajas.some((c) => caja.x < c.x + c.w && c.x < caja.x + caja.w && caja.y < c.y + c.h && c.y < caja.y + caja.h);
@@ -2184,7 +2286,7 @@ class VistaMapa extends ItemView {
       paso.onclick = () => (n.fuente || n.virtual ? null : this.abrirNota(n.ruta));
       if (i < ruta.length - 1) { const m = this.motivo[id + '|' + ruta[i + 1]], fr = this.frase[id + '|' + ruta[i + 1]]; lista.createDiv({ cls: 'mn-salto', text: m ? '↓ ' + m : fr ? '↓ en el texto: «' + fr.texto + '»' : '↓ enlazadas' }); }
     });
-    p.addClass('abierto');
+    p.addClass('abierto'); this.medir(); this.pedir(); // [1.33] sin esto la capa de temas quedaba bajo el panel
   }
   panelVacios() {
     const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
@@ -2225,7 +2327,7 @@ class VistaMapa extends ItemView {
         await pl.guardar(); h.remove(); this.pintarChips();
       });
     }
-    p.addClass('abierto');
+    p.addClass('abierto'); this.medir(); this.pedir(); // [1.33] sin esto la capa de temas quedaba bajo el panel
   }
   // La bandeja: archivos de las carpetas de fuentes que ninguna nota del mapa cita. Es una lista al
   // costado, no puntos en el lienzo: no reordena nada. Y dice solo «sin cita reconocida».

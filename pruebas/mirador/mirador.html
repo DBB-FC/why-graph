@@ -204,9 +204,13 @@ window.exports = window.module.exports;
     // Escribe en el buscador como una persona y mide si la lista se VE (estilo calculado).
     const caja = document.querySelector('.mn-buscar'), lista = document.querySelector('.mn-resultados');
     caja.value = q.get('q') || ''; caja.dispatchEvent(new Event('input'));
+    await new Promise((r) => setTimeout(r, 0));   // el observador marca las filas en la vuelta siguiente
+    caja.focus(); caja.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    const activo = document.activeElement;
     const pre = document.createElement('pre'); pre.id = 'diag';
     pre.textContent = JSON.stringify({ display: getComputedStyle(lista).display, alto: lista.getBoundingClientRect().height,
-      filas: [...lista.querySelectorAll('.mn-resultado')].map((x) => x.textContent) });
+      filas: [...lista.querySelectorAll('.mn-resultado')].map((x) => x.textContent),
+      teclado: { rol: activo?.getAttribute('role'), fila: !!activo?.classList.contains('mn-resultado') } });
     document.body.appendChild(pre);
   } else if (q.get('foco')) {
     const n = buscar(q.get('foco'));

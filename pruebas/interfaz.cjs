@@ -54,7 +54,8 @@ const b = mb ? JSON.parse(mb[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&').r
 if (!b) fallos.push('el buscador no llegó a probarse');
 else if (b.display === 'none' || !b.alto) fallos.push(`la lista de resultados del buscador no se ve (display: ${b.display})`);
 else if (!b.filas.some((x) => /tostadora/i.test(x))) fallos.push(`el buscador no encontró la nota: ${JSON.stringify(b.filas)}`);
+else if (!b.teclado?.fila || b.teclado.rol !== 'button') fallos.push(`con ↓ el foco no entra en los resultados: ${JSON.stringify(b.teclado)}`);
 
-console.log(`interfaz: buscador ${b && b.alto ? `visible, ${b.filas.length} resultado(s)` : 'NO se ve'} · ${d.ajustes} ajustes · pie «${d.pie}» · logo ${d.logo ? 'sí' : 'NO'} · ${d.probar.length ? 'con' : 'SIN'} botón de prueba`);
+console.log(`interfaz: buscador ${b && b.alto ? `visible, ${b.filas.length} resultado(s)${b.teclado?.fila ? ', navegable con ↓' : ''}` : 'NO se ve'} · ${d.ajustes} ajustes · pie «${d.pie}» · logo ${d.logo ? 'sí' : 'NO'} · ${d.probar.length ? 'con' : 'SIN'} botón de prueba`);
 fallos.forEach((f) => console.log('   ✕ ' + f));
 process.exit(fallos.length ? 1 : 0);
