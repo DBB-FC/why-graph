@@ -65,13 +65,13 @@ const respuesta = (obj) => ({ status: 200, json: { choices: [{ message: { conten
       const f = [...u.matchAll(/fuente="([^"]+)"/g)].map((x) => x[1]);
       return respuesta({ contradicciones: [], novedades: f.flatMap((r) => ['wiki/a.md', 'wiki/b.md'].map((d) => ({ texto: 'n ' + d, cita: 'Material nuevo número', fuente: r, destino: d, crear: false }))) });
     };
+    // [1.33.1] Con más tandas que el tope, lee hasta el tope (antes no leía nada, ningún día).
     const r = await v.pl.alAbrirObsidian();
-    p.igual('con 4 tandas y tope 3 no arranca', r, 'tope');
-    p.igual('y no llama a nadie', llamadas, 0);
-    v.pl.ajustes.topeDiario = 4;
-    await v.pl.alAbrirObsidian();
-    p.cierto('con tope 4 las llamadas reales no pasan del tope (antes el paso 2 iba aparte)', llamadas <= 4);
+    p.igual('con 4 tandas y tope 3, igual arranca', r, 'hecho');
+    p.cierto('y no pasa de 3 llamadas reales (los dos pasos y los reintentos cuentan)', llamadas > 0 && llamadas <= 3);
     p.igual('el uso anotado es lo que de verdad se llamó', v.registro().uso?.llamadas, llamadas);
+    await v.pl.cerrarRevision();
+    const otra = llamadas; p.igual('con el tope ya usado hoy, no arranca', [await v.pl.alAbrirObsidian(), llamadas], ['tope', otra]);
     global.__req = null;
   }
 
@@ -261,6 +261,33 @@ const respuesta = (obj) => ({ status: 200, json: { choices: [{ message: { conten
     const dichos = []; const ctx = contexto2D(); ctx.fillText = (s) => dichos.push(String(s));
     t4.v.ctx = ctx; t4.v.capaA = null; t4.v.dibujarEscena(ctx, true);
     p.cierto('radial en inglés: el rótulo del anillo dice «hop», no «salto»', dichos.some((s) => /hop/.test(s)) && !dichos.some((s) => /salto/.test(s)));
+  }
+
+  // ── 11. «61 por leer» que nunca bajaba (25.09): leído ≠ revisado ────────────────────────────
+  {
+    const notas = { 'wiki/a.md': '# A\n' };
+    for (let i = 0; i < 30; i++) notas[`raw/daily/2026-09-2${i % 6}/n${i}.md`] = Array.from({ length: 6 + (i % 30) }, (_, k) => `Párrafo ${k} del archivo ${i}: se acordó con el cliente ${i} un precio de ${1000 + k} pesos.`.repeat(4)).join('\n\n');
+    const bóveda = vaultSimulado(notas);
+    const abrir = async () => { const pl = new Plugin(); pl.app = bóveda.app; pl._datos = ajustes({ proveedorIA: 'openai', modeloIA: 'x' }); await pl.onload(); bóveda.app._ls[CLAVE_IA('openai')] = 'k'; pl.esperasReintento = [0, 0, 0]; return pl; };
+    const porLeer = async (pl) => new Set((await pl.prepararMaterial(pl.reunirCrudo())).piezas.map((x) => x.ruta)).size;
+    let cuota = 0;
+    global.__req = async (o) => { const u = JSON.parse(o.body).messages[1].content;
+      if (!u.includes('<material')) return respuesta({ resultados: [] });
+      if (cuota-- <= 0) return { status: 429, headers: {}, json: { error: { message: 'quota', details: [{ violations: [{ quotaId: 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', quotaValue: '20' }] }] } } };
+      const f = [...u.matchAll(/fuente="([^"]+)"/g)].map((m) => m[1]); return respuesta({ contradicciones: [], novedades: f.slice(0, 1).map((r) => ({ texto: 'precio acordado ' + r, cita: 'se acordó con el cliente', fuente: r, destino: 'wiki/a.md', crear: false })) }); };
+    let pl = await abrir(); const antes = await porLeer(pl);
+    cuota = 4; const st = await pl.buscarNovedades(await pl.prepararMaterial(pl.reunirCrudo()));
+    const despues = await porLeer(pl);
+    p.cierto('lo que la IA leyó baja de «por leer» sin pulsar Terminar, aunque la cuota se acabe a la mitad', st.prop.exitosas === 4 && despues < antes && despues > 0);
+    st.prop.novedades[0].decision = 'rechazada'; await pl.guardarRevision();
+    pl = await abrir();                                   // Obsidian se reinicia
+    const r = await pl.recuperarRevision();
+    p.cierto('tras reiniciar, la revisión (y lo ya decidido) sigue ahí', r?.prop.novedades.length === st.prop.novedades.length && r.prop.novedades[0].decision === 'rechazada');
+    p.igual('con una revisión pendiente, abrir Obsidian no vuelve a pagar', await (async () => { pl.ajustes.autoIngesta = true; return pl.alAbrirObsidian(); })(), 'revision-pendiente');
+    await pl.cerrarRevision(); cuota = 99;
+    await pl.buscarNovedades(await pl.prepararMaterial(pl.reunirCrudo()));
+    p.igual('al día siguiente se lee solo lo que faltaba, y llega a cero', await porLeer(pl), 0);
+    global.__req = null;
   }
 
   process.exit(p.cerrar() ? 1 : 0);

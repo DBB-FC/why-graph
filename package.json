@@ -1,6 +1,6 @@
 {
   "name": "why-graph",
-  "version": "1.33.0",
+  "version": "1.33.1",
   "description": "The map for your LLM wiki: raw sources, notes and syntheses as layers, with the reason each link exists — written by you or suggested by your AI. Works with any structured vault.",
   "private": true,
   "type": "module",
@@ -8,7 +8,8 @@
     "build": "node esbuild.config.mjs",
     "dev": "node esbuild.config.mjs --watch",
     "lint": "eslint src/",
-    "test": "npm run build && node pruebas/plugin.cjs && node pruebas/fuentes.cjs && node pruebas/idioma.cjs && node pruebas/interfaz.cjs && node pruebas/v128.cjs && node pruebas/ingesta.cjs && node pruebas/v133.cjs"
+    "test": "npm run build && node pruebas/plugin.cjs && node pruebas/fuentes.cjs && node pruebas/idioma.cjs && node pruebas/interfaz.cjs && node pruebas/v128.cjs && node pruebas/ingesta.cjs && node pruebas/v133.cjs && node pruebas/e2e/recorridos.cjs",
+    "e2e": "node pruebas/e2e/recorridos.cjs"
   },
   "keywords": [
     "obsidian",

@@ -130,6 +130,7 @@ const EN = {
   'buscar nota…': 'search note…',
   'No hay notas con ese nombre': 'No notes with that name',
   'fuera del mapa': 'not on the map',
+  'Hoy ya se agotó la cuota': 'Today\'s quota is already used up',
   '{0} salto(s)': '{0} hop(s)',
   ' · {0} notas': ' · {0} notes',
   'Crea la llave en openrouter.ai/keys. Una sola llave da acceso a modelos de Anthropic, Google, OpenAI y abiertos; los que terminan en «:free» no cuestan, con límite diario.':
@@ -2368,12 +2369,10 @@ class VistaMapa extends ItemView {
       else chip.hide();
     };
     if (!pl.ingestaLista()) return mostrar('', 0);
-    const st = this.plugin.nov;
+    const st = this.plugin.nov || await pl.recuperarRevision();
     if (st?.fase === 'buscando') return mostrar(T('● buscando…'), 1);
-    if (st?.prop) {
-      const quedan = st.prop.novedades.filter((n) => n.estado === 'nuevo' && !n.decision).length;
-      return mostrar(T('● {0} nuevas', quedan), quedan);
-    }
+    const quedan = st?.prop ? st.prop.novedades.filter((n) => n.estado === 'nuevo' && !n.decision).length : 0;
+    if (quedan) return mostrar(T('● {0} nuevas', quedan), quedan);
     // Contar es local y gratis: se leen los archivos, no se llama a la IA.
     const m = await pl.prepararMaterial(pl.reunirCrudo());
     const n = new Set(m.piezas.map((x) => x.ruta)).size;
@@ -2422,7 +2421,7 @@ class VistaMapa extends ItemView {
       else lista.createDiv({ cls: 'mn-resumen', text: T('No hay recortes sueltos.') });
       return;
     }
-    const st = this.plugin.nov || (this.plugin.nov = { fase: 'inicio' });
+    const st = this.plugin.nov || await pl.recuperarRevision() || (this.plugin.nov = { fase: 'inicio' });
     if (st.fase === 'buscando') return this.pintarBusqueda(lista);
     const recortes = pl.recortesSueltos();
     if (recortes.length) this.pintarRecortes(lista, recortes);
@@ -2440,6 +2439,13 @@ class VistaMapa extends ItemView {
       return;
     }
     const rutas = [...new Set(m.piezas.map((x) => x.ruta))], total = pl.armarTandas(m.piezas).length;
+    // [1.33.1] Si hoy ya se agotó la cuota diaria, decirlo ANTES de buscar: el intento va a fallar igual.
+    const ultimo = (await pl.leerRegistroIngesta()).ultimoError;
+    if (ultimo && /cuota diaria|daily quota/i.test(ultimo.mensaje) && String(ultimo.fecha).slice(0, 10) === new Date().toISOString().slice(0, 10)) {
+      const aviso = lista.createDiv('mn-nov-aviso mn-nov-error');
+      aviso.createDiv({ cls: 'mn-nov-titulo', text: T('Hoy ya se agotó la cuota') });
+      aviso.createDiv({ cls: 'mn-motivo', text: ultimo.mensaje });
+    }
     // Decir cuánto se va a enviar ANTES de gastar la cuota.
     lista.createDiv({ cls: 'mn-resumen', text: T('{0} archivo(s) con material nuevo: {1} llamada(s) a {2}. Tus notas se envían a ese servicio.', rutas.length, total, pl.ajustes.modeloIA || '') });
     if (m.repetidos) lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} archivo(s) ya estaban ingeridos o repetidos: no se envían.', m.repetidos) });
@@ -2518,9 +2524,10 @@ class VistaMapa extends ItemView {
     this.boton(acc, 'flag', T('Terminar'), async () => {
       // «Terminar» = la persona revisó: lo que se leyó bien queda como ingerido, aprobado o no
       // (rechazar también es decidir). Cerrar el panel sin terminar deja todo pendiente.
+      // Lo leído ya quedó sellado al terminar la búsqueda: «Terminar» solo cierra la revisión.
       await pl.confirmarIngesta(st.material);
       new Notice(st.aplicadas ? T('{0} novedad(es) guardadas en el wiki.', st.aplicadas) : T('No se escribió nada.'));
-      pl.nov = null; this.novAbierto = false;
+      await pl.cerrarRevision(); this.novAbierto = false;
       this.abrirPanel(null); this.contarNovedades();
     }, !seguras.length);
     // Por página: primero las que existen, después las nuevas; «sin página clara» al final, plegado.
@@ -2564,7 +2571,7 @@ class VistaMapa extends ItemView {
     const no = bs.createEl('button', { cls: 'mn-btn', text: '✗', attr: { 'aria-label': T('Rechazar'), title: T('Rechazar') } });
     const si = bs.createEl('button', { cls: 'mn-btn mn-btn-primario', text: '✓', attr: { 'aria-label': T('Aprobar'), title: T('Aprobar') } });
     if (!n.destino || !n.verificada || (n.crear && this.plugin.ajustes.permitirCrear === false)) si.disabled = true;
-    no.onclick = () => { n.decision = 'rechazada'; fila.addClass('descartada'); bs.remove(); this.contarNovedades(); };
+    no.onclick = () => { n.decision = 'rechazada'; fila.addClass('descartada'); bs.remove(); this.contarNovedades(); this.plugin.guardarRevision(); };
     si.onclick = async () => { si.disabled = no.disabled = true; if (await this.aprobarNovedad(n)) { fila.addClass(n.decision === 'aprobada' ? 'hecha' : 'descartada'); bs.remove(); } else si.disabled = no.disabled = false; };
   }
   async aprobarNovedad(n) {
@@ -2572,6 +2579,7 @@ class VistaMapa extends ItemView {
       const r = await this.plugin.aplicarNovedad(n);
       n.decision = r === 'insertada' ? 'aprobada' : 'ya_estaba';
       if (r === 'insertada') this.plugin.nov.aplicadas++;
+      await this.plugin.guardarRevision();
       this.contarNovedades();
       return true;
     } catch (e) { new Notice(e.message, 10000); return false; }
@@ -3157,7 +3165,7 @@ export default class MapaNeuronal extends Plugin {
   async leerRegistroIngesta() {
     const a = this.app.vault.adapter, r = this.rutaRegistroIngesta();
     try {
-      if (a && await a.exists(r)) { const j = JSON.parse(await a.read(r)); return { archivos: j.archivos || {}, parrafos: j.parrafos || {}, uso: j.uso, bloqueo: j.bloqueo, ultimoError: j.ultimoError }; }
+      if (a && await a.exists(r)) { const j = JSON.parse(await a.read(r)); return { archivos: j.archivos || {}, parrafos: j.parrafos || {}, uso: j.uso, bloqueo: j.bloqueo, ultimoError: j.ultimoError, revision: j.revision }; }
     } catch { /* registro dañado: se parte de cero; lo peor que pasa es reenviar material */ }
     return { archivos: {}, parrafos: {} };
   }
@@ -3181,6 +3189,13 @@ export default class MapaNeuronal extends Plugin {
       });
     } catch (e) { st.prop = { novedades: [], contradicciones: [], avisos: [e.message], tandas: 0, leidas: 0 }; }
     st.fase = 'revisar';
+    // [1.33.1] Leído ≠ revisado. Lo que la IA leyó bien se sella YA: antes solo se sellaba al pulsar
+    // «Terminar», así que cerrar el panel, reiniciar Obsidian o quedarse sin cuota a la mitad
+    // dejaba los 61 archivos «por leer» para siempre, y se volvían a pagar. Las novedades quedan
+    // guardadas en ingesta.json hasta que la persona las revise.
+    await this.confirmarIngesta(material);
+    st.material = null;
+    await this.guardarRevision();
     const error = this.errorFatal || st.prop.fallos?.[0]?.error || (st.prop.avisos || [])[0] || null;
     // Las llamadas que de verdad salieron (reintentos incluidos); las tandas leídas solo si no se
     // pudo contar ninguna (una IA reemplazada en pruebas).
@@ -3193,6 +3208,29 @@ export default class MapaNeuronal extends Plugin {
     this.avisarVistas('listo');
     return st;
   }
+  // La revisión pendiente (novedades y decisiones) vive en ingesta.json: sobrevive a cerrar el
+  // panel y a reiniciar Obsidian. Solo lo que hace falta para mostrarla y aprobarla.
+  async guardarRevision() {
+    const reg = await this.leerRegistroIngesta(), p = this.nov?.prop;
+    // Solo vale la pena guardar si queda algo por decidir. Una búsqueda que falló entera (cuota)
+    // guardaba una revisión vacía que escondía «N por leer» y frenaba la búsqueda automática.
+    const pendientes = (p?.novedades || []).some((n) => n.estado === 'nuevo' && !n.decision);
+    if (!p || !pendientes) { if (reg.revision) { delete reg.revision; await this.escribirRegistroIngesta(reg); } return; }
+    const campos = ['id', 'texto', 'cita', 'fuente', 'destino', 'crear', 'verificada', 'estado', 'seccion', 'detalle', 'porAlias', 'decision'];
+    reg.revision = { fecha: new Date().toISOString(), modelo: p.modelo, tandas: p.tandas, leidas: p.leidas, exitosas: p.exitosas,
+      contradicciones: (p.contradicciones || []).slice(0, 100), fallos: (p.fallos || []).slice(0, 50), avisos: (p.avisos || []).slice(0, 50),
+      novedades: (p.novedades || []).slice(0, 400).map((n) => Object.fromEntries(campos.filter((k) => n[k] !== undefined).map((k) => [k, n[k]]))) };
+    await this.escribirRegistroIngesta(reg);
+  }
+  // Si Obsidian se reinició con una revisión a medias, se retoma tal como quedó.
+  async recuperarRevision() {
+    if (this.nov) return this.nov;
+    const r = (await this.leerRegistroIngesta()).revision;
+    if (!r?.novedades?.some((n) => n.estado === 'nuevo' && !n.decision)) return null;
+    this.nov = { fase: 'revisar', material: null, aplicadas: 0, recuperada: true, prop: r };
+    return this.nov;
+  }
+  async cerrarRevision() { this.nov = null; await this.guardarRevision(); }
   async anotarUso(llamadas, error) {
     const reg = await this.leerRegistroIngesta(), h = hoy();
     reg.uso = { fecha: h, llamadas: (reg.uso?.fecha === h ? reg.uso.llamadas : 0) + llamadas };
@@ -3211,14 +3249,20 @@ export default class MapaNeuronal extends Plugin {
   // haciendo ya (el Mac y el iPhone con Sync abren el mismo vault: pagar dos veces no sirve).
   async alAbrirObsidian() {
     this.avisarVistas('contar');
-    if (!this.ajustes.autoIngesta || !this.ingestaLista() || this.nov) return 'apagado';
+    if (!this.ajustes.autoIngesta || !this.ingestaLista()) return 'apagado';
+    // Con novedades sin revisar (de esta sesión, de antes de reiniciar o de otro dispositivo), no se
+    // busca otra tanda encima: primero se revisa lo que ya se pagó.
+    if (await this.recuperarRevision()) return 'revision-pendiente';
     const material = await this.prepararMaterial(this.reunirCrudo());
     if (!material.piezas.length) return 'sin-material';
     const reg = await this.leerRegistroIngesta(), yo = this.idDispositivo(), ahora = Date.now();
     if (reg.bloqueo && reg.bloqueo.dispositivo !== yo && reg.bloqueo.hasta > ahora) return 'otro-dispositivo';
     const tope = Math.max(0, Number(this.ajustes.topeDiario) || 0);
-    const usadas = reg.uso?.fecha === hoy() ? reg.uso.llamadas : 0, necesarias = this.armarTandas(material.piezas).length;
-    if (usadas + necesarias > tope) {
+    // [1.33.1] Se lee hasta el tope y lo demás sigue mañana: lo leído ya queda sellado. Antes, si el
+    // atraso pedía más llamadas que el tope, no se hacía ninguna, ningún día: con 67 archivos
+    // pendientes y tope 30, la búsqueda automática no avanzaba nunca.
+    const usadas = reg.uso?.fecha === hoy() ? reg.uso.llamadas : 0;
+    if (usadas >= tope) {
       new Notice(T('Hay material nuevo, pero hoy ya van {0} de {1} llamadas automáticas. Revísalo desde el mapa.', usadas, tope), 10000);
       return 'tope';
     }
