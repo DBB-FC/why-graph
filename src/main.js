@@ -3,7 +3,7 @@
  * v1.19 (16.09.2026): el nombre visible pasa a «Why Graph». El id, los nombres de archivo y
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
- * v1.34 (en curso): «Modelo» se elige de una lista cargada en vivo desde el proveedor (OpenRouter
+ * v1.34 (25.09.2026): «Modelo» se elige de una lista cargada en vivo desde el proveedor (OpenRouter
  *   con precio y solo los que respetan el esquema JSON; Gemini, OpenAI y la IA local con su llave).
  *   ★ marca lo probado con Why Graph; «Otro» deja escribir un modelo que no aparece.
  *

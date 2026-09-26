@@ -1,6 +1,6 @@
 {
   "name": "why-graph",
-  "version": "1.33.1",
+  "version": "1.34.0",
   "description": "The map for your LLM wiki: raw sources, notes and syntheses as layers, with the reason each link exists — written by you or suggested by your AI. Works with any structured vault.",
   "private": true,
   "type": "module",
