@@ -561,6 +561,8 @@ const EN = {
   'ingesta': 'ingestion',
   'Material de origen': 'Source material',
   'aprobado por la persona': 'approved by the person',
+  'La IA copió la misma frase para las dos notas, y solo está en una. Se bloquea para no escribir algo no verificable; si se repite, prueba un modelo más capaz.':
+    'The AI copied the same sentence for both notes, and it is only in one of them. It is blocked so nothing unverifiable is written; if it keeps happening, try a more capable model.',
   // [1.34] lista de modelos
   'gratis, con límite diario': 'free, with a daily limit',
   'US${0} por millón': 'US${0} per million',
@@ -3111,18 +3113,35 @@ export default class MapaNeuronal extends Plugin {
     const nombre = (ruta) => ruta.split('/').pop().replace(/\.md$/, '');
     const sistema = 'Explicas por qué una nota de un wiki personal enlaza a otra. Reglas estrictas: usa SOLO lo que dicen las dos notas; no infieras ni completes con conocimiento externo. Respeta negaciones ("nadie lo conectó"), estados ("idea", "pendiente", "descartado", "sin verificar") y condicionales: un pendiente no es un hecho. Las citas deben ser copias LITERALES, carácter por carácter, de un fragmento de cada nota (sin reformular, sin "…"). Si la relación no se puede afirmar con citas literales, responde con suficiente=false.';
     const usuario = fr.nuevo
-      ? `NOTA A (${nombre(fr.origen)}):\n<origen>\n${origen}\n</origen>\n\nNOTA B (${nombre(fr.destino)}):\n<destino>\n${destino}\n</destino>\n\nEstas dos notas TODAVÍA NO se enlazan. Si lo que dicen ambas respalda una relación concreta, escribe el motivo: una frase de 6 a 18 palabras que diga por qué A se conecta con B. Si no hay una relación que se pueda afirmar con citas literales de las dos, suficiente=false. ESCRIBE EL MOTIVO EN EL MISMO IDIOMA EN QUE ESTÁN ESCRITAS LAS NOTAS. Da una cita literal de A y una de B que respalden el motivo.`
-      : `NOTA DE ORIGEN (${nombre(fr.origen)}). El enlace a [[${nombre(fr.destino)}]] está en la línea ${fr.linea}:\n<origen>\n${origen}\n</origen>\n\nNOTA ENLAZADA (${nombre(fr.destino)}):\n<destino>\n${destino}\n</destino>\n\nEscribe el motivo del enlace: una frase de 6 a 18 palabras, concreta, que diga por qué la nota de origen se conecta con la enlazada. ESCRIBE EL MOTIVO EN EL MISMO IDIOMA EN QUE ESTÁN ESCRITAS LAS NOTAS, no en el idioma de estas instrucciones. Da una cita literal de la nota de origen (idealmente la línea ${fr.linea} o parte de ella) y una cita literal de la nota enlazada que respalde el motivo.`;
+      ? `NOTA A (${nombre(fr.origen)}):\n<origen>\n${origen}\n</origen>\n\nNOTA B (${nombre(fr.destino)}):\n<destino>\n${destino}\n</destino>\n\nEstas dos notas TODAVÍA NO se enlazan. Si lo que dicen ambas respalda una relación concreta, escribe el motivo: una frase de 6 a 18 palabras que diga por qué A se conecta con B. Si no hay una relación que se pueda afirmar con citas literales de las dos, suficiente=false. ESCRIBE EL MOTIVO EN EL MISMO IDIOMA EN QUE ESTÁN ESCRITAS LAS NOTAS. Da dos citas DISTINTAS: cita_origen copiada de la NOTA A (dentro de <origen>) y cita_destino copiada de la NOTA B (dentro de <destino>). Cada cita tiene que estar en su propia nota; no copies la misma frase en las dos.`
+      : `NOTA DE ORIGEN (${nombre(fr.origen)}). El enlace a [[${nombre(fr.destino)}]] está en la línea ${fr.linea}:\n<origen>\n${origen}\n</origen>\n\nNOTA ENLAZADA (${nombre(fr.destino)}):\n<destino>\n${destino}\n</destino>\n\nEscribe el motivo del enlace: una frase de 6 a 18 palabras, concreta, que diga por qué la nota de origen se conecta con la enlazada. ESCRIBE EL MOTIVO EN EL MISMO IDIOMA EN QUE ESTÁN ESCRITAS LAS NOTAS, no en el idioma de estas instrucciones. Da una cita literal de la nota de origen (idealmente la línea ${fr.linea} o parte de ella) y una cita literal de la nota enlazada que respalde el motivo. Son dos citas DISTINTAS: cita_origen sale de <origen> y cita_destino sale de <destino>; no copies la misma frase en las dos.`;
     const esquema = { type: 'object', additionalProperties: false, required: ['suficiente', 'motivo', 'cita_origen', 'cita_destino'],
       properties: { suficiente: { type: 'boolean' }, motivo: { type: 'string' }, cita_origen: { type: 'string' }, cita_destino: { type: 'string' } } };
-    const g = await this.llamarIA(sistema, usuario, esquema);
+    let g = await this.llamarIA(sistema, usuario, esquema);
+    // [1.34] Los modelos baratos (gemini-3.1-flash-lite) copiaban la MISMA frase en las dos citas: la
+    // de la nota que sí la tiene pasaba y la otra no, así que todo motivo quedaba bloqueado. Se les
+    // dice qué cita falló y dónde tiene que estar, una sola vez: el candado no se afloja.
+    const malas = (x) => [['cita_origen', 'NOTA A', origen], ['cita_destino', 'NOTA B', destino]]
+      .filter(([k, , t]) => x.suficiente && x[k] && !this.verificarCita(x[k], t));
+    if (malas(g).length) {
+      const aviso = malas(g).map(([k, n]) => `«${g[k]}» (${k}) no está literal en la ${n}.`).join(' ');
+      g = await this.llamarIA(sistema, `${usuario}\n\nTu respuesta anterior no sirve: ${aviso} Copia, carácter por carácter, un fragmento que SÍ esté en esa nota. Si esa nota no tiene nada que respalde el motivo, responde suficiente=false.`, esquema);
+    }
     const res = { motivo: (g.motivo || '').trim(), modelo: this.ajustes.modeloIA,
       cita_origen: g.cita_origen ? { texto: g.cita_origen, ok: this.verificarCita(g.cita_origen, origen) } : null,
       cita_destino: g.cita_destino ? { texto: g.cita_destino, ok: this.verificarCita(g.cita_destino, destino) } : null };
     const palabras = res.motivo.split(/\s+/).filter(Boolean).length;
     if (!g.suficiente || !res.motivo) { res.advertencia = T('La IA no encontró base literal suficiente para afirmar un motivo.'); res.aprobable = false; return res; }
     if (palabras < 4 || palabras > 24) { res.advertencia = T('El motivo tiene {0} palabras; debe ser una frase corta.', palabras); }
-    if (!res.cita_origen?.ok || !res.cita_destino?.ok) { res.aprobable = false; res.advertencia = T('Una cita no aparece literal en la nota: se bloquea para no escribir algo no verificable.'); return res; }
+    if (!res.cita_origen?.ok || !res.cita_destino?.ok) {
+      res.aprobable = false;
+      // Decir por qué: «la misma frase en las dos» se arregla probando otro modelo, no reintentando igual.
+      const mismo = g.cita_origen && normalizarCita(g.cita_origen) === normalizarCita(g.cita_destino);
+      res.advertencia = mismo
+        ? T('La IA copió la misma frase para las dos notas, y solo está en una. Se bloquea para no escribir algo no verificable; si se repite, prueba un modelo más capaz.')
+        : T('Una cita no aparece literal en la nota: se bloquea para no escribir algo no verificable.');
+      return res;
+    }
     if (this.ajustes.dobleVerificacion) {
       const esquema2 = { type: 'object', additionalProperties: false, required: ['fiel', 'problema'], properties: { fiel: { type: 'boolean' }, problema: { type: 'string' } } };
       const sistema2 = 'Eres un revisor escéptico. Decides si un motivo de enlace es FIEL a dos notas. Es infiel si: afirma algo que las notas no dicen; convierte un pendiente, idea o posibilidad en un hecho; ignora una negación; atribuye algo a la nota equivocada; o describe otra relación distinta de la que el texto establece. Si hay cualquier duda, fiel=false.';

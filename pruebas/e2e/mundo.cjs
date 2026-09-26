@@ -84,7 +84,7 @@ class Mundo {
     this.notas = {}; this.mtimes = {}; this.internos = {}; this.datos = null;
     this.dispositivos = {};          // nombre → { ls: {}, telefono }
     this.hallazgos = []; this.avisos = []; this.errores = []; this.registro = [];
-    this.ia = { cuotaDiaria: Infinity, usadas: {}, llamadas: [], lento: 0, caida: 0, pagado: new Map(), listas: [], listasCaidas: 0,
+    this.ia = { cuotaDiaria: Infinity, usadas: {}, llamadas: [], lento: 0, caida: 0, pagado: new Map(), listas: [], listasCaidas: 0, citaRepetida: 0,
       modelos: {
         openrouter: [{ id: 'mistralai/mistral-nemo', precio: 0.019 }, { id: 'google/gemini-3.1-flash-lite', precio: 0.25 },
           { id: 'google/gemini-3.1-flash-lite:batch', precio: 0.125 }, { id: 'qwen/qwen3.8-27b:free', precio: 0 },
@@ -251,6 +251,8 @@ function responderPrompt(tipo, sistema, usuario, mundo) {
   }
   if (tipo === 'motivo') {
     const o = String(usuario).match(/<origen>\n([\s\S]*?)\n<\/origen>/)?.[1] || '', d = String(usuario).match(/<destino>\n([\s\S]*?)\n<\/destino>/)?.[1] || '';
+    // Como gemini-3.1-flash-lite: copia la cita de la nota B también en la A (mundo.ia.citaRepetida veces).
+    if (mundo.ia.citaRepetida > 0) { mundo.ia.citaRepetida--; return { suficiente: true, motivo: 'las dos notas describen el mismo trabajo con el cliente', cita_origen: citaDe(d), cita_destino: citaDe(d) }; }
     return { suficiente: true, motivo: 'las dos notas describen el mismo trabajo con el cliente', cita_origen: citaDe(o), cita_destino: citaDe(d) };
   }
   if (tipo === 'resumen') { const n = String(usuario).match(/<nota>\n([\s\S]*?)\n<\/nota>/)?.[1] || ''; const c = citaDe(n); return { suficiente: true, resumen: 'Nota sobre ' + c, citas: [c] }; }

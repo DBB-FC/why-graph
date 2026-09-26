@@ -209,6 +209,24 @@ const RECORRIDOS = {
     await M.cerrar();
     return `motivo escrito: ${escrito} · botones «Sugerir» restantes: ${ofrece}`;
   },
+  async 'proponer motivo cuando la IA copia la misma cita en las dos notas'(M) {
+    // Una vez: el plugin le dice qué cita falló y la segunda respuesta sirve.
+    M.ia.citaRepetida = 1;
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('crm');
+    await s.pulsa('Sugerir motivo ✦');
+    if (!s.ve('Aprobar y escribir en la nota')) M.hallazgo('un motivo verificable queda bloqueado', s.textoVisible().slice(0, 240));
+    const llamadas1 = M.ia.llamadas.filter((x) => x.tipo === 'motivo').length;
+    await M.cerrar();
+    // Siempre: no se escribe nada y se dice por qué, no el mensaje genérico.
+    M.ia.citaRepetida = Infinity;
+    s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('crm'); await s.pulsa('Sugerir motivo ✦');
+    if (s.ve('Aprobar y escribir en la nota')) M.hallazgo('aprobó una cita que no está en su nota', s.textoVisible().slice(0, 240));
+    if (!s.ve('la misma frase para las dos notas')) M.hallazgo('no explica por qué se bloqueó', s.textoVisible().slice(0, 240));
+    const llamadas2 = M.ia.llamadas.filter((x) => x.tipo === 'motivo').length - llamadas1;
+    if (llamadas2 > 2) M.hallazgo('insiste de más con la IA', `${llamadas2} llamadas por un motivo`);
+    await M.cerrar(); M.ia.citaRepetida = 0;
+    return `llamadas: ${llamadas1} con reintento que sirve, ${llamadas2} cuando no sirve`;
+  },
   async 'resumir una nota con IA y verlo después de reiniciar'(M) {
     let s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('tostadora');
     if (!(await s.pulsa('Resumir con IA', { opcional: true }))) { M.hallazgo('botón que no está', 'Resumir con IA'); await M.cerrar(); return; }
