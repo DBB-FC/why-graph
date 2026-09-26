@@ -62,10 +62,17 @@ function leerVaultReal(raiz) {
   const mtimes = {}; for (const r of Object.keys(notas)) mtimes[r] = fs.statSync(path.join(raiz, r)).mtimeMs;
   return { notas, datos, mtimes };
 }
+// El reloj de verdad, tomado antes de que un mundo lo reemplace por el suyo (global.Date).
+const AHORA_REAL = Date.now();
 function mundo(extra = {}) {
   if (VAULT) {
     const real = mundo.real || (mundo.real = leerVaultReal(VAULT));
-    const M = new Mundo({ main: MAIN, inicio: new Date().toISOString() });
+    // Mañana a las 09:00 de Chile: todo el vault real queda en el pasado, y un «día» de recorrido
+    // (tres aperturas cada 20 min) no cruza la medianoche. Antes arrancaba en la hora real y en el
+    // reloj que dejó el recorrido anterior: de noche «respeta el tope» fallaba sin que el plugin
+    // tuviera la culpa.
+    const inicio = new Date(AHORA_REAL - 3 * 3600e3 + 864e5).toISOString().slice(0, 10) + 'T09:00:00-03:00';
+    const M = new Mundo({ main: MAIN, inicio });
     M.agregarNotas(real.notas); Object.assign(M.mtimes, real.mtimes);
     // La búsqueda automática la enciende cada recorrido que la prueba; si no, correría sola al abrir.
     M.datos = Object.assign({}, real.datos, { proveedorIA: 'gemini', modeloIA: 'modelo-e2e', animacion: false, ultimaIngesta: '', autoIngesta: false });
@@ -168,13 +175,14 @@ const RECORRIDOS = {
     Object.assign(M.datos, { autoIngesta: true, topeDiario: 2 });
     const cuentas = [], porDia = [];
     for (let dia = 1; dia <= 3; dia++) {
+      const antes = M.ia.llamadas.length;
       for (let i = 0; i < 3; i++) {
         const s = await M.abrir('mac'); M.busqueda = `auto${dia}-${i}`; await s.calma(); await s.abrirMapa();
         if (i === 0) cuentas.push(M.sinLeer().length);
         await s.pulsa(/nuevas/, { opcional: true }); await s.pulsa('Terminar', { opcional: true });   // revisa y termina
         await M.cerrar(); M.pasarMinutos(20);
       }
-      const hoy = M.ia.llamadas.filter((x) => x.dia === M.hoy()).length; porDia.push(hoy);
+      const hoy = M.ia.llamadas.length - antes; porDia.push(hoy);   // las de este día del recorrido
       if (hoy > 2) M.hallazgo('pasó el tope diario', `${hoy} llamadas con tope 2 el ${M.hoy()}`);
       M.pasarDias(1);
     }
@@ -208,6 +216,24 @@ const RECORRIDOS = {
     const ofrece = s.pulsables().filter((n) => textoDe(n) === 'Sugerir motivo ✦').length;
     await M.cerrar();
     return `motivo escrito: ${escrito} · botones «Sugerir» restantes: ${ofrece}`;
+  },
+  async 'proponer motivo cuando la IA copia la misma cita en las dos notas'(M) {
+    // Una vez: el plugin le dice qué cita falló y la segunda respuesta sirve.
+    M.ia.citaRepetida = 1;
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('crm');
+    await s.pulsa('Sugerir motivo ✦');
+    if (!s.ve('Aprobar y escribir en la nota')) M.hallazgo('un motivo verificable queda bloqueado', s.textoVisible().slice(0, 240));
+    const llamadas1 = M.ia.llamadas.filter((x) => x.tipo === 'motivo').length;
+    await M.cerrar();
+    // Siempre: no se escribe nada y se dice por qué, no el mensaje genérico.
+    M.ia.citaRepetida = Infinity;
+    s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('crm'); await s.pulsa('Sugerir motivo ✦');
+    if (s.ve('Aprobar y escribir en la nota')) M.hallazgo('aprobó una cita que no está en su nota', s.textoVisible().slice(0, 240));
+    if (!s.ve('la misma frase para las dos notas')) M.hallazgo('no explica por qué se bloqueó', s.textoVisible().slice(0, 240));
+    const llamadas2 = M.ia.llamadas.filter((x) => x.tipo === 'motivo').length - llamadas1;
+    if (llamadas2 > 2) M.hallazgo('insiste de más con la IA', `${llamadas2} llamadas por un motivo`);
+    await M.cerrar(); M.ia.citaRepetida = 0;
+    return `llamadas: ${llamadas1} con reintento que sirve, ${llamadas2} cuando no sirve`;
   },
   async 'resumir una nota con IA y verlo después de reiniciar'(M) {
     let s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('tostadora');
