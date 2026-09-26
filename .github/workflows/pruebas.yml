@@ -4,7 +4,8 @@ name: Pruebas
 
 on:
   push:
-    branches: ['**']
+    # La rama de datos de descargas no tiene código que probar.
+    branches-ignore: ['estadisticas']
   pull_request:
 
 permissions:
