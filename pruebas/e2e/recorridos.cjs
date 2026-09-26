@@ -296,6 +296,59 @@ const RECORRIDOS = {
     if (/no se pudo leer nada/i.test(s.textoVisible())) M.hallazgo('se rinde ante una caída pasajera', '503 dos veces y ya no lee nada');
     await M.cerrar();
   },
+  async 'elegir el modelo de una lista, sin escribir su nombre'(M) {
+    M.dispositivos.mac = { ls: {}, telefono: false };
+    let s = await M.abrir('mac');
+    await s.ajuste('Proveedor', 'openrouter');
+    await s.verAjustes();
+    let lista = s.fila('Modelo')?.campos.find((c) => c.tipo === 'lista');
+    if (!lista) { M.hallazgo('hay que escribir el modelo a mano', `OpenRouter: ${s.fila('Modelo')?.desc || 'sin fila Modelo'}`); await M.cerrar(); return; }
+    const etiquetas = Object.values(lista.opciones);
+    // Solo lo que sirve: con esquema JSON, que responda texto, en el momento (no «:batch») y con precio.
+    for (const malo of ['viejo/sin-esquema', ':batch', 'openrouter/', 'flash-image'])
+      if (Object.keys(lista.opciones).some((k) => k.includes(malo))) M.hallazgo('la lista ofrece modelos que no sirven', malo);
+    const estrella = Object.keys(lista.opciones).find((k) => lista.opciones[k].startsWith('★'));
+    // Lo primero que se ve después de la estrella no puede ser un gratis: se traba al día.
+    const modelos = Object.keys(lista.opciones).filter((k) => k && k !== '__otro__' && k !== estrella);
+    if (/:free$/.test(modelos[0])) M.hallazgo('la lista empieza por modelos gratis con límite diario', modelos.slice(0, 3).join(', '));
+    if (!estrella) M.hallazgo('no dice cuál conviene', etiquetas.slice(0, 3).join(' | '));
+    if (!etiquetas.some((e) => /US\$[\d,.]+ por millón/.test(e))) M.hallazgo('la lista no muestra el precio', etiquetas.slice(0, 3).join(' | '));
+    const precios = Object.keys(lista.opciones).map((k) => M.ia.modelos.openrouter.find((m) => m.id === k)?.precio).filter((x) => x > 0);
+    // Elige la estrella, pega la llave y prueba.
+    await lista.alCambiar(estrella);
+    await s.ajuste('Llave de la API', 'llave-e2e');
+    await s.verAjustes(); await s.botonAjuste('Probar la conexión', 'Probar');
+    if (!M.avisos.some((a) => /Funciona/.test(a.texto))) M.hallazgo('la prueba de conexión no funciona con el modelo elegido', M.avisos.slice(-1)[0]?.texto || 'sin aviso');
+    await M.cerrar();
+    // Al volver, el modelo sigue elegido y la lista no se pidió de más.
+    s = await M.abrir('mac'); await s.verAjustes();
+    lista = s.fila('Modelo')?.campos.find((c) => c.tipo === 'lista');
+    if (lista?.valor !== estrella || M.datos.modeloIA !== estrella) M.hallazgo('el modelo elegido no se mantiene', `${lista?.valor} / ${M.datos.modeloIA}`);
+    // Un modelo que no está en la lista: «Otro» deja escribirlo.
+    await lista.alCambiar('__otro__'); await s.verAjustes();
+    const texto = s.fila('Modelo')?.campos.find((c) => c.tipo === 'texto');
+    if (!texto) M.hallazgo('no se puede escribir un modelo que no está en la lista', s.fila('Modelo')?.desc || '');
+    else { await texto.alCambiar('proveedor/modelo-nuevo'); if (M.datos.modeloIA !== 'proveedor/modelo-nuevo') M.hallazgo('el modelo escrito no se guardó', M.datos.modeloIA); }
+    // Gemini sin llave: no se pide nada; con llave, aparece la lista.
+    await s.ajuste('Proveedor', 'gemini'); await s.verAjustes();
+    const sinLlave = M.ia.listas.filter((x) => x.prov === 'gemini').length;
+    if (sinLlave) M.hallazgo('pidió la lista sin llave', `${sinLlave} pedidos a Gemini`);
+    await s.ajuste('Llave de la API', 'llave-gemini'); await s.verAjustes();
+    const g = s.fila('Modelo')?.campos.find((c) => c.tipo === 'lista');
+    if (!g) M.hallazgo('hay que escribir el modelo a mano', `Gemini con llave: ${s.fila('Modelo')?.desc}`);
+    else if (Object.keys(g.opciones).some((k) => /embedding|image/.test(k))) M.hallazgo('la lista ofrece modelos que no sirven', Object.keys(g.opciones).join(', '));
+    // La lista no carga (sin internet): se puede escribir igual, y «Ver la lista» vuelve a intentar.
+    await s.ajuste('Proveedor', 'openai'); M.ia.listasCaidas = 5;
+    await s.ajuste('Llave de la API', 'llave-openai'); await s.verAjustes();
+    if (!s.fila('Modelo')?.campos.some((c) => c.tipo === 'texto')) M.hallazgo('sin lista no queda cómo elegir modelo', s.fila('Modelo')?.desc || '');
+    M.ia.listasCaidas = 0; await s.botonAjuste('Modelo', 'Ver la lista'); await s.verAjustes();
+    if (!s.fila('Modelo')?.campos.some((c) => c.tipo === 'lista')) M.hallazgo('«Ver la lista» no vuelve a intentar', s.fila('Modelo')?.desc || '');
+    await M.cerrar();
+    const porSesion = {}; for (const x of M.ia.listas) porSesion[x.sesion + x.prov] = (porSesion[x.sesion + x.prov] || 0) + 1;
+    const max = Math.max(0, ...Object.values(porSesion));
+    if (max > 7) M.hallazgo('pide la lista de modelos de más', `${max} pedidos del mismo proveedor en una sesión`);
+    return `elegido: ${estrella} · opciones OpenRouter: ${etiquetas.length} · pedidos de lista: ${M.ia.listas.length} · más barato ofrecido: US$${Math.min(...precios)}`;
+  },
   async 'el teléfono sin llave de IA'(M) {
     M.dispositivos.iphone = { ls: {}, telefono: true };
     const s = await M.abrir('iphone', { telefono: true }); await s.abrirMapa();
