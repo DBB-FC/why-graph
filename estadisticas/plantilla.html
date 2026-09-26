@@ -1,0 +1,356 @@
+<title>Descargas de Why Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F4F6F7;--surface:#FFFFFF;--ink:#15212B;--muted:#5A6874;--line:#DCE2E6;
+  --personas:#0E8587;--robots:#A7B3BD;--publica:#D99A00;--acento:#0E8587;--suave:#E7F3F3;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E151B;--surface:#16212A;--ink:#E4EBF0;--muted:#93A2AE;--line:#27343F;
+  --personas:#3CC4C6;--robots:#56646F;--publica:#F0B429;--acento:#3CC4C6;--suave:#15343A;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E151B;--surface:#16212A;--ink:#E4EBF0;--muted:#93A2AE;--line:#27343F;
+  --personas:#3CC4C6;--robots:#56646F;--publica:#F0B429;--acento:#3CC4C6;--suave:#15343A;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.envoltura{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:32px 64px;display:grid;gap:28px}
+header{display:grid;gap:6px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,5vw,46px);line-height:1.05;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:21px;margin:0;text-wrap:balance}
+.sub{color:var(--muted);max-width:68ch;margin:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:2px}
+.kpi b{font-family:var(--f-mono);font-weight:500;font-size:28px;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi span{font-size:13px;color:var(--muted)}
+.kpi.personas b{color:var(--personas)}
+.bloque{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:12px;min-width:0}
+.bloque p{margin:0;color:var(--muted);max-width:70ch}
+.lienzo{position:relative;height:320px}
+.lienzo.bajo{height:260px}
+.dos{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.leyenda{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.tabla{overflow-x:auto}
+table.calor{min-width:760px;font-size:12px}
+table.calor td{text-align:center;padding:5px 4px;border:1px solid var(--line);font-family:var(--f-mono)}
+table.calor th{text-align:center;padding:5px 4px;font-size:11px;text-transform:none;letter-spacing:0}
+table.calor td.v{text-align:left;background:var(--surface);position:sticky;left:0}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+td.fecha{font-family:var(--f-body)}
+tr.mejor td{background:var(--suave)}
+.pill{display:inline-block;font-family:var(--f-body);font-size:12px;padding:1px 8px;border-radius:99px;background:var(--suave);color:var(--acento)}
+.notas{display:grid;gap:10px}
+.notas li{max-width:78ch;color:var(--muted)}
+.notas b{color:var(--ink);font-weight:600}
+footer{font-size:13px;color:var(--muted)}
+</style>
+
+<div class="envoltura">
+  <header>
+    <div class="eyebrow">Obsidian · directorio de la comunidad · mapa-neuronal</div>
+    <h1>Descargas de Why Graph</h1>
+    <p class="sub" id="subtitulo"></p>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="bloque">
+    <h2>Descargas por día</h2>
+    <p>Cada barra es un día, separado entre personas (la versión vigente ese día) y robots (espejos y escáneres que bajan todas las versiones cada día). El rombo marca cuántas versiones publicaste ese día.</p>
+    <div class="leyenda"><span><i style="background:var(--personas)"></i>Personas</span><span><i style="background:var(--robots)"></i>Robots</span><span><i style="background:var(--publica)"></i>Versiones publicadas</span></div>
+    <div class="lienzo"><canvas id="gDiario" aria-label="Descargas por día, personas y robots"></canvas></div>
+  </section>
+
+  <section class="bloque">
+    <h2>Total acumulado</h2>
+    <p>El total que muestra el directorio, y cuánto de él corresponde a personas.</p>
+    <div class="lienzo bajo"><canvas id="gAcumulado" aria-label="Total acumulado"></canvas></div>
+  </section>
+
+  <section class="bloque">
+    <h2>Crecimiento y proyección</h2>
+    <p id="txtProy"></p>
+    <div class="leyenda"><span><i style="background:var(--personas)"></i>Personas por día</span><span><i style="background:var(--ink)"></i>Promedio móvil de 3 días · total real</span><span><i style="background:var(--publica)"></i>Proyección del total</span></div>
+    <div class="dos">
+      <div class="lienzo bajo"><canvas id="gMovil" aria-label="Personas por día y promedio móvil"></canvas></div>
+      <div class="lienzo bajo"><canvas id="gProy" aria-label="Proyección del total"></canvas></div>
+    </div>
+  </section>
+
+  <div class="dos">
+    <section class="bloque">
+      <h2>¿Quién descarga?</h2>
+      <p id="txtQuien"></p>
+      <div class="lienzo bajo"><canvas id="gQuien" aria-label="Personas contra robots"></canvas></div>
+    </section>
+    <section class="bloque">
+      <h2>Descargas por versión</h2>
+      <p>Las seis versiones más descargadas y el resto agrupado. Cuenta instalaciones y actualizaciones.</p>
+      <div class="lienzo bajo"><canvas id="gVersiones" aria-label="Descargas por versión"></canvas></div>
+    </section>
+  </div>
+
+  <section class="bloque">
+    <h2>Adopción de cada versión grande</h2>
+    <p>Descargas acumuladas de cada versión según los días que lleva publicada. Una curva que sube rápido es gente que se actualiza apenas sale.</p>
+    <div class="lienzo bajo"><canvas id="gAdopcion" aria-label="Adopción por versión"></canvas></div>
+  </section>
+
+  <div class="dos">
+    <section class="bloque">
+      <h2>Personas por día de la semana</h2>
+      <p id="txtSemana"></p>
+      <div class="lienzo bajo"><canvas id="gSemana" aria-label="Personas por día de la semana"></canvas></div>
+    </section>
+    <section class="bloque">
+      <h2>Publicar y descargar</h2>
+      <p>Versiones publicadas cada día frente a las descargas de personas. Cada versión nueva obliga a quienes ya lo tienen a actualizarse.</p>
+      <div class="lienzo bajo"><canvas id="gRitmo" aria-label="Versiones publicadas y descargas"></canvas></div>
+    </section>
+  </div>
+
+  <section class="bloque">
+    <h2>Mapa de calor: versión por día</h2>
+    <p>Cuánto bajó cada versión cada día. En color, las descargas de la versión vigente ese día (personas); en gris, las de versiones ya reemplazadas (casi todo robots).</p>
+    <div class="tabla"><table class="calor" id="calor"></table></div>
+  </section>
+
+  <div class="dos">
+    <section class="bloque">
+      <h2>Cuánto duró cada versión</h2>
+      <p id="txtDuracion"></p>
+      <div class="lienzo bajo"><canvas id="gDuracion" aria-label="Horas vigente contra descargas"></canvas></div>
+    </section>
+    <section class="bloque">
+      <h2>El ritmo de los robots</h2>
+      <p id="txtRobots"></p>
+      <div class="lienzo bajo"><canvas id="gRobots" aria-label="Base diaria de robots"></canvas></div>
+    </section>
+  </div>
+
+  <section class="kpis" id="kpis2"></section>
+
+  <section class="bloque">
+    <h2>Día por día</h2>
+    <div class="tabla"><table id="tabla"><thead><tr><th>Día</th><th>Total</th><th>Del día</th><th>Personas</th><th>Robots</th><th>Publicadas</th><th>Versión que más bajó</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="bloque">
+    <h2>Obsidian contra GitHub, por versión</h2>
+    <p>Obsidian cuenta con su propia estadística; GitHub cuenta cada vez que alguien baja el archivo de la release. No coinciden: en GitHub también entran quienes instalan a mano, y las descargas que hicimos para las pruebas.</p>
+    <div class="lienzo bajo"><canvas id="gFuentes" aria-label="Obsidian contra GitHub"></canvas></div>
+  </section>
+
+  <section class="bloque">
+    <h2>Cómo se calculó</h2>
+    <ul class="notas" id="notas"></ul>
+  </section>
+
+  <footer id="pie"></footer>
+</div>
+
+<script>
+const D = __DATOS__;
+const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const CORTO = ['dom','lun','mar','mié','jue','vie','sáb'];
+const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const fechaDe = (iso) => { const [a,m,d] = iso.split('-').map(Number); return new Date(Date.UTC(a,m-1,d,12)); };
+const corta = (iso) => { const f = fechaDe(iso); return `${CORTO[f.getUTCDay()]} ${f.getUTCDate()} ${MESES[f.getUTCMonth()]}`; };
+const larga = (iso) => { const f = fechaDe(iso); return `${DIAS[f.getUTCDay()]} ${f.getUTCDate()} de ${MESES[f.getUTCMonth()]}`; };
+const num = (n) => n.toLocaleString('es-CL');
+const dias = D.dias;
+const personas = dias.reduce((a,d)=>a+d.personas,0), robots = dias.reduce((a,d)=>a+d.robots,0);
+const mejor = dias.reduce((a,d)=> d.personas>a.personas?d:a, dias[0]);
+const ult = dias[dias.length-1];
+const finCorte = ult.t;
+const hora = (ms) => new Date(ms).toLocaleTimeString('es-CL',{timeZone:'America/Santiago',hour:'2-digit',minute:'2-digit'});
+const publicadasTot = D.versiones.filter(x=>x.publicada <= finCorte).length;
+
+document.getElementById('subtitulo').textContent =
+  `Desde el ${larga(dias[0].fecha)} (primer día en el directorio) hasta el ${larga(ult.fecha)}. Obsidian actualiza el conteo una vez al día, cerca de las ${hora(ult.t)} hora de Chile: cada día va de ese corte del día anterior al de ese día.`;
+
+const kpis = [
+  ['', num(D.totalOficial), 'descargas en total'],
+  ['personas', '~'+num(personas), `de personas · ${Math.round(personas/D.totalOficial*100)} %`],
+  ['', '~'+num(robots), 'de robots'],
+  ['', num(mejor.personas), `mejor día: ${larga(mejor.fecha)}`],
+  ['', (personas/dias.length).toFixed(0), 'personas por día, en promedio'],
+  ['', num(publicadasTot), `versiones publicadas en ${dias.length} días`],
+];
+document.getElementById('kpis').innerHTML = kpis.map(([c,v,t])=>`<div class="kpi ${c}"><b>${v}</b><span>${t}</span></div>`).join('');
+document.getElementById('txtQuien').textContent = `De ${num(D.totalOficial)} descargas, unas ${num(personas)} son de personas y ${num(robots)} de robots. Es una estimación: el archivo de Obsidian no dice quién descarga.`;
+
+// tabla
+const tb = document.querySelector('#tabla tbody');
+tb.innerHTML = dias.map(d => {
+  const top = Object.entries(d.porVersion).sort((a,b)=>b[1].total-a[1].total)[0];
+  return `<tr class="${d===mejor?'mejor':''}"><td class="fecha">${larga(d.fecha)}${d===mejor?' <span class="pill">mejor día</span>':''}</td><td>${num(d.total)}</td><td>+${d.dia}</td><td>${d.personas}</td><td>${d.robots}</td><td>${d.publicadas.length||'—'}</td><td>${top?`${top[0]} (+${top[1].total})`:'—'}</td></tr>`;
+}).join('');
+
+// notas
+const vidaLarga = D.versiones.filter(x=>x.oficial>0).sort((a,b)=>b.oficial-a.oficial).slice(0,2);
+const despues = D.versiones.filter(x=>x.publicada > finCorte).map(x=>x.v);
+const notas = [
+  `<b>Fuente.</b> El archivo <code>community-plugin-stats.json</code> que Obsidian publica en GitHub (obsidianmd/obsidian-releases). Su historial guarda una versión por día: de ahí sale cada fila.`,
+  `<b>Personas.</b> Se cuentan las descargas de la versión vigente ese día (la última publicada al empezar el día, más las que se publicaron durante el día), menos lo que ese mismo día bajaron los robots de cada versión.`,
+  `<b>Robots.</b> Casi todos los días cada versión antigua sube exactamente lo mismo. Ninguna persona baja muchas versiones viejas a la vez: son espejos, escáneres de seguridad y sitios de estadísticas.`,
+  `<b>Descargas no son personas distintas.</b> Cada actualización cuenta. Las versiones más descargadas (${vidaLarga.map(x=>`${x.v}: ${x.oficial}`).join(', ')}) dan una idea de cuántas personas lo usan y se actualizan.`,
+  `<b>Día uno.</b> El ${larga(dias[0].fecha)} se publicaron ${dias[0].publicadas.length} versiones, así que casi todas cuentan como vigentes ese día: es el día menos confiable.`,
+  `<b>Descargas propias.</b> Bajar un archivo de una release en GitHub (por ejemplo, para pruebas) también cuenta. Con pocas descargas, una versión recién publicada puede mostrar las tuyas.`,
+  despues.length ? `<b>Lo que falta.</b> ${despues.join(', ')} salieron después del último corte; aparecen en el próximo.` : '',
+].filter(Boolean);
+document.getElementById('notas').innerHTML = notas.map(n=>`<li>${n}</li>`).join('');
+document.getElementById('pie').textContent = `Datos al corte del ${larga(ult.fecha)}, ${hora(ult.t)} hora de Chile. Página generada el ${new Date(D.generado).toLocaleString('es-CL',{timeZone:'America/Santiago'})}. Se actualiza sola cada día.`;
+
+// ── gráficos ──
+const graficos = [];
+function pintar(){
+  graficos.forEach(g=>g.destroy()); graficos.length = 0;
+  const css = getComputedStyle(document.documentElement), v = (n)=>css.getPropertyValue(n).trim();
+  const C = { ink:v('--ink'), muted:v('--muted'), line:v('--line'), personas:v('--personas'), robots:v('--robots'), publica:v('--publica'), surface:v('--surface') };
+  Chart.defaults.color = C.muted; Chart.defaults.borderColor = C.line;
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily; Chart.defaults.font.size = 12;
+  Chart.defaults.plugins.legend.display = false; Chart.defaults.maintainAspectRatio = false;
+  Chart.defaults.animation = matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 500 };
+  const etiquetas = dias.map(d=>corta(d.fecha));
+  const tip = { callbacks: { title: (it)=> larga(dias[it[0].dataIndex].fecha) } };
+
+  graficos.push(new Chart(gDiario, { data: { labels: etiquetas, datasets: [
+    { type:'bar', label:'Personas', data:dias.map(d=>d.personas), backgroundColor:C.personas, stack:'s', borderRadius:3, order:2 },
+    { type:'bar', label:'Robots', data:dias.map(d=>d.robots), backgroundColor:C.robots, stack:'s', borderRadius:3, order:2 },
+    { type:'line', label:'Versiones publicadas', data:dias.map(d=>d.publicadas.length||null), yAxisID:'y2', showLine:false, pointStyle:'rectRot', pointRadius:7, pointBackgroundColor:C.publica, pointBorderColor:C.surface, order:1 },
+  ]}, options: { interaction:{mode:'index',intersect:false}, plugins:{tooltip:tip},
+    scales:{ x:{stacked:true,grid:{display:false}}, y:{stacked:true,beginAtZero:true,title:{display:true,text:'descargas'}}, y2:{position:'right',beginAtZero:true,grid:{display:false},title:{display:true,text:'versiones'}} } } }));
+
+  let acc=0; const accP = dias.map(d=>acc+=d.personas);
+  graficos.push(new Chart(gAcumulado, { type:'line', data:{ labels:etiquetas, datasets:[
+    { label:'Total', data:dias.map(d=>d.total), borderColor:C.ink, backgroundColor:C.ink, tension:.25, pointRadius:3 },
+    { label:'Personas', data:accP, borderColor:C.personas, backgroundColor:C.personas+'33', fill:true, tension:.25, pointRadius:3 },
+  ]}, options:{ interaction:{mode:'index',intersect:false}, plugins:{legend:{display:true,position:'bottom'},tooltip:tip}, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true} } } }));
+
+  graficos.push(new Chart(gQuien, { type:'pie', data:{ labels:['Personas','Robots'], datasets:[{ data:[personas,robots], backgroundColor:[C.personas,C.robots], borderColor:C.surface, borderWidth:2 }] },
+    options:{ plugins:{ legend:{display:true,position:'bottom'}, tooltip:{callbacks:{label:(c)=>`${c.label}: ${c.raw} (${Math.round(c.raw/D.totalOficial*100)} %)`}} } } }));
+
+  const vs = D.versiones.filter(x=>x.oficial>0).sort((a,b)=>b.oficial-a.oficial);
+  const top = vs.slice(0,6), resto = vs.slice(6).reduce((a,x)=>a+x.oficial,0);
+  const paleta = [C.personas, C.publica, '#5B8DEF', '#C4577A', '#7A9E3B', '#8E6CC8', C.robots];
+  graficos.push(new Chart(gVersiones, { type:'doughnut', data:{ labels:[...top.map(x=>x.v), `otras ${vs.length-6}`], datasets:[{ data:[...top.map(x=>x.oficial), resto], backgroundColor:paleta, borderColor:C.surface, borderWidth:2 }] },
+    options:{ cutout:'55%', plugins:{ legend:{display:true,position:'bottom'}, tooltip:{callbacks:{label:(c)=>`${c.label}: ${c.raw} descargas`}} } } }));
+
+  // Las cuatro versiones más descargadas, en orden de publicación.
+  const grandes = D.versiones.filter(x=>x.oficial>0).sort((a,b)=>b.oficial-a.oficial).slice(0,4).sort((a,b)=>a.publicada-b.publicada).map(x=>x.v);
+  const colores = [C.robots, '#5B8DEF', C.personas, C.publica];
+  const maxD = 7;
+  const series = grandes.map((ver,i)=>{
+    const r = D.versiones.find(x=>x.v===ver); const pub = new Date(r.publicada - 3*3600e3).toISOString().slice(0,10);
+    let a=0; const pts=[]; const desde = dias.findIndex(d=>d.fecha>=pub);
+    for(let k=0;k<maxD;k++){ const d=dias[desde+k]; if(!d) break; a+= (d.porVersion[ver]?.total||0); pts.push(a); }
+    return { label:`${ver} (${corta(pub)})`, data:pts, borderColor:colores[i], backgroundColor:colores[i], tension:.25, pointRadius:3 };
+  });
+  graficos.push(new Chart(gAdopcion, { type:'line', data:{ labels:Array.from({length:maxD},(_,k)=>`día ${k+1}`), datasets:series },
+    options:{ plugins:{legend:{display:true,position:'bottom'}}, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true,title:{display:true,text:'descargas acumuladas'}} } } }));
+
+  const porSemana = Array(7).fill(0), cuenta = Array(7).fill(0);
+  dias.forEach(d=>{ const w=fechaDe(d.fecha).getUTCDay(); porSemana[w]+=d.personas; cuenta[w]++; });
+  const orden=[1,2,3,4,5,6,0];
+  graficos.push(new Chart(gSemana, { type:'bar', data:{ labels:orden.map(w=>DIAS[w]), datasets:[{ data:orden.map(w=>cuenta[w]?+(porSemana[w]/cuenta[w]).toFixed(1):0), backgroundColor:C.personas, borderRadius:4 }] },
+    options:{ plugins:{tooltip:{callbacks:{label:(c)=>`${c.raw} personas en promedio (${cuenta[orden[c.dataIndex]]} día/s)`}}}, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true,title:{display:true,text:'personas por día'}} } } }));
+
+  graficos.push(new Chart(gRitmo, { data:{ labels:etiquetas, datasets:[
+    { type:'bar', label:'Versiones publicadas', data:dias.map(d=>d.publicadas.length), backgroundColor:C.publica, borderRadius:3, yAxisID:'y2' },
+    { type:'line', label:'Personas', data:dias.map(d=>d.personas), borderColor:C.personas, backgroundColor:C.personas, tension:.25, pointRadius:3 },
+  ]}, options:{ interaction:{mode:'index',intersect:false}, plugins:{legend:{display:true,position:'bottom'},tooltip:tip}, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true,title:{display:true,text:'personas'}}, y2:{position:'right',beginAtZero:true,grid:{display:false},title:{display:true,text:'versiones'}} } } }));
+
+  const fv = D.versiones.filter(x=>x.oficial>=8 || x.github>=8);
+  graficos.push(new Chart(gFuentes, { type:'bar', data:{ labels:fv.map(x=>x.v), datasets:[
+    { label:'Obsidian', data:fv.map(x=>x.oficial), backgroundColor:C.personas, borderRadius:3 },
+    { label:'GitHub', data:fv.map(x=>x.github), backgroundColor:C.robots, borderRadius:3 },
+  ]}, options:{ interaction:{mode:'index',intersect:false}, plugins:{legend:{display:true,position:'bottom'}}, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true} } } }));
+
+  // crecimiento
+  const movil = dias.map((d,i)=>{ const w=dias.slice(Math.max(0,i-2),i+1); return +(w.reduce((a,x)=>a+x.personas,0)/w.length).toFixed(1); });
+  graficos.push(new Chart(gMovil, { data:{ labels:etiquetas, datasets:[
+    { type:'bar', data:dias.map(d=>d.personas), backgroundColor:C.personas+'99', borderRadius:3 },
+    { type:'line', data:movil, borderColor:C.ink, backgroundColor:C.ink, tension:.3, pointRadius:2 },
+  ]}, options:{ interaction:{mode:'index',intersect:false}, plugins:{tooltip:tip}, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true,title:{display:true,text:'personas'}} } } }));
+  const proyLab = [...etiquetas, ...PROY.fechas.map(corta)];
+  graficos.push(new Chart(gProy, { type:'line', data:{ labels:proyLab, datasets:[
+    { data:[...dias.map(d=>d.total), ...PROY.fechas.map(()=>null)], borderColor:C.ink, backgroundColor:C.ink, pointRadius:2, tension:.2 },
+    { data:[...dias.map((d,i)=>i===dias.length-1?d.total:null), ...PROY.valores], borderColor:C.publica, backgroundColor:C.publica, borderDash:[5,4], pointRadius:0, tension:0 },
+  ]}, options:{ scales:{ x:{grid:{display:false},ticks:{maxTicksLimit:9}}, y:{beginAtZero:true,title:{display:true,text:'total de descargas'}} } } }));
+
+  graficos.push(new Chart(gDuracion, { type:'scatter', data:{ datasets:[{ data:DUR.map(x=>({x:x.horas,y:x.oficial,v:x.v})), backgroundColor:DUR.map(x=>x.oficial?C.personas:C.robots), pointRadius:5 }] },
+    options:{ plugins:{tooltip:{callbacks:{label:(c)=>`${c.raw.v}: ${c.raw.x < 1 ? Math.round(c.raw.x*60)+' min' : c.raw.x.toFixed(1)+' h'} vigente · ${c.raw.y} descargas`}}},
+      scales:{ x:{type:'logarithmic',title:{display:true,text:'horas como versión vigente (escala logarítmica)'},ticks:{autoSkip:false,maxRotation:0,callback:(v)=>({0.1:'6 min',1:'1 h',10:'10 h',100:'100 h'})[v] ?? ''}}, y:{beginAtZero:true,title:{display:true,text:'descargas'}} } } }));
+
+  graficos.push(new Chart(gRobots, { data:{ labels:etiquetas, datasets:[
+    { type:'bar', data:dias.map(d=>d.robots), backgroundColor:C.robots, borderRadius:3, yAxisID:'y' },
+    { type:'line', data:dias.map(d=>d.base), borderColor:C.ink, backgroundColor:C.ink, pointRadius:3, yAxisID:'y2', stepped:'middle' },
+  ]}, options:{ interaction:{mode:'index',intersect:false}, plugins:{tooltip:tip}, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true,title:{display:true,text:'descargas de robots'}}, y2:{position:'right',beginAtZero:true,max:6,grid:{display:false},title:{display:true,text:'pasadas por versión'}} } } }));
+}
+// Proyección: recta por mínimos cuadrados sobre los últimos 7 días del total.
+const PROY = (() => {
+  const u = dias.slice(-7), n = u.length, xs = u.map((_,i)=>i), ys = u.map(d=>d.total);
+  const mx = xs.reduce((a,b)=>a+b)/n, my = ys.reduce((a,b)=>a+b)/n;
+  const m = xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0)/xs.reduce((a,x)=>a+(x-mx)**2,0);
+  const base = fechaDe(ult.fecha); const fechas=[], valores=[];
+  for (let k=1;k<=14;k++){ fechas.push(new Date(base.getTime()+k*864e5).toISOString().slice(0,10)); valores.push(Math.round(ult.total+m*k)); }
+  const llega = (meta) => new Date(base.getTime()+Math.ceil((meta-ult.total)/m)*864e5).toISOString().slice(0,10);
+  return { m, fechas, valores, a500: llega(500), a1000: llega(1000) };
+})();
+document.getElementById('txtSemana').textContent = dias.length < 28
+  ? `Con ${dias.length} días de historia, cada día de la semana tiene pocas muestras: sirve como pista, no como tendencia.`
+  : `Promedio de personas según el día de la semana, sobre ${dias.length} días.`;
+const p7 = dias.slice(-7).reduce((a,d)=>a+d.personas,0)/7;
+(() => { const bs = dias.slice(1).map(d=>d.base), sin = dias.slice(1).filter(d=>!d.base);
+  document.getElementById('txtRobots').textContent = `Barras: descargas de robots cada día. Línea: cuántas veces bajaron cada versión vieja ese día, entre ${Math.min(...bs)} y ${Math.max(...bs)} pasadas.` + (sin.length ? ` Días sin robots: ${sin.map(d=>larga(d.fecha)).join(', ')}.` : ''); })();
+document.getElementById('txtProy').textContent = `En los últimos 7 días el total sube unas ${PROY.m.toFixed(0)} descargas por día (de personas, ${p7.toFixed(0)} por día). A ese ritmo llegarías a 500 descargas el ${larga(PROY.a500)} y a 1.000 el ${larga(PROY.a1000)}. Es una recta: no sabe de versiones nuevas ni de menciones que traigan gente.`;
+
+const ordenadas = [...D.versiones].sort((a,b)=>a.publicada-b.publicada);
+const DUR = ordenadas.filter(x=>x.publicada<finCorte).map((x,i,arr)=>({ v:x.v, oficial:x.oficial, horas: Math.max(((arr[i+1]?.publicada ?? finCorte) - x.publicada)/36e5, 1/60) }));
+const nadie = DUR.filter(x=>!x.oficial);
+const cortas = DUR.filter(x=>x.horas<1);
+document.getElementById('txtDuracion').textContent = `${cortas.length} de ${DUR.length} versiones estuvieron vigentes menos de una hora, y ${nadie.length} nadie las alcanzó a bajar (${nadie.map(x=>x.v).join(', ')}). Las más descargadas son las que duraron días: la gente se actualiza cuando Obsidian se lo ofrece, no apenas publicas.`;
+
+(() => {
+  const vers = [...new Set(dias.flatMap(d=>Object.keys(d.porVersion)))].sort((a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++)if(x[i]!==y[i])return y[i]-x[i];return 0;});
+  const max = Math.max(...dias.flatMap(d=>Object.values(d.porVersion).map(x=>x.total)));
+  let h = '<thead><tr><th>versión</th>' + dias.map(d=>`<th>${corta(d.fecha)}</th>`).join('') + '</tr></thead><tbody>';
+  for (const v of vers) {
+    h += `<tr><td class="v">${v}</td>` + dias.map(d=>{ const x=d.porVersion[v]; if(!x) return '<td></td>';
+      const pct = Math.round(18 + 82*x.total/max), color = x.personas>0 ? 'var(--personas)' : 'var(--robots)';
+      return `<td style="background:color-mix(in srgb, ${color} ${pct}%, transparent);${pct>55?'color:var(--surface);font-weight:600':''}" title="${v} · ${larga(d.fecha)}: ${x.total} (${x.personas} de personas)">${x.total}</td>`; }).join('') + '</tr>';
+  }
+  document.getElementById('calor').innerHTML = h + '</tbody>';
+})();
+
+(() => {
+  const esFinde = (d)=>{const w=fechaDe(d.fecha).getUTCDay(); return w===0||w===6;};
+  const semana = dias.filter(d=>!esFinde(d)), finde = dias.filter(esFinde);
+  const prom = (xs)=> xs.length ? (xs.reduce((a,d)=>a+d.personas,0)/xs.length).toFixed(1) : '—';
+  const vs = D.versiones.filter(x=>x.oficial>0).sort((a,b)=>b.oficial-a.oficial);
+  const top3 = vs.slice(0,3).reduce((a,x)=>a+x.oficial,0);
+  const pri = dias.slice(0,5).reduce((a,d)=>a+d.personas,0), seg = dias.slice(5).reduce((a,d)=>a+d.personas,0);
+  const k2 = [
+    ['', prom(semana), `personas por día hábil (${semana.length} días)`],
+    ['', prom(finde), `personas por día de fin de semana (${finde.length} días)`],
+    ['', Math.round(top3/D.totalOficial*100)+' %', `de las descargas en 3 versiones: ${vs.slice(0,3).map(x=>x.v).join(', ')}`],
+    ['', num(nadie.length), 'versiones que nadie descargó'],
+    ['', `${pri} → ${seg}`, `personas: primeros 5 días → últimos ${dias.length-5}`],
+    ['', (robots/dias.length).toFixed(0), 'descargas de robots por día'],
+  ];
+  document.getElementById('kpis2').innerHTML = k2.map(([c,v,tx])=>`<div class="kpi ${c}"><b>${v}</b><span>${tx}</span></div>`).join('');
+})();
+pintar();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', pintar);
+new MutationObserver(pintar).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+</script>

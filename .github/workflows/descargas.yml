@@ -1,0 +1,61 @@
+# Cada noche anota las descargas del día en el directorio de Obsidian y vuelve a armar el panel.
+# Obsidian actualiza su conteo cerca de las 00:25 UTC (21:25 en Chile); esto corre una hora después.
+# Los datos viven en la rama «estadisticas»; el panel se publica en GitHub Pages.
+name: Descargas diarias
+
+on:
+  schedule:
+    - cron: '40 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # guardar los datos en la rama estadisticas
+  pages: write      # publicar el panel
+  id-token: write
+
+concurrency:
+  group: descargas
+  cancel-in-progress: false
+
+jobs:
+  panel:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Traer los datos guardados (o empezar la rama)
+        run: |
+          if git ls-remote --exit-code --heads origin estadisticas >/dev/null; then
+            git fetch origin estadisticas
+            git worktree add datos origin/estadisticas
+          else
+            git worktree add --detach datos
+            git -C datos checkout --orphan estadisticas-nueva
+            git -C datos rm -rfq .
+          fi
+
+      - name: Leer los cortes nuevos y armar el panel
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node estadisticas/actualizar.mjs datos sitio
+
+      - name: Guardar los datos
+        run: |
+          cd datos
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cortes.json descargas.json
+          git diff --cached --quiet || git commit -qm "Descargas al $(date -u +%F)"
+          git push origin HEAD:refs/heads/estadisticas
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sitio
+      - id: publicar
+        uses: actions/deploy-pages@v4
