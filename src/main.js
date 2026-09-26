@@ -6,6 +6,8 @@
  * v1.34 (25.09.2026): «Modelo» se elige de una lista cargada en vivo desde el proveedor (OpenRouter
  *   con precio y solo los que respetan el esquema JSON; Gemini, OpenAI y la IA local con su llave).
  *   ★ marca lo probado con Why Graph; «Otro» deja escribir un modelo que no aparece.
+ *   1.34.1: «Proponer motivo» ya no se bloquea porque la IA copia la misma cita en las dos notas:
+ *   se le dice cuál falló y dónde tiene que estar, una vez, y el aviso explica el bloqueo.
  *
  * v1.33 (25.09.2026): la auditoría forense sobre el cerebro real —
  *   · Buscador: la lista de resultados por fin se ve en Obsidian (show() deja display vacío y el
