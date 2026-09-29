@@ -466,6 +466,12 @@ class Sesion {
     dibujar(); await this.calma(); dibujar(); await this.calma(); return this.mundo.ajustesUI;
   }
   fila(nombre) { return (this.mundo.ajustesUI || []).find((x) => x.nombre && (typeof nombre === 'string' ? x.nombre.includes(nombre) : nombre.test(x.nombre))); }
+  // Un botón hecho con Setting (ajustes, asistente), por su texto, esté en la fila que esté.
+  async pulsaBoton(texto) {
+    const b = (this.mundo.ajustesUI || []).flatMap((x) => x.campos).find((c) => c.tipo === 'boton' && c.alClic && c.texto === texto);
+    if (!b) { this.mundo.hallazgo('botón que no está', texto); return false; }
+    await b.alClic(); await this.calma(); return true;
+  }
   // Pulsar un botón de una fila de ajustes, por su texto.
   async botonAjuste(nombre, texto) {
     const b = this.fila(nombre)?.campos.find((x) => x.tipo === 'boton' && x.alClic && (!texto || x.texto === texto));

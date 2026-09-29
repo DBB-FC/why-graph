@@ -1,6 +1,6 @@
 # Plan · Temas reales en la columna L3
 
-**Fecha:** 28.09.2026 · **Origen:** sesión Cerebro 99405677 · **Estado:** plan (falta crisol y build)
+**Fecha:** 28.09.2026 · **Origen:** sesión Cerebro 99405677 · **Estado:** crisol cerrado y build hecho el 28.09.2026 (rama `temas-de-contenido`), sin publicar
 **Tarea OEM:** «Columna Temas armada desde tags de contenido; las 6 líneas de negocio pasan a ser solo color».
 **Listo observable:** en Obsidian la columna L3 muestra temas de contenido (seguridad, agentes, licencias…)
 y `npm test` en verde.

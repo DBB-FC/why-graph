@@ -16,7 +16,7 @@ const DETALLE = args.includes('--detalle');
 // --vault <ruta>: los recorridos genéricos sobre una COPIA EN MEMORIA de un vault real (solo se lee
 // del disco; nada se escribe) con su data.json y la IA falsa. Encuentra lo que un vault de prueba no tiene.
 const VAULT = args.includes('--vault') ? args[args.indexOf('--vault') + 1] : null;
-const GENERICOS = ['novedades con cuota diaria', 'aprobar parte', 'material nuevo', 'respeta el tope', 'detener una búsqueda', 'cuota agotada', 'teléfono: tocar', 'aprobar lo mismo'];
+const GENERICOS = ['temas de contenido en un vault cualquiera', 'novedades con cuota diaria', 'aprobar parte', 'material nuevo', 'respeta el tope', 'detener una búsqueda', 'cuota agotada', 'teléfono: tocar', 'aprobar lo mismo'];
 
 // ── El vault de la persona: un LLM wiki con material crudo de varios días ──────────────────────
 const parrafos = (tema, n, extra = '') => Array.from({ length: n }, (_, k) => `${tema} ${k + 1}: se acordó con el equipo avanzar en la entrega número ${k + 1} y revisar el presupuesto el jueves ${extra}.`).join('\n\n');
@@ -374,6 +374,81 @@ const RECORRIDOS = {
     const max = Math.max(0, ...Object.values(porSesion));
     if (max > 7) M.hallazgo('pide la lista de modelos de más', `${max} pedidos del mismo proveedor en una sesión`);
     return `elegido: ${estrella} · opciones OpenRouter: ${etiquetas.length} · pedidos de lista: ${M.ia.listas.length} · más barato ofrecido: US$${Math.min(...precios)}`;
+  },
+  async 'temas de contenido: la persona elige sus tags y la última capa pasa a ser sus temas'(M) {
+    // Notas con tags: de tema (seguridad, agentes, crm), de tipo o estado (cliente, reutilizable,
+    // decision) y uno igual a una línea de negocio (clientes). Diarios con fechas fuera de orden.
+    const fm = (tema, extra) => `---\ntema: ${tema}\n${extra}\n---\n`;
+    M.agregarNotas({
+      'wiki/clientes/andes.md': fm('clientes', 'tags:\n  - seguridad\n  - agentes\n  - crm\n  - cliente') + '# Ferretería Andes\n\nCliente de herramientas en Santiago. Trabaja con [[tostadora]].\n',
+      'wiki/proyectos/crm.md': fm('proyectos', 'tags:\n  - crm\n  - reutilizable\n  - clientes') + '# CRM\n\nEl sistema donde se siguen las ventas. Lo usa [[andes]] y también [[tostadora]].\n',
+      'wiki/proyectos/erp.md': fm('proyectos', 'tipo: decision\ntags:\n  - agentes\n  - decision') + '# ERP\n\nSe integra con [[crm]], [[web]] y [[bodega]].\n',
+      'wiki/diario/2026-09-10.md': '---\nupdated: 2026-09-10\ntema: proyectos\n---\n# 10.09\n\nArranque del [[erp]].\n',
+      'wiki/diario/2026-09-25.md': '---\nupdated: 2026-09-25\ntema: clientes\n---\n# 25.09\n\nVisita a [[andes]].\n',
+      'wiki/diario/2026-09-22.md': '---\nupdated: 2026-09-22\ntema: proyectos\ntags:\n  - agentes\n---\n# 22.09\n\nPrueba de agentes en el [[crm]].\n',
+    });
+    const capas = (s) => { const u = s.vista.D.capas.length - 1; return { u, ultima: s.vista.N.filter((n) => n.capa === u), contenido: s.vista.N.filter((n) => n.contenido) }; };
+    // 1. Sin la lista: igual que siempre (las síntesis en la última capa, ningún tema de contenido).
+    let s = await M.abrir('mac'); await s.abrirMapa();
+    let c = capas(s);
+    if (c.contenido.length) M.hallazgo('sin la lista ya aparecen temas de contenido', c.contenido.map((n) => n.id).join(', '));
+    if (!c.ultima.some((n) => /tema-clientes/.test(n.id))) M.hallazgo('sin la lista cambió la última capa', c.ultima.map((n) => n.id).join(', '));
+    const sinMotivoAntes = s.vista.porId['wiki/clientes/andes.md']?.sinMotivo;
+    // 2. Pide sugerencias: salen sus tags por frecuencia, sin la línea de negocio ni el tipo de página.
+    M.ajustesUI = []; await s.verAjustes(); await s.botonAjuste('Sugerir temas de contenido', 'Sugerir desde el vault');
+    if (!M.modal) { M.hallazgo('«Sugerir desde el vault» no abre nada', ''); await M.cerrar(); return; }
+    const filas = M.ajustesUI.filter((x) => x.nombre?.startsWith('#'));
+    const sugeridos = filas.map((x) => x.nombre.slice(1));
+    for (const malo of ['clientes', 'decision']) if (sugeridos.includes(malo)) M.hallazgo('sugiere un tag que no es tema', `#${malo} (línea de negocio o tipo de página)`);
+    if (sugeridos[0] !== 'agentes') M.hallazgo('las sugerencias no van por frecuencia', sugeridos.join(', '));
+    for (const t of ['seguridad', 'agentes', 'crm']) { const f = filas.find((x) => x.nombre === '#' + t); if (!f) M.hallazgo('no sugiere un tag del vault', t); else await f.campos[0].alCambiar(true); }
+    await s.pulsaBoton('Guardar temas');
+    const lista = String(M.datos.temasDeContenido || '');
+    if (!/^agentes = /m.test(lista) || !/^seguridad = /m.test(lista) || /reutilizable|cliente\b/.test(lista)) M.hallazgo('la lista guardada no es la elegida', JSON.stringify(lista));
+    await M.cerrar();
+    // 3. Tras reiniciar: la última capa son sus temas; las síntesis bajan; la entrada va por fecha.
+    s = await M.abrir('mac'); await s.abrirMapa(); c = capas(s);
+    const ids = c.ultima.map((n) => n.id).sort();
+    if (ids.join() !== 'contenido:agentes,contenido:crm,contenido:seguridad') M.hallazgo('la última capa no son los temas elegidos', ids.join(', '));
+    const sintesis = s.vista.porId['wiki/temas/tema-clientes.md'];
+    if (!sintesis || sintesis.capa !== c.u - 1) M.hallazgo('las síntesis no bajaron una capa', `capa ${sintesis?.capa}`);
+    const andes = s.vista.ady['wiki/clientes/andes.md'] || [];
+    const suyos = andes.filter((v) => v.startsWith('contenido:')).sort();
+    if (suyos.join() !== 'contenido:agentes,contenido:crm,contenido:seguridad') M.hallazgo('una nota con 3 tags no cuelga de sus 3 temas', suyos.join(', '));
+    if (s.vista.porId['wiki/clientes/andes.md']?.sinMotivo !== sinMotivoAntes) M.hallazgo('los enlaces a temas cuentan como «sin motivo»', `${sinMotivoAntes} → ${s.vista.porId['wiki/clientes/andes.md']?.sinMotivo}`);
+    const entrada = s.vista.N.filter((n) => n.capa === 0 && !n.oculto && !n.fuente).sort((a, b) => a.y - b.y).map((n) => n.id.split('/').pop());
+    const porFecha = [...entrada].sort().reverse();
+    if (entrada.join() !== porFecha.join()) M.hallazgo('la entrada no está en orden de fecha', entrada.join(' · '));
+    // 4. Toca un tema: dice qué es y lista sus notas.
+    await s.toca('Seguridad');
+    if (!s.ve('Tema de contenido')) M.hallazgo('el tema de contenido no se explica al tocarlo', s.textoVisible().slice(0, 200));
+    await M.cerrar();
+    // 5. Vacía la lista: vuelve a ser como antes.
+    s = await M.abrir('mac'); await s.ajuste('Temas de contenido', ''); await M.cerrar();
+    s = await M.abrir('mac'); await s.abrirMapa(); c = capas(s);
+    if (c.contenido.length || !c.ultima.some((n) => /tema-clientes/.test(n.id))) M.hallazgo('al vaciar la lista no vuelve a como era', c.ultima.map((n) => n.id).join(', '));
+    await M.cerrar();
+    return `última capa: ${ids.map((x) => x.slice(10)).join(', ')} · entrada: ${entrada.join(' · ')}`;
+  },
+  async 'temas de contenido en un vault cualquiera: sugerir, elegir y ver la última capa'(M) {
+    let s = await M.abrir('mac'); await s.abrirMapa();
+    M.ajustesUI = []; await s.verAjustes(); await s.botonAjuste('Sugerir temas de contenido', 'Sugerir desde el vault');
+    const filas = M.ajustesUI.filter((x) => x.nombre?.startsWith('#'));
+    if (!filas.length) { await M.cerrar(); return 'el vault no tiene tags: nada que probar'; }
+    // Los del plan si existen; si no, los cinco más frecuentes.
+    const plan = ['ia', 'agentes', 'automatizacion', 'seguridad', 'licencias', 'crm', 'memoria', 'abastos', 'facturacion', 'api-gobierno'];
+    const elegidas = filas.filter((x) => plan.includes(x.nombre.slice(1)));
+    for (const f of (elegidas.length ? elegidas : filas.slice(0, 5))) await f.campos[0].alCambiar(true);
+    await s.pulsaBoton('Guardar temas'); await M.cerrar();
+    s = await M.abrir('mac'); await s.abrirMapa();
+    const u = s.vista.D.capas.length - 1, ultima = s.vista.N.filter((n) => n.capa === u);
+    if (!ultima.length || ultima.some((n) => !n.contenido)) M.hallazgo('la última capa no son los temas elegidos', ultima.map((n) => n.id).slice(0, 8).join(', '));
+    const sueltos = ultima.filter((n) => !(s.vista.ady[n.id] || []).length);
+    if (sueltos.length) M.hallazgo('un tema sin notas', sueltos.map((n) => n.id).join(', '));
+    const e = s.vista.N.filter((n) => n.capa === 0 && !n.oculto && !n.fuente).sort((a, b) => a.y - b.y);
+    if (e.some((n, i) => i && (n.fecha || 0) > (e[i - 1].fecha || 0))) M.hallazgo('la entrada no está en orden de fecha', e.slice(0, 6).map((n) => n.titulo).join(' · '));
+    await M.cerrar();
+    return `última capa: ${ultima.sort((a, b) => (s.vista.ady[b.id]?.length || 0) - (s.vista.ady[a.id]?.length || 0)).map((n) => `${n.titulo} (${s.vista.ady[n.id]?.length || 0})`).join(', ')}`;
   },
   async 'el teléfono sin llave de IA'(M) {
     M.dispositivos.iphone = { ls: {}, telefono: true };

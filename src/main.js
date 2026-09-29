@@ -3,6 +3,12 @@
  * v1.19 (16.09.2026): el nombre visible pasa a «Why Graph». El id, los nombres de archivo y
  *   las clases CSS se quedan como están: cambiarlos costaría la ficha del directorio.
  *
+ * v1.35 (en curso): «Temas de contenido». Si la persona define la lista (tags que son temas), la última
+ *   capa muestra esos temas —un nodo por tag, unido a las notas que lo llevan, con motivo «declara el
+ *   tag»—, las síntesis bajan una capa, la entrada se ordena por fecha y las columnas del medio se
+ *   agrupan por línea de negocio con su nombre al margen. «Sugerir desde el vault» lista los tags por
+ *   frecuencia. Sin la lista, nada cambia.
+ *
  * v1.34 (25.09.2026): «Modelo» se elige de una lista cargada en vivo desde el proveedor (OpenRouter
  *   con precio y solo los que respetan el esquema JSON; Gemini, OpenAI y la IA local con su llave).
  *   ★ marca lo probado con Why Graph; «Otro» deja escribir un modelo que no aparece.
@@ -565,6 +571,26 @@ const EN = {
   'aprobado por la persona': 'approved by the person',
   'La IA copió la misma frase para las dos notas, y solo está en una. Se bloquea para no escribir algo no verificable; si se repite, prueba un modelo más capaz.':
     'The AI copied the same sentence for both notes, and it is only in one of them. It is blocked so nothing unverifiable is written; if it keeps happening, try a more capable model.',
+  // [1.35] temas de contenido
+  'declara el tag «{0}»': 'declares the tag «{0}»',
+  'Temas de contenido': 'Content topics',
+  'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.':
+    'Optional. One per line: «tag = display name». If there is any, the last layer shows these topics (one per tag, linked to the notes that carry it), whatever the folders sent there moves down one layer and the first layer is sorted by date. Empty = as always.',
+  'Ninguna nota de tu vault tiene tags en el frontmatter: no hay temas que sugerir.': 'No note in your vault has tags in its frontmatter: there are no topics to suggest.',
+  'Marca los tags que nombran un tema (seguridad, agentes…), no un tipo ni un estado de página (decisión, pendiente…). Cada uno será un nodo en la última capa, unido a las notas que lo llevan.':
+    'Mark the tags that name a topic (security, agents…), not a page type or state (decision, pending…). Each one becomes a node in the last layer, linked to the notes that carry it.',
+  '{0} nota(s)': '{0} note(s)',
+  'Cancelar': 'Cancel',
+  'Guardar temas': 'Save topics',
+  '{0} temas de contenido guardados. El mapa se recarga.': '{0} content topics saved. The map reloads.',
+  'Sin temas de contenido: la última capa vuelve a armarse con las carpetas.': 'No content topics: the last layer is built from the folders again.',
+  'Temas de contenido (opcional)': 'Content topics (optional)',
+  'Si tus notas llevan tags de tema, la última capa puede mostrar esos temas en vez de las carpetas.': 'If your notes carry topic tags, the last layer can show those topics instead of the folders.',
+  'Elegir tags…': 'Choose tags…',
+  'Tema de contenido: reúne las {0} notas que declaran el tag «{1}».': 'Content topic: gathers the {0} notes that declare the tag «{1}».',
+  'Sugerir temas de contenido': 'Suggest content topics',
+  'Lista los tags de tu vault por frecuencia para que marques cuáles son temas.': 'Lists your vault\'s tags by frequency so you can mark which ones are topics.',
+  'Sugerir desde el vault': 'Suggest from the vault',
   // [1.34] lista de modelos
   'gratis, con límite diario': 'free, with a daily limit',
   'US${0} por millón': 'US${0} per million',
@@ -646,6 +672,9 @@ const AJUSTES_BASE = {
   quedanEnRaiz: '',
   // «Conexiones que faltan»: los temas que la persona marca como importantes suben en la lista,
   // y un par descartado no vuelve a aparecer.
+  // [1.35] Temas de contenido: tags que la persona declara como temas («valor = nombre visible»).
+  // Vacío = la última capa se arma como siempre, con las carpetas.
+  temasDeContenido: '',
   temasClave: [],
   vaciosDescartados: [],
 };
@@ -789,6 +818,29 @@ function enlacesDe(fm, s) {
   return out.slice(0, 20);
 }
 
+// [1.35] Los tags del frontmatter, sin «#» y en minúsculas. Obsidian los da como lista; a mano
+// pueden venir como texto («a, b» o «[a, b]»).
+const normalizarTag = (t) => String(t || '').trim().replace(/^#/, '').toLowerCase();
+const tagsDe = (fm) => [].concat(fm.tags ?? fm.tag ?? []).flatMap((x) => String(x).replace(/^\[|\]$/g, '').split(/[,\s]+/)).map(normalizarTag).filter(Boolean);
+function temasDeContenidoDe(s) {
+  const m = new Map();
+  for (const l of String(s.temasDeContenido || '').split('\n')) {
+    const [v, nombre] = l.split('=').map((x) => x.trim()); const k = normalizarTag(v);
+    if (k && !m.has(k)) m.set(k, nombre || v);
+  }
+  return m;
+}
+// Fecha de una nota para ordenar la entrada: la propiedad de fecha, si no la fecha del nombre,
+// si no la última modificación del archivo.
+function fechaDeNota(f, fm, s) {
+  const v = s.propiedadFecha ? fm[s.propiedadFecha] : null;
+  const t = v ? Date.parse(String(v).slice(0, 10)) : NaN;
+  if (!isNaN(t)) return t;
+  const m = f.basename.match(/(\d{4}-\d{2}-\d{2})/);
+  const d = m ? Date.parse(m[1]) : NaN;
+  return isNaN(d) ? (f.stat?.mtime || 0) : d;
+}
+
 function leerAjustes(s) {
   const capas = s.capas.split('\n').map((l) => l.split('|').map((x) => x.trim())).filter((x) => x[0]).map((x, i) => [`L${i}`, x[0], x[1] || '']);
   const carpetas = s.carpetas.split('\n').map((l) => l.split('=').map((x) => x.trim())).filter((x) => x[0] && x[1] !== undefined)
@@ -820,6 +872,10 @@ function resumir(texto) {
 async function construir(app, s) {
   const cfg = leerAjustes(s);
   const nodos = {}, porRuta = {}, aristas = new Map();
+  // [1.35] Con temas de contenido, la última capa son esos temas (nodos sin archivo) y lo que las
+  // carpetas mandaban ahí (las síntesis) baja a la capa anterior. Sin la lista, nada cambia.
+  const contenido = temasDeContenidoDe(s), modoContenido = contenido.size > 0 && cfg.capas.length >= 2;
+  const capaTemas = cfg.capas.length - 1;
   const poner = (a, b, m) => { const k = a < b ? a + '|' + b : b + '|' + a; if (!aristas.has(k) || (m && !aristas.get(k))) aristas.set(k, m || ''); };
   const capaDe = (ruta) => {
     if (!cfg.carpetas.length) return /^\d{4}-\d{2}-\d{2}/.test(ruta.split('/').pop()) ? 0 : Math.min(1, cfg.capas.length - 1);
@@ -828,8 +884,9 @@ async function construir(app, s) {
   };
 
   for (const f of app.vault.getMarkdownFiles()) {
-    const capa = capaDe(f.path);
+    let capa = capaDe(f.path);
     if (capa < 0 || cfg.excluir.has(f.basename)) continue;
+    if (modoContenido && capa === capaTemas) capa--;
     const fm = app.metadataCache.getFileCache(f)?.frontmatter || {};
     let tema = fm[s.propiedadTema]; if (Array.isArray(tema)) tema = tema[0];
     tema = tema ? String(tema) : null;
@@ -837,7 +894,8 @@ async function construir(app, s) {
     nodos[f.path] = { id: f.path, capa, ruta: f.path, titulo: String(fm.title || f.basename).slice(0, 90), tema,
       propio: !!tema, updated: fm.updated ? String(fm.updated) : null, resumenAprobado: fm.resumen ? String(fm.resumen) : null,
       enlaces: enlacesDe(fm, s), hub: fm.hub === true || String(fm.hub).toLowerCase() === 'true',
-      alias: [].concat(fm.aliases || fm.alias || []).map(String).filter(Boolean).slice(0, 12) };
+      alias: [].concat(fm.aliases || fm.alias || []).map(String).filter(Boolean).slice(0, 12),
+      fecha: fechaDeNota(f, fm, s), temasContenido: modoContenido ? [...new Set(tagsDe(fm).filter((t) => contenido.has(t)))] : [] };
     porRuta[f.path] = f.path;
   }
   // Validación de la config: carpetas que no tienen ninguna nota y notas que no caen en capa alguna.
@@ -889,6 +947,17 @@ async function construir(app, s) {
       if (!citas[k]) citas[k] = { origen: id, linea: c.linea };
     }
   }
+  // [1.35] Un nodo por tema de contenido que alguna nota declara, y un enlace a cada nota que lo
+  // declara, con su motivo: el tag lo dice. Si hay una página con el nombre del tema, el nodo la abre.
+  if (modoContenido) {
+    const paginas = {};
+    for (const f of todas) { const b = f.basename.toLowerCase(); paginas[b] ??= f.path; }
+    for (const n of Object.values(nodos)) for (const t of n.temasContenido || []) {
+      const id = 'contenido:' + t;
+      nodos[id] ??= { id, capa: capaTemas, ruta: paginas['tema-' + t] || paginas[t] || '', titulo: contenido.get(t).slice(0, 90), tema: null, propio: false, virtual: true, contenido: t };
+      poner(n.id, id, T('declara el tag «{0}»', t));
+    }
+  }
   // Inventario y «sin vínculo»: qué hay en las carpetas de fuentes y qué no cita ninguna nota del
   // mapa. Las notas fuera del mapa (excluidas o en carpetas sin capa) se leen solo para poder decir
   // «citada por una nota fuera del mapa», que no es lo mismo que sin cita en todo el vault.
@@ -920,7 +989,11 @@ async function construir(app, s) {
   }
   const ordenTema = Object.fromEntries(Object.keys(cfg.temas).map((t, i) => [t, i]));
   const cols = cfg.capas.map((_, i) => Object.values(nodos).filter((n) => n.capa === i));
-  cols.forEach((c) => c.sort((p, q) => (ordenTema[p.tema] ?? 99) - (ordenTema[q.tema] ?? 99) || q.grado - p.grado));
+  // [1.35] Con temas de contenido, la entrada se lee por tiempo (lo más nuevo arriba) y los temas por
+  // cuántas notas reúnen. Esas dos columnas no se reordenan para cruzar menos curvas.
+  const fija = (capa) => modoContenido && (capa === 0 || capa === capaTemas);
+  const ordenFijo = (capa) => (capa === 0 ? (p, q) => (q.fecha || 0) - (p.fecha || 0) || p.titulo.localeCompare(q.titulo) : (p, q) => q.grado - p.grado || p.titulo.localeCompare(q.titulo));
+  cols.forEach((c, capa) => c.sort(fija(capa) ? ordenFijo(capa) : (p, q) => (ordenTema[p.tema] ?? 99) - (ordenTema[q.tema] ?? 99) || q.grado - p.grado));
   const pos = {};
   const indexar = () => cols.forEach((c) => c.forEach((n, i) => (pos[n.id] = i / Math.max(c.length - 1, 1))));
   indexar();
@@ -928,6 +1001,7 @@ async function construir(app, s) {
   // Antes solo contaban las contiguas y un enlace L0→L4 no influía en nada: en vaults densos
   // esas curvas largas cruzaban todo el mapa sin que el orden vertical las acomodara.
   for (let it = 0; it < 6; it++) cols.forEach((c, capa) => {
+    if (fija(capa)) return;
     c.forEach((n) => {
       let suma = 0, peso = 0;
       for (const v of vecinos[n.id]) { const d = Math.abs(nodos[v].capa - capa); if (!d) continue; suma += pos[v] / d; peso += 1 / d; }
@@ -938,7 +1012,7 @@ async function construir(app, s) {
   });
   return { nodos: cols.flat(), aristas: [...aristas].map(([k, m]) => [...k.split('|'), m, frases[k] || null, citas[k] || null]), capas: cfg.capas, temas: cfg.temas,
     fuentes: { carpetas: carpetasF, inventario: inventario.length, citadas, sinVinculo },
-    config: { carpetasVacias, sinCapa } };
+    config: { carpetasVacias, sinCapa }, contenido: modoContenido };
 }
 
 // Las reglas de conteo, escritas una sola vez: van en el JSON exportado y en el README. Quien
@@ -948,6 +1022,7 @@ const REGLAS = {
   enlace: 'Un par no dirigido de notas del mapa unidas por al menos un [[wikilink]] resuelto. A→B y B→A son un solo enlace. Los auto-enlaces y los enlaces a notas fuera del mapa se ignoran.',
   motivo: 'Texto de «- [[nota]] — motivo» en la sección de conexiones; si no hay, la primera línea del cuerpo donde aparece el enlace.',
   tema: 'La propiedad de tema del frontmatter; si falta, el tema más frecuente entre sus vecinos.',
+  temaDeContenido: 'Con «Temas de contenido» definido: la última capa tiene un nodo por cada tag de la lista que declara alguna nota, enlazado a cada nota que lo declara. Lo que las carpetas mandaban a esa capa baja a la anterior, y la primera capa se ordena por fecha.',
   hub: 'Por tema, la nota de la última capa con hub: true; si ninguna lo tiene, la primera de esa capa con el tema declarado.',
   grado: 'Número de vecinos distintos.',
 };
@@ -1047,6 +1122,46 @@ function plantillaActual(aj) {
   return capas.length ? ['actual', null, capas] : null;
 }
 
+// [1.35] Elegir los temas de contenido: los tags del vault por frecuencia, sin los que ya son una
+// línea de negocio («Temas») ni los que nombran el tipo de página (propiedad `tipo`). Qué tag es
+// un tema lo decide la persona: nada de clasificar con IA.
+function tagsDelVault(app, ajustes) {
+  const negocio = new Set(Object.keys(leerAjustes(ajustes).temas).map(normalizarTag)), tipos = new Set(), cuenta = {};
+  for (const f of app.vault.getMarkdownFiles()) {
+    const fm = app.metadataCache.getFileCache(f)?.frontmatter || {};
+    for (const t of [].concat(fm.tipo ?? fm.type ?? [])) tipos.add(normalizarTag(t));
+    for (const t of new Set(tagsDe(fm))) cuenta[t] = (cuenta[t] || 0) + 1;
+  }
+  return Object.entries(cuenta).filter(([t]) => !negocio.has(t) && !tipos.has(t)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+class SugerirTemas extends Modal {
+  constructor(app, plugin, alGuardar) { super(app); this.plugin = plugin; this.alGuardar = alGuardar; }
+  onOpen() {
+    const { contentEl: c } = this, p = this.plugin; c.empty(); c.addClass('mn-sugerir-temas');
+    this.setTitle(T('Temas de contenido'));
+    const lista = tagsDelVault(this.app, p.ajustes), actuales = temasDeContenidoDe(p.ajustes), elegidos = new Set(actuales.keys());
+    if (!lista.length && !actuales.size) { c.createEl('p', { text: T('Ninguna nota de tu vault tiene tags en el frontmatter: no hay temas que sugerir.') }); return; }
+    c.createEl('p', { cls: 'setting-item-description', text: T('Marca los tags que nombran un tema (seguridad, agentes…), no un tipo ni un estado de página (decisión, pendiente…). Cada uno será un nodo en la última capa, unido a las notas que lo llevan.') });
+    const caja = c.createDiv('mn-sugerir-lista');
+    for (const [t, n] of lista.slice(0, 120)) new Setting(caja).setName('#' + t).setDesc(T('{0} nota(s)', n))
+      .addToggle((x) => x.setValue(elegidos.has(t)).onChange((v) => { if (v) elegidos.add(t); else elegidos.delete(t); }));
+    new Setting(c)
+      .addButton((b) => b.setButtonText(T('Cancelar')).onClick(() => this.close()))
+      .addButton((b) => b.setButtonText(T('Guardar temas')).setCta().onClick(async () => {
+        // Los que ya estaban conservan su nombre y su lugar; los nuevos van al final, por frecuencia.
+        // Nombre inicial: «ia» → «IA», «api-gobierno» → «Api gobierno». La persona lo cambia en el ajuste.
+        const nombre = (t) => actuales.get(t) || (t.length <= 3 ? t.toUpperCase() : (t.charAt(0).toUpperCase() + t.slice(1)).replace(/[-_]+/g, ' '));
+        const orden = [...[...actuales.keys()].filter((t) => elegidos.has(t)), ...lista.map(([t]) => t).filter((t) => elegidos.has(t) && !actuales.has(t))];
+        p.ajustes.temasDeContenido = orden.map((t) => `${t} = ${nombre(t)}`).join('\n');
+        await p.guardar(); this.close();
+        new Notice(orden.length ? T('{0} temas de contenido guardados. El mapa se recarga.', orden.length) : T('Sin temas de contenido: la última capa vuelve a armarse con las carpetas.'));
+        p.app.workspace.getLeavesOfType(VISTA).forEach((h) => h.view.recargar?.());
+        this.alGuardar?.();
+      }));
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
 class AsistenteCapas extends Modal {
   constructor(app, plugin) { super(app); this.plugin = plugin; }
   onOpen() {
@@ -1124,6 +1239,9 @@ class AsistenteCapas extends Modal {
     };
     pintarFilas();
     if (esLlmWiki(this.app) && propuestas.length) c.createEl('p', { cls: 'setting-item-description', text: T('Detecté un LLM wiki (index.md y log.md con entradas fechadas): las carpetas marcadas como fuentes se mostrarán bajo demanda.') });
+    if (tagsDelVault(this.app, this.plugin.ajustes).length) new Setting(c).setName(T('Temas de contenido (opcional)'))
+      .setDesc(T('Si tus notas llevan tags de tema, la última capa puede mostrar esos temas en vez de las carpetas.'))
+      .addButton((b) => b.setButtonText(T('Elegir tags…')).onClick(() => new SugerirTemas(this.app, this.plugin).open()));
     new Setting(c)
       .addButton((b) => b.setButtonText(T('Ahora no')).onClick(async () => { this.plugin.ajustes.configurado = true; await this.plugin.guardar(); this.close(); }))
       .addButton((b) => b.setButtonText(T('Aplicar')).setCta().onClick(() => this.aplicar(filas, capasDe(), this.plantilla !== 'actual')));
@@ -1412,7 +1530,9 @@ class VistaMapa extends ItemView {
     N.forEach((n) => { if (n.agrupados || n.virtual) n.gradoEf = this.ady[n.id].length; });
     const orden = Object.fromEntries(Object.keys(this.D.temas).map((t, i) => [t, i]));
     const posBase = new Map(this.D.nodos.map((x, i) => [x, i]));
-    this.N = N.sort((p, q) => p.capa - q.capa || (orden[p.tema] ?? 99) - (orden[q.tema] ?? 99) || (posBase.get(p) ?? 0) - (posBase.get(q) ?? 0));
+    // [1.35] Con temas de contenido, la entrada (por fecha) y los temas conservan el orden del grafo.
+    const porTema = (n) => (this.D.contenido && (n.capa === 0 || n.capa === ultima) ? 0 : orden[n.tema] ?? 99);
+    this.N = N.sort((p, q) => p.capa - q.capa || porTema(p) - porTema(q) || (posBase.get(p) ?? 0) - (posBase.get(q) ?? 0));
     // Las tres notas más conectadas de cada capa (menos la última, que ya va rotulada) llevan
     // su nombre siempre: son las que orientan el mapa sin tocar nada.
     N.forEach((n) => { n.destacado = false; });
@@ -1895,6 +2015,26 @@ class VistaMapa extends ItemView {
         ctx.fillText(sub, lx, c.y0 - 8);
         // [1.29] El subtítulo también reserva su sitio: un rótulo de la capa anterior lo tapaba.
         cajas.push({ x: (i === ultima ? lx - ws : lx) - 4, y: c.y0 - 8 - 12 / sk, w: ws + 8, h: 16 / sk });
+        // [1.35] Con temas de contenido, las columnas del medio se agrupan por línea de negocio: una
+        // raya de su color y su nombre al margen, para que una columna larga no sea una pared.
+        if (this.D.contenido && i > 0 && i < ultima) {
+          const col = this.N.filter((x) => x.capa === i && !x.oculto);
+          for (let a = 0; a < col.length;) {
+            let z = a; while (z + 1 < col.length && col[z + 1].tema === col[a].tema) z++;
+            const t = col[a].tema;
+            if (t && z > a) {
+              const gx = c.x - 20;
+              ctx.strokeStyle = rgba(color(t), 0.55); ctx.lineWidth = 2 / vista.k;
+              ctx.beginPath(); ctx.moveTo(gx, col[a].y - 4); ctx.lineTo(gx, col[z].y + 4); ctx.stroke();
+              const nombre = this.D.temas[t]?.[0] || t;
+              ctx.textAlign = 'right'; ctx.fillStyle = rgba(color(t), 0.9); ctx.font = f(600, 10.5);
+              ctx.fillText(nombre, gx - 5, col[a].y + 3.5);
+              const wg = ctx.measureText(nombre).width;
+              cajas.push({ x: gx - 5 - wg - 2, y: col[a].y - 9 / sk, w: wg + 4, h: 14 / sk });
+            }
+            a = z + 1;
+          }
+        }
         ctx.textAlign = 'left';
       });
     }
@@ -2003,7 +2143,7 @@ class VistaMapa extends ItemView {
       const fijo = esFijo(n);
       // Solo la hub del tema lleva el nombre del tema; sus hermanas de la última capa conservan su
       // título. Antes todas se rotulaban igual y se veían «dos Derecho tributario».
-      const esHub = n.virtual || (n.capa === ultima && this.hubs[n.tema] === n.id);
+      const esHub = (n.virtual && !n.contenido) || (n.capa === ultima && this.hubs[n.tema] === n.id);
       let texto = (esHub || n.agrupados) && this.D.temas[n.tema] ? this.D.temas[n.tema][0] : n.titulo;
       if (n.agrupados) texto += T(' · {0} notas', n.agrupados + 1);
       const fuerte = fijo || n.capa === ultima, tam = n.capa === ultima || n.agrupados ? 13 : 11.5;
@@ -2100,6 +2240,7 @@ class VistaMapa extends ItemView {
     const grados = this.N.filter((x) => !x.fuente && x.capa !== ultima).map((x) => this.ady[x.id].length).sort((x, y) => y - x);
     const umbral = grados[Math.floor(grados.length * 0.1)] || Infinity, out = [];
     if (n.agrupados) out.push(T('Agrupa {0} notas del tema. Tócalo sostenido o usa «Expandir» para verlas por separado.', n.agrupados + 1));
+    else if (n.contenido) out.push(T('Tema de contenido: reúne las {0} notas que declaran el tag «{1}».', vec.length, n.contenido));
     else if (n.capa === ultima) { out.push(T('Página de síntesis: resume el tema y de ella cuelgan sus notas.')); if (this.esHub(n) && (this.hermanas?.[n.tema] || 0) > 1) out.push(T('hub del tema: lleva el nombre del tema en el mapa')); }
     else if (!vec.length) out.push(T('Aislada: ninguna nota la enlaza y ella no enlaza a ninguna.'));
     else {
@@ -2130,12 +2271,12 @@ class VistaMapa extends ItemView {
     ojo.createSpan({ text: n.agrupados ? `Supernodo · ${nombreTema}` : `${nombreTema} · ${capa[1]}` });
     cab.createEl('h3', { text: n.agrupados ? T('{0} · {1} notas', nombreTema, n.agrupados + 1) : n.titulo });
     const meta = [];
-    if (!n.virtual) meta.push(n.fuente ? n.ruta : n.ruta.split('/').slice(-2).join('/'));
+    if (!n.virtual || n.ruta) meta.push(n.fuente ? n.ruta : n.ruta.split('/').slice(-2).join('/'));
     meta.push(`${vec.length} conexiones`);
     if (n.updated) meta.push(`actualizada ${n.updated.slice(0, 10)}`);
     cab.createDiv({ cls: 'mn-meta', text: meta.join(' · ') });
     const acciones = cab.createDiv('mn-acciones');
-    if (!n.virtual && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta), true);
+    if ((!n.virtual || n.ruta) && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta), true);
     if (!this.radial) this.boton(acciones, 'orbit', T('Radial'), () => { this.radial = true; this.foco = n.id; this.medir(); this.encuadrar(); this.pintarEstado(); });
     this.boton(acciones, 'route', T('Camino'), () => { this.eligiendo = { desde: n.id }; this.abrirPanel(null); new Notice(T('Toca la nota de destino')); this.pintarEstado(); this.pedir(); });
     if (n.tema && (n.agrupados || n.capa === ultima)) this.boton(acciones, this.colapsados.has(n.tema) ? 'maximize-2' : 'minimize-2', this.colapsados.has(n.tema) ? 'Expandir' : 'Colapsar', () => this.alternarColapso(n.tema));
@@ -2681,6 +2822,9 @@ class AjustesMapa extends PluginSettingTab {
     new Setting(c).setName(T('Propiedad de tema')).setDesc(T('Propiedad del frontmatter que agrupa y colorea las notas. Vacío = sin temas.'))
       .addText((t) => t.setValue(p.ajustes.propiedadTema).onChange(async (v) => { p.ajustes.propiedadTema = v.trim(); await p.guardar(); }));
     area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7);
+    area('Temas de contenido', 'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.', 'temasDeContenido', 6);
+    new Setting(c).setName(T('Sugerir temas de contenido')).setDesc(T('Lista los tags de tu vault por frecuencia para que marques cuáles son temas.'))
+      .addButton((b) => b.setButtonText(T('Sugerir desde el vault')).onClick(() => new SugerirTemas(this.app, p, () => this.refrescar()).open()));
     new Setting(c).setName(T('Notas visibles por capa')).setDesc(T('En vaults grandes, cada capa muestra sus notas más conectadas; las demás aparecen al buscarlas.'))
       .addSlider((sl) => sl.setLimits(30, 600, 10).setValue(Number(p.ajustes.maxPorCapa) || 150).setDynamicTooltip().onChange(async (v) => { p.ajustes.maxPorCapa = v; await p.guardar(); }));
     new Setting(c).setName(T('Seguir la nota activa')).setDesc(T('Al abrir una nota, el mapa la enfoca.'))
@@ -2830,7 +2974,7 @@ class AjustesMapa extends PluginSettingTab {
   getControlValue(clave) { return this.plugin.ajustes[clave]; }
   async setControlValue(clave, valor) {
     const p = this.plugin;
-    if (typeof valor === 'string' && clave !== 'capas' && clave !== 'carpetas' && clave !== 'temas' && clave !== 'excluir' && clave !== 'carpetasFuentes') valor = valor.trim();
+    if (typeof valor === 'string' && clave !== 'capas' && clave !== 'carpetas' && clave !== 'temas' && clave !== 'temasDeContenido' && clave !== 'excluir' && clave !== 'carpetasFuentes') valor = valor.trim();
     if (clave === 'seccionMotivos' && !valor) valor = 'Conexiones';
     if (clave === 'maxPorCapa') valor = Number(valor) || 150;
     if (clave === 'topeDiario') valor = Number(valor) || 30;
@@ -2847,6 +2991,11 @@ class AjustesMapa extends PluginSettingTab {
         area('Carpetas → capa', 'Una por línea: «carpeta = número de capa» (0 es la primera). Gana la carpeta más específica. Lo que no esté aquí no aparece.', 'carpetas', 8),
         texto('Propiedad de tema', 'Propiedad del frontmatter que agrupa y colorea las notas. Vacío = sin temas.', 'propiedadTema'),
         area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7),
+        area('Temas de contenido', 'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.', 'temasDeContenido', 6),
+        { name: T('Sugerir temas de contenido'), aliases: ['tags', 'etiquetas'],
+          render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty();
+            new Setting(el).setName(T('Sugerir temas de contenido')).setDesc(T('Lista los tags de tu vault por frecuencia para que marques cuáles son temas.'))
+              .addButton((b) => b.setButtonText(T('Sugerir desde el vault')).onClick(() => new SugerirTemas(this.app, this.plugin, () => this.refrescar()).open())); } },
         { name: T('Notas visibles por capa'), desc: T('En vaults grandes, cada capa muestra sus notas más conectadas; las demás aparecen al buscarlas.'),
           control: { type: 'slider', key: 'maxPorCapa', min: 30, max: 600, step: 10, defaultValue: 150 } },
         interruptor('Seguir la nota activa', 'Al abrir una nota, el mapa la enfoca.', 'seguirActiva'),
