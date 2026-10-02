@@ -27,6 +27,7 @@ Deja los `.webp` en `docs/imagenes/`. Necesita Google Chrome instalado.
 | `?vista=camino&de=Hotel&a=Mapa` | el camino más corto entre dos notas |
 | `?vista=vacios` | el panel de vacíos entre temas |
 | `?vista=radial&foco=Camila` | la vista radial centrada en una nota |
+| `?contenido=1` | la última capa con temas de contenido (tags de ejemplo) |
 | `?idioma=en` | la interfaz en inglés |
 
 Los nombres son búsquedas parciales en el título, sin distinguir mayúsculas.
