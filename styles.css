@@ -227,3 +227,7 @@
 
 .mn-ia-porque { margin: 6px 0; font-size: 0.95em; line-height: 1.4; color: var(--text-muted); }
 .mn-ia-manual { width: 100%; margin: 6px 0; }
+
+.mn-parecido { width: 100%; max-width: 100%; aspect-ratio: 1; background: var(--background-secondary); border-radius: 6px; }
+.mn-parecido circle { cursor: pointer; opacity: 0.85; }
+.mn-parecido circle:hover { opacity: 1; stroke: var(--text-normal); stroke-width: 0.4; }
