@@ -104,9 +104,9 @@ function revisarEscrituras(M, inicial) {
 }
 // Abre el panel desde el chip y lee la lista «Ver archivos» (lo que la persona ve como pendiente).
 async function archivosPorLeer(s) {
-  const chip = s.chip(); const n = +(chip.match(/(\d+) por leer/)?.[1] || 0);
+  const chip = s.chip(); const n = +(chip.match(/Por ingerir · (\d+)/)?.[1] || 0);
   if (!n) return { n: 0, lista: [], chip };
-  await s.pulsa(/por leer/);
+  await s.pulsa(/Por ingerir/);
   await s.pulsa(/Ver archivos/, { opcional: true });
   const lista = [...s.vista.panel.recorrer()].filter((x) => s.mundo.visible(x) && x.clases.has('mn-tenue') && /^raw\//.test(x.texto)).map((x) => x.texto);
   await s.pulsa('Cerrar', { opcional: true });
@@ -127,7 +127,7 @@ const RECORRIDOS = {
       const s = await M.abrir('mac'); await s.abrirMapa();
       const antes = await archivosPorLeer(s); revisarPorLeer(M, antes, `día ${dia} al abrir`); cuentas.push(antes.n);
       if (!antes.n) { await M.cerrar(); break; }
-      await s.pulsa(/por leer|nuevas/); M.busqueda = 'b' + dia;
+      await s.pulsa(/Por ingerir|nuevas/); M.busqueda = 'b' + dia;
       if (!(await s.pulsa('Buscar novedades', { opcional: true }))) { await s.pulsa('Terminar', { opcional: true }); }
       await s.pulsa('Cerrar', { opcional: true });           // cierra con ✕, sin revisar ni Terminar
       await M.cerrar(); M.pasarDias(1);
@@ -138,7 +138,7 @@ const RECORRIDOS = {
   },
   async 'aprobar parte, reiniciar sin terminar y retomar'(M) {
     let s = await M.abrir('mac'); await s.abrirMapa();
-    await s.pulsa(/por leer/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
+    await s.pulsa(/Por ingerir/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
     const aprobables = s.pulsables().filter((n) => n.attrs['aria-label'] === 'Aprobar');
     if (!aprobables.length) { M.hallazgo('no hay nada que aprobar', s.textoVisible().slice(0, 200)); await M.cerrar(); return; }
     M.clicar(aprobables[0]); await s.calma();
@@ -147,7 +147,7 @@ const RECORRIDOS = {
     s = await M.abrir('mac'); await s.abrirMapa();
     const chip = s.chip();
     if (!/nuevas|revisar/.test(chip)) M.hallazgo('la revisión se perdió al reiniciar', `el chip dice «${chip}»; lo pagado ayer ya no se puede revisar`);
-    await s.pulsa(/nuevas|por leer/);
+    await s.pulsa(/nuevas|Por ingerir/);
     if (s.ve('Buscar novedades') && !s.ve('Terminar')) M.hallazgo('la revisión se perdió al reiniciar', 'el panel ofrece buscar (y pagar) otra vez en vez de retomar');
     await s.pulsa(/Aprobar las \d+ seguras/, { opcional: true }); await s.pulsa('Terminar', { opcional: true });
     await M.cerrar();
@@ -155,7 +155,7 @@ const RECORRIDOS = {
     return `wiki cambió tras el primer aprobar: ${wikiTras1.length > 0}`;
   },
   async 'material nuevo que llega mientras se revisa'(M) {
-    let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/por leer/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/Por ingerir/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
     M.pasarMinutos(30); M.escribir('raw/daily/2026-09-20/llego-despues.md', '# Llegó después\n\n' + parrafos('Nota urgente de andes', 3));
     await s.pulsa('Terminar'); await M.cerrar(); M.pasarDias(1);
     s = await M.abrir('mac'); await s.abrirMapa(); const p = await archivosPorLeer(s); await M.cerrar();
@@ -193,10 +193,10 @@ const RECORRIDOS = {
   },
   async 'un registro del día que crece: solo se envía lo agregado'(M) {
     M.ia.cuotaDiaria = Infinity;
-    let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/por leer/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades'); await s.pulsa('Terminar'); await M.cerrar();
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/Por ingerir/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades'); await s.pulsa('Terminar'); await M.cerrar();
     const r = 'raw/daily/2026-09-18/sesion-0.md'; M.pasarMinutos(60); M.escribir(r, M.notas[r] + '\n\n' + parrafos('Agregado de la tarde para andes', 2));
     const antes = M.ia.llamadas.length;
-    s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/por leer/); M.busqueda = 'b2'; await s.pulsa('Buscar novedades'); await s.pulsa('Terminar'); await M.cerrar();
+    s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/Por ingerir/); M.busqueda = 'b2'; await s.pulsa('Buscar novedades'); await s.pulsa('Terminar'); await M.cerrar();
     const nuevas = M.ia.llamadas.slice(antes).filter((x) => x.tipo === 'material');
     return `segunda búsqueda: ${nuevas.length} llamada(s), ${nuevas.reduce((a, x) => a + x.bytes, 0)} bytes`;
   },
@@ -235,6 +235,27 @@ const RECORRIDOS = {
     await M.cerrar(); M.ia.citaRepetida = 0;
     return `llamadas: ${llamadas1} con reintento que sirve, ${llamadas2} cuando no sirve`;
   },
+  async 'motivo rechazado por la segunda revisión: se explica y la persona puede escribirlo ella'(M) {
+    M.ia.revisorRechaza = true;
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('crm');
+    await s.pulsa('Sugerir motivo ✦');
+    if (s.ve('Aprobar y escribir en la nota')) M.hallazgo('aprobó un motivo que la revisión rechazó', s.textoVisible().slice(0, 240));
+    if (!s.ve('Qué pasó')) M.hallazgo('el rechazo no dice qué pasó ni qué hacer', s.textoVisible().slice(0, 240));
+    if (!s.ve('Escribir yo el motivo')) M.hallazgo('el rechazo no deja escribir el motivo a mano', s.textoVisible().slice(0, 240));
+    await s.pulsa('Escribir yo el motivo');
+    const ta = s.vista.contentEl.querySelector('textarea.mn-ia-manual');
+    if (!ta) M.hallazgo('no aparece dónde escribir', s.textoVisible().slice(0, 200));
+    else {
+      ta.value = 'ambas son del mismo cliente y comparten el pedido de abril';
+      await s.pulsa('Guardar en la nota');
+      const conMotivo = Object.keys(M.notas).filter((r) => r.startsWith('wiki/') && /ambas son del mismo cliente/.test(M.notas[r]));
+      if (conMotivo.length !== 1) M.hallazgo('el motivo escrito a mano no quedó en la nota', `notas con el motivo: ${conMotivo.join(', ') || 'ninguna'}`);
+      const log = Object.keys(M.notas).find((r) => /mapa-neuronal-motivos\.md$/.test(r));
+      if (!log || !/escrito por la persona/.test(M.notas[log])) M.hallazgo('lo escrito a mano no dejó registro', 'sin entrada de auditoría');
+    }
+    await M.cerrar(); M.ia.revisorRechaza = false;
+    return 'rechazo explicado · motivo manual guardado y registrado';
+  },
   async 'resumir una nota con IA y verlo después de reiniciar'(M) {
     let s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('tostadora');
     if (!(await s.pulsa('Resumir con IA', { opcional: true }))) { M.hallazgo('botón que no está', 'Resumir con IA'); await M.cerrar(); return; }
@@ -244,23 +265,52 @@ const RECORRIDOS = {
     await M.cerrar();
   },
   async 'conexiones que faltan: descartar un par y que no vuelva'(M) {
-    let s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Conexiones que faltan');
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
     const antes = s.textoVisible();
-    if (!(await s.pulsa('Descartar', { opcional: true }))) { await M.cerrar(); return 'no había pares que revisar'; }
-    await M.cerrar(); s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Conexiones que faltan');
+    if (!(await s.pulsa('No, descartar', { opcional: true }))) { await M.cerrar(); return 'no había pares que revisar'; }
+    await M.cerrar(); s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
     const despues = s.textoVisible(); await M.cerrar();
     return `pares visibles antes/después: ${(antes.match(/↔/g) || []).length} → ${(despues.match(/↔/g) || []).length}`;
   },
   async 'recortes sueltos: ordenar y dejar'(M) {
     M.escribir('otro recorte.md', '# Otro\n\nTexto recortado que también quedó en la raíz del vault.\n'); M.pasarMinutos(10);
     let s = await M.abrir('mac'); await s.abrirMapa();
-    if (!/por ordenar|por leer/.test(s.chip())) M.hallazgo('recortes sin aviso', `chip: «${s.chip()}»`);
-    await s.pulsa(/por ordenar|por leer/); await s.pulsa(/Ver notas/, { opcional: true });
+    if (!/por ordenar|Por ingerir/.test(s.chip())) M.hallazgo('recortes sin aviso', `chip: «${s.chip()}»`);
+    await s.pulsa(/por ordenar|Por ingerir/); await s.pulsa(/Ver notas/, { opcional: true });
     await s.pulsa('Dejar aquí', { opcional: true }); await s.pulsa(/Ordenar \d/, { opcional: true }); await M.cerrar();
     s = await M.abrir('mac'); await s.abrirMapa(); const chip = s.chip(); await M.cerrar();
     const enRaiz = Object.keys(M.notas).filter((r) => !r.includes('/') && !['index.md', 'log.md'].includes(r));
     if (/por ordenar/.test(chip)) M.hallazgo('recortes que vuelven', `tras ordenar y dejar, el chip sigue: «${chip}» (en la raíz: ${enRaiz.join(', ')})`);
     return `en la raíz: ${enRaiz.join(', ') || '—'}`;
+  },
+  async 'llegó de afuera: un clip del teléfono se ve con su día y se ingiere con un botón'(M) {
+    // Un clip nuevo con fecha de hoy, aunque el sello de última ingesta sea más nuevo que su fecha.
+    M.escribir('raw/articles/karpathy-tweet-llegado.md', '# Tweet de Karpathy\n\n' + parrafos('Karpathy sobre CRM', 6, '(clip nuevo)'));
+    let s = await M.abrir('mac'); await s.abrirMapa();
+    const chip = s.pulsables().map((n) => textoDe(n)).find((t) => /Por ingerir/.test(t));
+    if (!chip) { M.hallazgo('un clip nuevo no tiene aviso propio', 'no hay chip «Por ingerir»'); await M.cerrar(); return; }
+    await s.pulsa(/Por ingerir/); await s.pulsa(/De afuera/);
+    if (!s.ve('Hoy')) M.hallazgo('los clips no se agrupan por día', s.textoVisible().slice(0, 200));
+    if (!s.ve('karpathy-tweet-llegado')) M.hallazgo('el clip no aparece en su día', s.textoVisible().slice(0, 200));
+    if (!/nuevo/.test(s.textoVisible())) M.hallazgo('el clip no dice su estado', s.textoVisible().slice(0, 200));
+    M.busqueda = 'b1';
+    if (!(await s.pulsa(/Ingerir novedades/, { opcional: true }))) { M.hallazgo('no hay botón para ingerir', s.textoVisible().slice(0, 200)); await M.cerrar(); return; }
+    await s.calma();
+    await s.pulsa('Terminar', { opcional: true });
+    let despues = '';
+    if (await s.pulsa(/Por ingerir/, { opcional: true }) && await s.pulsa(/De afuera/, { opcional: true })) despues = /clip\(s\) esperando/.test(s.textoVisible()) ? s.textoVisible().slice(0, 120) : '';
+    await M.cerrar();
+    if (despues) M.hallazgo('el clip ingerido sigue contando como nuevo', despues);
+    return `aviso antes: «${chip}» · después: «${despues || 'sin clips esperando'}»`;
+  },
+  async 'línea de tiempo: tarjetas por tema con su última novedad y notas por día'(M) {
+    const s = await M.abrir('mac'); await s.abrirMapa();
+    if (!(await s.pulsa(/línea de tiempo/, { opcional: true }))) { M.hallazgo('botón que no está', 'línea de tiempo'); await M.cerrar(); return; }
+    const t = s.textoVisible();
+    if (!/última novedad/.test(t)) M.hallazgo('la línea de tiempo no muestra tarjetas por tema', t.slice(0, 200));
+    if (!/\d+ nota\(s\)/.test(t)) M.hallazgo('la línea de tiempo no cuenta notas', t.slice(0, 200));
+    await M.cerrar();
+    return `tarjetas: ${(t.match(/última novedad/g) || []).length}`;
   },
   async 'buscar: una nota nueva aparece sin reiniciar, y lo de fuera del mapa se abre'(M) {
     const s = await M.abrir('mac'); await s.abrirMapa();
@@ -291,13 +341,13 @@ const RECORRIDOS = {
   },
   async 'cuota agotada: la persona ve por qué y se entera antes del próximo intento'(M) {
     M.ia.cuotaDiaria = 0;
-    let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/por leer/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/Por ingerir/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
     if (!/cuota diaria|daily quota/i.test(s.textoVisible())) M.hallazgo('error sin explicar', `tras fallar por cuota, el panel dice: ${s.textoVisible().slice(0, 220)}`);
     const llamadas = M.ia.llamadas.length;
     // Hasta 3 tandas salen en paralelo antes de que vuelva el primer 429; más que eso es insistir.
     if (llamadas > 3) M.hallazgo('insiste con la cuota agotada', `${llamadas} llamadas con la cuota en 0`);
     await s.pulsa('Cerrar', { opcional: true }); await M.cerrar(); M.pasarMinutos(30);
-    s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/por leer|nuevas/);
+    s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/Por ingerir|nuevas/);
     if (s.ve('Buscar novedades') && !/cuota/i.test(s.textoVisible())) M.hallazgo('no avisa de la cuota antes de volver a intentar', 'el panel ofrece buscar sin decir que hoy ya se agotó la cuota');
     await M.cerrar();
     return `llamadas: ${llamadas}`;
@@ -305,7 +355,7 @@ const RECORRIDOS = {
   async 'detener una búsqueda a la mitad'(M) {
     M.ia.cuotaDiaria = Infinity;
     let s = await M.abrir('mac'); await s.abrirMapa(); const antes = await archivosPorLeer(s);
-    await s.pulsa(/por leer/); M.busqueda = 'b1';
+    await s.pulsa(/Por ingerir/); M.busqueda = 'b1';
     // Pulsa «Buscar» y, apenas aparece «Detener», lo pulsa.
     const b = s.pulsables().find((n) => textoDe(n) === 'Buscar novedades');
     if (!b) { M.hallazgo('botón que no está', 'Buscar novedades'); await M.cerrar(); return; }
@@ -318,7 +368,7 @@ const RECORRIDOS = {
   },
   async 'la IA se cae un rato y vuelve'(M) {
     M.ia.caida = 2;
-    const s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/por leer/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
+    const s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/Por ingerir/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
     if (/no se pudo leer nada/i.test(s.textoVisible())) M.hallazgo('se rinde ante una caída pasajera', '503 dos veces y ya no lee nada');
     await M.cerrar();
   },
@@ -454,7 +504,7 @@ const RECORRIDOS = {
     M.dispositivos.iphone = { ls: {}, telefono: true };
     const s = await M.abrir('iphone', { telefono: true }); await s.abrirMapa();
     const chip = s.chip();
-    if (/por leer/.test(chip)) { await s.pulsa(/por leer/); if (s.ve('Buscar novedades')) { M.busqueda = 'tel'; await s.pulsa('Buscar novedades'); } }
+    if (/Por ingerir/.test(chip)) { await s.pulsa(/Por ingerir/); if (s.ve('Buscar novedades')) { M.busqueda = 'tel'; await s.pulsa('Buscar novedades'); } }
     await M.cerrar();
     if (M.ia.llamadas.length) M.hallazgo('llamó a la IA sin llave', `${M.ia.llamadas.length} llamadas`);
     return `chip en el teléfono: «${chip || '—'}»`;
@@ -470,7 +520,7 @@ const RECORRIDOS = {
     await M.cerrar();
   },
   async 'aprobar lo mismo otra vez no duplica'(M) {
-    let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/por leer/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/Por ingerir/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');
     await s.pulsa(/Aprobar las \d+ seguras/, { opcional: true }); await s.pulsa('Terminar', { opcional: true }); await M.cerrar();
     // El mismo material vuelve a aparecer (lo copian a otro archivo): lo aprobado no se escribe dos veces.
     M.pasarDias(1);
@@ -479,7 +529,7 @@ const RECORRIDOS = {
     // Si la copia no trae nada nuevo (sus párrafos ya se leyeron), no hay nada que buscar: eso
     // también es no duplicar. El detector de líneas duplicadas del final hace el resto.
     s = await M.abrir('mac'); await s.abrirMapa();
-    if (await s.pulsa(/por leer/, { opcional: true })) { M.busqueda = 'b2'; await s.pulsa('Buscar novedades', { opcional: true }); await s.pulsa(/Aprobar las \d+ seguras/, { opcional: true }); await s.pulsa('Terminar', { opcional: true }); }
+    if (await s.pulsa(/Por ingerir/, { opcional: true })) { M.busqueda = 'b2'; await s.pulsa('Buscar novedades', { opcional: true }); await s.pulsa(/Aprobar las \d+ seguras/, { opcional: true }); await s.pulsa('Terminar', { opcional: true }); }
     await M.cerrar();
   },
   async 'la interfaz en inglés no muestra textos en español'(M) {
@@ -488,7 +538,7 @@ const RECORRIDOS = {
     M.idioma = 'en'; const e = await M.abrir('mac');
     await e.abrirMapa(); juntar(e); await e.toca('crm'); juntar(e);
     await e.pulsa(/to read|new|por leer/, { opcional: true }); juntar(e); await e.pulsa(/Find what|Buscar/, { opcional: true }); juntar(e);
-    await e.menu(/Missing connections|Conexiones/); juntar(e);
+    await e.menu(/Links to review|Vínculos/); juntar(e);
     for (const a of M.avisos) vistos.add(a.texto);
     await M.cerrar(); M.idioma = 'es';
     const espanol = /\b(por leer|nuevas|Buscar|Terminar|Aprobar|Descartar|Sugerir|motivo|novedades|salto|conexiones|notas|archivos|enlaces|Cerrar|Abrir|Camino|Resumir|Detener|herramientas|Revisar|seguras|Ver )\b/;

@@ -217,3 +217,17 @@
 /* En pantalla angosta el mapa se corre para mostrar la nota tocada y pasa por detrás de la barra:
    sin fondo, los rótulos y los chips se mezclaban. */
 .is-phone .mn-raiz .mn-barra, .mn-raiz.angosto .mn-barra { background: rgba(6,10,24,.88); border-radius: 12px; padding: 6px; margin: -6px; box-shadow: 0 8px 20px rgba(6,10,24,.85); }
+
+/* [1.35] Línea de tiempo: tarjetas por tema, con aire */
+.mn-raiz .mn-panel .mn-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding-bottom: 14px; }
+.mn-raiz .mn-panel .mn-tarjeta { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid rgba(170,185,255,.22); border-radius: 10px; background: rgba(170,185,255,.06); cursor: pointer; min-width: 0; }
+.mn-raiz .mn-panel .mn-tarjeta:hover { border-color: rgba(170,185,255,.5); }
+.mn-raiz .mn-panel .mn-tarjeta .mn-motivo { overflow-wrap: anywhere; }
+.mn-raiz .mn-panel .mn-nov-fila.mn-clic { cursor: pointer; }
+
+.mn-ia-porque { margin: 6px 0; font-size: 0.95em; line-height: 1.4; color: var(--text-muted); }
+.mn-ia-manual { width: 100%; margin: 6px 0; }
+
+.mn-parecido { width: 100%; max-width: 100%; aspect-ratio: 1; background: var(--background-secondary); border-radius: 6px; }
+.mn-parecido circle { cursor: pointer; opacity: 0.85; }
+.mn-parecido circle:hover { opacity: 1; stroke: var(--text-normal); stroke-width: 0.4; }

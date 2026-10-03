@@ -239,6 +239,11 @@ const EN = {
   'Aprobar y guardar en la nota': 'Approve and save in the note',
   'Aprobar y escribir en la nota': 'Approve and write in the note',
   'Reintentar': 'Try again',
+  'Qué pasó: la IA citó una frase que no aparece tal cual en la nota, así que no se puede confiar en el motivo. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.': 'What happened: the AI quoted a phrase that does not appear verbatim in the note, so the reason cannot be trusted. If you know why they are related, write it; if not, discard it.',
+  'Qué pasó: la IA propuso un motivo, pero al revisarlo no halló en las dos notas una frase que lo respalde. Pueden estar cerca por tema sin una relación escrita. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.': 'What happened: the AI proposed a reason, but on review found no phrase in the two notes that backs it. They may be close by topic without a written relation. If you know why they are related, write it; if not, discard it.',
+  'Escribir yo el motivo': 'Write the reason myself',
+  'Una frase: por qué estas dos notas se relacionan': 'One sentence: why these two notes are related',
+  'Guardar en la nota': 'Save to the note',
   'Descartar': 'Discard',
   'Motivo escrito en la nota y registrado.': 'Reason written in the note and logged.',
   '✓ Escrito en la nota y registrado': '✓ Written to the note and logged',
@@ -493,8 +498,36 @@ const EN = {
   'Cita': 'Quote',
   '● buscando…': '● searching…',
   '● {0} nuevas': '● {0} new',
-  '● {0} por leer': '● {0} to read',
+  '● Por ingerir · {0}': '● To ingest · {0}',
+  'De afuera': 'From outside',
+  'Tags de estado (no son temas)': 'State tags (not topics)',
+  'Reutilizable, bloqueado, pendiente… «Sugerir temas» no los ofrece. Separados por comas.': 'Reusable, blocked, pending… “Suggest topics” does not offer them. Comma-separated.',
+  '→ fue a: {0}': '→ went to: {0}',
+  'Se parece a: {0}': 'Looks like: {0}',
+  'Del día': 'From today',
   '● {0} por ordenar': '● {0} to file',
+  '⌁ vínculos por revisar · {0} de {1}': '⌁ links to review · {0} of {1}',
+  '⌁ vínculos por revisar · {0}': '⌁ links to review · {0}',
+  '◷ línea de tiempo': '◷ timeline',
+  'Línea de tiempo': 'Timeline',
+  'Qué entró y adónde fue': 'What came in and where it went',
+  'Por línea de negocio y por día, de lo más nuevo a lo más viejo': 'By business line and by day, newest first',
+  '{0} nota(s)': '{0} note(s)',
+  'última novedad · {0}': 'latest · {0}',
+  'Todavía no hay notas con fecha.': 'No dated notes yet.',
+  'Llegó de afuera': 'Arrived from outside',
+  'Clips del teléfono y del Web Clipper': 'Clips from your phone and the Web Clipper',
+  'Por día de llegada, con lo que ya se ingirió y lo que falta': 'By day of arrival, with what is ingested and what is left',
+  'Hoy': 'Today', 'Ayer': 'Yesterday',
+  'Falta la «carpeta de recortes» en los ajustes: de ahí leo lo que llega de afuera.': 'Set the “clippings folder” in settings: that is where outside arrivals are read from.',
+  '{0} clip(s) esperando ingesta.': '{0} clip(s) waiting to be ingested.',
+  'Nada esperando: todo lo reciente ya se ingirió.': 'Nothing waiting: everything recent was already ingested.',
+  'Para ingerir hace falta configurar la ingesta y una IA en los ajustes.': 'To ingest, set up ingestion and an AI in settings.',
+  'Ingerir novedades ({0})': 'Ingest what is new ({0})',
+  'Estos clips no traen nada nuevo para enviar.': 'These clips have nothing new to send.',
+  '{0} clip(s)': '{0} clip(s)',
+  'Más de 14 días ({0}): no se cuentan': 'Older than 14 days ({0}): not counted',
+  'nuevo': 'new', 'ingerido': 'ingested', 'ignorado': 'ignored',
   'Recortes sueltos': 'Loose clippings',
   'Notas en la raíz que ninguna otra enlaza. Se mueven sin tocar su contenido; si ya había una igual, la repetida va a la papelera.': 'Notes in the vault root that nothing links to. They are moved without touching their content; if an identical one already exists, the duplicate goes to the trash.',
   'Ver notas ({0})': 'Show notes ({0})',
@@ -541,16 +574,35 @@ const EN = {
   'Mapa': 'Map',
   'Avanzado': 'Advanced',
   'Fuentes, exclusiones, exportar y propiedades del frontmatter.': 'Sources, exclusions, export and frontmatter properties.',
-  'Conexiones que faltan': 'Missing connections',
-  'Ocultar conexiones que faltan': 'Hide missing connections',
+  'Vínculos por revisar': 'Links to review',
+  'Revisar con perspectiva': 'Review with hindsight',
+  'Notas con tiempo encima': 'Notes with time on them',
+  'Notas de hace meses que otras notas más nuevas enlazan o rodean. No te dice si siguen vigentes: te muestra dónde mirar. Abre la nota y, si sigue valiendo, márcala.': 'Months-old notes that newer notes link to or surround. It does not tell you whether they still hold: it shows where to look. Open the note and, if it still holds, mark it.',
+  'Nada con tiempo encima por ahora: no hay notas de más de 90 días con novedades alrededor.': 'Nothing with time on it for now: no notes older than 90 days have newer notes around them.',
+  'Hace {0} meses · {1} nota(s) más nuevas la rodean: {2}': '{0} months ago · {1} newer note(s) around it: {2}',
+  'Sigue vigente': 'Still valid',
+  'Mapa por parecido': 'Similarity map',
+  'Notas por texto parecido': 'Notes by similar text',
+  'Cada punto es una nota; las que hablan de lo mismo quedan juntas. Solo importa quién está cerca de quién, no las distancias entre grupos. Toca un punto para abrir la nota.': 'Each dot is a note; those about the same thing end up together. Only who is near whom matters, not the distances between groups. Tap a dot to open the note.',
+  'Calculando…': 'Calculating…',
+  'Hacen falta al menos 5 notas con texto para dibujar el mapa.': 'At least 5 notes with text are needed to draw the map.',
+  '{0} notas, las más conectadas. Color = tema.': '{0} notes, the most connected. Colour = topic.',
+  '(voto {0} de {1} fiel)': '({0} of {1} votes: faithful)',
+  'Voto en la segunda revisión': 'Second-review vote',
+  'Si la segunda revisión rechaza un motivo, dos revisores más miran sin conocer ese veredicto y decide la mayoría. Cuesta hasta dos llamadas extra, solo cuando hay rechazo. Puede aprobar motivos que antes se bloqueaban.': 'If the second review rejects a reason, two more reviewers look without knowing that verdict and the majority decides. Costs up to two extra calls, only on rejection. It may approve reasons that used to be blocked.',
+  'Pares de notas que no se enlazan, aunque ambas se relacionan con las mismas notas. Si el vínculo tiene sentido, la IA propone el motivo y tú lo apruebas; si no, lo descartas.': 'Pairs of notes that are not linked, although both relate to the same notes. If the link makes sense, the AI proposes the reason and you approve it; if not, you dismiss it.',
+  'Ocultar vínculos por revisar': 'Hide links to review',
+  'Opcional: marca con ★ los temas que más te importan y sus pares aparecerán primero.': 'Optional: mark with ★ the topics you care about most and their pairs will show first.',
+  'Las dos se relacionan con: {0}. ¿Deberían enlazarse?': 'Both relate to: {0}. Should they be linked?',
+  'Sí, proponer motivo': 'Yes, propose a reason',
+  'No, descartar': 'No, dismiss',
+  'Orden de los temas de contenido': 'Content topics order',
+  'Por número de notas (los más grandes primero) o alfabético.': 'By number of notes (largest first) or alphabetical.',
+  'Por número de notas': 'By number of notes',
+  'Alfabético': 'Alphabetical',
   '⌁ conexiones que faltan': '⌁ missing connections',
   'Revisar primero': 'Review first',
-  'Notas que comparten vecinos pero no se enlazan, de temas que se conectan menos de lo esperable.': 'Notes that share neighbors but are not linked, from topics that connect less than expected.',
-  'Marca los temas que más te importan (por ejemplo, proyectos y ventas): sus conexiones suben.': 'Mark the topics that matter most to you (for example, projects and sales): their connections move up.',
   'No hay conexiones pendientes: los temas se enlazan entre sí en proporción a su tamaño.': 'No pending connections: topics link to each other in proportion to their size.',
-  '{0} vecino(s) en común · {1} ↔ {2}': '{0} neighbor(s) in common · {1} ↔ {2}',
-  'Proponer motivo': 'Propose a reason',
-  '⌁ revisar · {0}': '⌁ review · {0}',
   '{0} no respondió en {1} s. Vuelve a intentar en un rato.': '{0} did not answer within {1} s. Try again in a while.',
   '{0} está ocupado; reintento en {1} s…': '{0} is busy; retrying in {1} s…',
   'No se pudo leer nada': 'Nothing could be read',
@@ -579,7 +631,6 @@ const EN = {
   'Ninguna nota de tu vault tiene tags en el frontmatter: no hay temas que sugerir.': 'No note in your vault has tags in its frontmatter: there are no topics to suggest.',
   'Marca los tags que nombran un tema (seguridad, agentes…), no un tipo ni un estado de página (decisión, pendiente…). Cada uno será un nodo en la última capa, unido a las notas que lo llevan.':
     'Mark the tags that name a topic (security, agents…), not a page type or state (decision, pending…). Each one becomes a node in the last layer, linked to the notes that carry it.',
-  '{0} nota(s)': '{0} note(s)',
   'Cancelar': 'Cancel',
   'Guardar temas': 'Save topics',
   '{0} temas de contenido guardados. El mapa se recarga.': '{0} content topics saved. The map reloads.',
@@ -675,6 +726,11 @@ const AJUSTES_BASE = {
   // [1.35] Temas de contenido: tags que la persona declara como temas («valor = nombre visible»).
   // Vacío = la última capa se arma como siempre, con las carpetas.
   temasDeContenido: '',
+  // [1.35] Tags de estado de página que no se ofrecen como tema al sugerir (lista editable en los ajustes).
+  tagsDeEstado: 'reutilizable, bloqueado, pendiente',
+  ordenTemas: 'notas',
+  votoRevision: false,
+  revisadas: {},
   temasClave: [],
   vaciosDescartados: [],
 };
@@ -992,7 +1048,7 @@ async function construir(app, s) {
   // [1.35] Con temas de contenido, la entrada se lee por tiempo (lo más nuevo arriba) y los temas por
   // cuántas notas reúnen. Esas dos columnas no se reordenan para cruzar menos curvas.
   const fija = (capa) => modoContenido && (capa === 0 || capa === capaTemas);
-  const ordenFijo = (capa) => (capa === 0 ? (p, q) => (q.fecha || 0) - (p.fecha || 0) || p.titulo.localeCompare(q.titulo) : (p, q) => q.grado - p.grado || p.titulo.localeCompare(q.titulo));
+  const ordenFijo = (capa) => (capa === 0 ? (p, q) => (q.fecha || 0) - (p.fecha || 0) || p.titulo.localeCompare(q.titulo) : (p, q) => (s.ordenTemas === 'alfabetico' ? 0 : q.grado - p.grado) || p.titulo.localeCompare(q.titulo));
   cols.forEach((c, capa) => c.sort(fija(capa) ? ordenFijo(capa) : (p, q) => (ordenTema[p.tema] ?? 99) - (ordenTema[q.tema] ?? 99) || q.grado - p.grado));
   const pos = {};
   const indexar = () => cols.forEach((c) => c.forEach((n, i) => (pos[n.id] = i / Math.max(c.length - 1, 1))));
@@ -1132,8 +1188,124 @@ function tagsDelVault(app, ajustes) {
     for (const t of [].concat(fm.tipo ?? fm.type ?? [])) tipos.add(normalizarTag(t));
     for (const t of new Set(tagsDe(fm))) cuenta[t] = (cuenta[t] || 0) + 1;
   }
-  return Object.entries(cuenta).filter(([t]) => !negocio.has(t) && !tipos.has(t)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const estados = tagsDeEstadoDe(ajustes);
+  return Object.entries(cuenta).filter(([t]) => !negocio.has(t) && !tipos.has(t) && !estados.has(t)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
+// [1.35] Tags que nombran un estado de página, no un tema: no se ofrecen al sugerir temas.
+const TAGS_DE_ESTADO = 'reutilizable, bloqueado, pendiente';
+const tagsDeEstadoDe = (aj) => new Set(String(aj.tagsDeEstado ?? TAGS_DE_ESTADO).split(/[,\n]/).map((x) => normalizarTag(x.trim())).filter(Boolean));
+
+// [1.35] De dónde vino un clip: X, repo o web, leído del frontmatter (source, url o link).
+function fuenteDeClip(fm) {
+  const v = [].concat(fm?.source ?? fm?.url ?? fm?.link ?? [])[0];
+  if (!v) return '';
+  try {
+    const h = new URL(String(v)).hostname.replace(/^www\./, '');
+    if (/^(x|twitter)\.com$/.test(h)) return 'X';
+    if (h === 'github.com') return 'repo';
+    return h;
+  } catch { return ''; }
+}
+
+// [1.35] «Se parece a…»: TF-IDF sobre el texto de las notas del mapa. Es local, sin IA, y solo sugiere:
+// medido el 03.10.2026 acierta el tema principal en 79 % de las notas (contra 63 % de «siempre ia»).
+const PALABRAS_VACIAS = new Set('de la el en y a los las que un una por con para se del al es lo como más pero sus le ya o este sí porque esta entre cuando muy sin sobre también me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mí antes algunos qué unos yo otro otras otra él tanto esa estos mucho quienes nada muchos cual poco ella estar estas algunas algo nosotros the of and to in is that for it with as on are be this by or from at an not have has but was were their they will can you your its more one which about also into than'.split(' '));
+const tokensDe = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9ñ]+/).filter((w) => w.length > 2 && !PALABRAS_VACIAS.has(w));
+function indiceTfidf(docs) {
+  const df = new Map(), vecs = [];
+  for (const d of docs) { const tf = new Map(); for (const w of tokensDe(d.texto)) tf.set(w, (tf.get(w) || 0) + 1); vecs.push({ ruta: d.ruta, tf }); for (const w of tf.keys()) df.set(w, (df.get(w) || 0) + 1); }
+  const N = docs.length || 1, idf = (w) => Math.log(1 + N / (df.get(w) || 1));
+  const norma = (tf) => Math.sqrt([...tf].reduce((s, [w, c]) => s + (c * idf(w)) ** 2, 0)) || 1;
+  for (const v of vecs) v.norma = norma(v.tf);
+  return { vecs, idf, norma };
+}
+function parecidosA(ix, texto, k = 2) {
+  const tf = new Map(); for (const w of tokensDe(texto)) tf.set(w, (tf.get(w) || 0) + 1);
+  const nq = ix.norma(tf);
+  return ix.vecs.map((v) => { let p = 0; for (const [w, c] of tf) { const o = v.tf.get(w); if (o) p += c * o * ix.idf(w) ** 2; } return { ruta: v.ruta, sim: p / (nq * v.norma) }; })
+    .filter((x) => x.sim > 0.05).sort((a, b) => b.sim - a.sim).slice(0, k);
+}
+
+// t-SNE exacto, sin dependencias, para pocos puntos (≤ ~300): reparte las notas en un plano de modo que las
+// de texto parecido queden cerca. Es determinista (semilla fija). Solo la vecindad significa algo; la
+// distancia entre grupos y el tamaño de cada uno, no.
+function tsne(dist, n, { perplejidad = 20, vueltas = 350, semilla = 7 } = {}) {
+  let a = semilla >>> 0;
+  const azar = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  if (n < 3) return Array.from({ length: n }, (_, i) => [i, 0]);
+  const perp = Math.min(perplejidad, (n - 1) / 3), objetivo = Math.log(perp);
+  const P = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) {
+    let beta = 1, lo = 0, hi = Infinity;
+    const fila = new Float64Array(n);
+    for (let k = 0; k < 50; k++) {
+      let suma = 0;
+      for (let j = 0; j < n; j++) { fila[j] = j === i ? 0 : Math.exp(-dist[i * n + j] * beta); suma += fila[j]; }
+      suma = suma || 1e-12;
+      let H = 0; for (let j = 0; j < n; j++) if (fila[j] > 0) H += beta * dist[i * n + j] * fila[j] / suma;
+      H += Math.log(suma);
+      if (Math.abs(H - objetivo) < 1e-4) break;
+      if (H > objetivo) { lo = beta; beta = hi === Infinity ? beta * 2 : (beta + hi) / 2; } else { hi = beta; beta = (beta + lo) / 2; }
+    }
+    let suma = 0; for (let j = 0; j < n; j++) suma += fila[j]; suma = suma || 1e-12;
+    for (let j = 0; j < n; j++) P[i * n + j] = fila[j] / suma;
+  }
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const v = Math.max((P[i * n + j] + P[j * n + i]) / (2 * n), 1e-12); P[i * n + j] = v; P[j * n + i] = v; }
+  const Y = Float64Array.from({ length: n * 2 }, () => (azar() - 0.5) * 1e-2), dY = new Float64Array(n * 2), ganancia = new Float64Array(n * 2).fill(1);
+  const num = new Float64Array(n * n), lr = Math.max(n / 12, 50);
+  for (let it = 0; it < vueltas; it++) {
+    let Z = 0;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const dx = Y[2 * i] - Y[2 * j], dy = Y[2 * i + 1] - Y[2 * j + 1], v = 1 / (1 + dx * dx + dy * dy);
+      num[i * n + j] = v; num[j * n + i] = v; Z += 2 * v;
+    }
+    Z = Z || 1e-12;
+    const exag = it < 100 ? 4 : 1, mom = it < 120 ? 0.5 : 0.8;
+    for (let i = 0; i < n; i++) {
+      let gx = 0, gy = 0;
+      for (let j = 0; j < n; j++) {
+        if (j === i) continue;
+        const m = (exag * P[i * n + j] - num[i * n + j] / Z) * num[i * n + j];
+        gx += m * (Y[2 * i] - Y[2 * j]); gy += m * (Y[2 * i + 1] - Y[2 * j + 1]);
+      }
+      gx *= 4; gy *= 4;
+      for (const [k, g] of [[2 * i, gx], [2 * i + 1, gy]]) {
+        ganancia[k] = Math.sign(g) === Math.sign(dY[k]) ? Math.max(ganancia[k] * 0.8, 0.01) : ganancia[k] + 0.2;
+        dY[k] = mom * dY[k] - lr * ganancia[k] * g;
+      }
+    }
+    let mx = 0, my = 0;
+    for (let i = 0; i < n; i++) { Y[2 * i] += dY[2 * i]; Y[2 * i + 1] += dY[2 * i + 1]; mx += Y[2 * i]; my += Y[2 * i + 1]; }
+    mx /= n; my /= n;
+    for (let i = 0; i < n; i++) { Y[2 * i] -= mx; Y[2 * i + 1] -= my; }
+  }
+  return Array.from({ length: n }, (_, i) => [Y[2 * i], Y[2 * i + 1]]);
+}
+// Distancia entre dos notas = 1 − coseno de sus vectores TF-IDF.
+function distanciasTfidf(ix, rutas) {
+  const por = new Map(ix.vecs.map((v) => [v.ruta, v])), vs = rutas.map((r) => por.get(r)), n = rutas.length, d = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const [A, B] = vs[i].tf.size < vs[j].tf.size ? [vs[i], vs[j]] : [vs[j], vs[i]];
+    let p = 0; for (const [w, c] of A.tf) { const o = B.tf.get(w); if (o) p += c * o * ix.idf(w) ** 2; }
+    const v = 1 - p / (A.norma * B.norma); d[i * n + j] = v; d[j * n + i] = v;
+  }
+  return d;
+}
+
+// Notas propias de más de 90 días que tienen vecinas más nuevas (≥ 30 días después). Orden: más vecinas
+// nuevas primero. Las que la persona marcó «sigue vigente» no vuelven antes de 180 días.
+function candidatasPerspectiva(nodos, ady, porId, vistas, ahora) {
+  const DIA = 86400000, res = [];
+  for (const n of nodos) {
+    if (!n.propio || n.fuente || n.virtual || !n.ruta || !n.fecha) continue;
+    if (ahora - n.fecha < 90 * DIA) continue;
+    if (vistas[n.ruta] && ahora - vistas[n.ruta] < 180 * DIA) continue;
+    const nuevas = (ady[n.id] || []).map((v) => porId[v]).filter((m) => m && m.propio && !m.fuente && !m.virtual && m.fecha && m.fecha - n.fecha >= 30 * DIA).sort((a, b) => b.fecha - a.fecha);
+    if (nuevas.length) res.push({ nota: n, nuevas });
+  }
+  return res.sort((a, b) => b.nuevas.length - a.nuevas.length || a.nota.fecha - b.nota.fecha);
+}
+
 class SugerirTemas extends Modal {
   constructor(app, plugin, alGuardar) { super(app); this.plugin = plugin; this.alGuardar = alGuardar; }
   onOpen() {
@@ -1331,7 +1503,11 @@ class VistaMapa extends ItemView {
     this.registerDomEvent(this.chips, 'scroll', () => this.marcarDesborde(), { passive: true });
     // Solo aparece si hay material nuevo: una barra sin nada que hacer no muestra este chip.
     this.chipNovedades = barra.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
-    this.chipNovedades.onclick = () => this.panelNovedades();
+    this.chipNovedades.onclick = () => (this.cuentas?.dia || !this.cuentas?.afuera ? this.panelNovedades() : this.panelLlegadas());
+    // [1.35] Lo que entró de afuera (teléfono, Web Clipper), con su día y su estado: separado de lo recurrente.
+    // [1.35] Qué entró cada día y en qué línea de negocio; tarjetas por tema con su última novedad.
+    const linea = barra.createEl('button', { cls: 'mn-chip', text: T('◷ línea de tiempo') });
+    linea.onclick = () => this.panelLinea();
     const herramientas = barra.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
     herramientas.onclick = (e) => this.menuHerramientas(e);
     this.estado = barra.createDiv('mn-estado');
@@ -1618,6 +1794,8 @@ class VistaMapa extends ItemView {
       }
     }
     const res = lista.sort((x, y) => y.puntaje - x.puntaje).slice(0, 20);
+    // [1.35] El tope de 20 es de la lista de trabajo, no la cantidad real: el chip decía siempre «20».
+    this.pendientesTotal = lista.length;
     this.pendientesCache = { llave, lista: res };
     return res;
   }
@@ -1628,7 +1806,7 @@ class VistaMapa extends ItemView {
     // «Revisar primero»: lo primero que ve quien abre el mapa, si hay algo que revisar.
     const pendientes = this.D?.aristas && this.adyBase ? this.calcularPendientes().length : 0;
     if (pendientes) {
-      const r = this.chips.createEl('button', { cls: 'mn-chip mn-chip-revisar', text: T('⌁ revisar · {0}', pendientes) });
+      const r = this.chips.createEl('button', { cls: 'mn-chip mn-chip-revisar', text: (this.pendientesTotal || 0) > pendientes ? T('⌁ vínculos por revisar · {0} de {1}', pendientes, this.pendientesTotal) : T('⌁ vínculos por revisar · {0}', pendientes) });
       r.onclick = () => { this.vacios = true; this.panelVacios(); this.pintarEstado(); this.pedir(); };
     }
     for (const [id, [nombre, c]] of Object.entries(this.D.temas)) {
@@ -1696,11 +1874,13 @@ class VistaMapa extends ItemView {
       if (this.radial && !this.foco) new Notice(T('Toca una nota para ponerla al centro'));
       this.medir(); this.encuadrar(); this.pintarEstado();
     }));
-    m.addItem((i) => i.setTitle(this.vacios ? T('Ocultar conexiones que faltan') : T('Conexiones que faltan')).setIcon('unlink').onClick(() => {
+    m.addItem((i) => i.setTitle(this.vacios ? T('Ocultar vínculos por revisar') : T('Vínculos por revisar')).setIcon('unlink').onClick(() => {
       this.vacios = !this.vacios; this.sugerencia = null;
       if (this.vacios) { this.listaVacios = this.calcularVacios(); this.panelVacios(); } else this.abrirPanel(this.foco ? this.porId[this.foco] : null);
       this.pintarEstado(); this.pedir();
     }));
+    m.addItem((i) => i.setTitle(T('Mapa por parecido')).setIcon('scatter-chart').onClick(() => this.panelParecido()));
+    m.addItem((i) => i.setTitle(T('Revisar con perspectiva')).setIcon('hourglass').onClick(() => this.panelPerspectiva()));
     if (this.D.fuentes?.carpetas.length) m.addItem((i) => i.setTitle(T('Fuentes sin vínculo · {0}', this.D.fuentes.sinVinculo.length)).setIcon('file-question').onClick(() => this.panelFuentes()));
     m.addItem((i) => i.setTitle(this.salud ? T('Quitar modo salud') : T('Modo salud')).setIcon('heart-pulse').onClick(() => {
       this.salud = !this.salud; if (this.salud) this.informeSalud(); this.pintarEstado(); this.pedir();
@@ -2422,15 +2602,36 @@ class VistaMapa extends ItemView {
         if (!c) continue;
         const q = caja.createDiv('mn-ia-cita'); q.createSpan({ cls: 'mn-frase-etq', text: etq + (c.ok ? ' ✓' : T(' ✕ no aparece literal')) + ': ' }); q.appendText('«' + c.texto + '»');
       }
-      if (res.revision) caja.createDiv({ cls: 'mn-ia-rev', text: (res.revision.fiel ? T('✓ Segunda revisión: fiel al texto') : T('✕ Segunda revisión: ') + res.revision.problema) });
+      if (res.revision) caja.createDiv({ cls: 'mn-ia-rev', text: (res.revision.fiel ? T('✓ Segunda revisión: fiel al texto') : T('✕ Segunda revisión: ') + res.revision.problema) + (res.revision.votos ? ' ' + T('(voto {0} de {1} fiel)', res.revision.votos.fieles, res.revision.votos.total) : '') });
       if (res.advertencia) caja.createDiv({ cls: 'mn-ia-rev', text: '⚠ ' + res.advertencia });
+      // Rechazado: decir en simple qué pasó y qué puede hacer la persona, no solo «No se puede aprobar».
+      if (!res.aprobable) {
+        this.plugin.registrarDescarte(fr, res, 'candados').catch(() => {});
+        const fallaCita = [res.cita_origen, res.cita_destino].some((c) => c && !c.ok);
+        caja.createDiv({ cls: 'mn-ia-porque', text: fallaCita
+          ? T('Qué pasó: la IA citó una frase que no aparece tal cual en la nota, así que no se puede confiar en el motivo. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.')
+          : T('Qué pasó: la IA propuso un motivo, pero al revisarlo no halló en las dos notas una frase que lo respalde. Pueden estar cerca por tema sin una relación escrita. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.') });
+      }
       const acc = caja.createDiv('mn-acciones');
       if (res.aprobable) {
         const ok = acc.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Aprobar y escribir en la nota') });
         ok.onclick = async (e) => { e.stopPropagation(); ok.disabled = true; await this.plugin.aprobar(fr, res); new Notice(T('Motivo escrito en la nota y registrado.')); this.marcarGuardado(caja, acc, T('✓ Escrito en la nota y registrado')); };
+      } else {
+        const yo = acc.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Escribir yo el motivo') });
+        yo.onclick = (e) => {
+          e.stopPropagation(); yo.disabled = true;
+          const ta = caja.createEl('textarea', { cls: 'mn-ia-manual', attr: { rows: '3', placeholder: T('Una frase: por qué estas dos notas se relacionan') } });
+          const g = caja.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Guardar en la nota') });
+          g.onclick = async (ev) => {
+            ev.stopPropagation(); const motivo = ta.value.trim(); if (!motivo) return;
+            g.disabled = true; await this.plugin.aprobar(fr, { motivo, manual: true });
+            new Notice(T('Motivo escrito en la nota y registrado.')); ta.remove(); g.remove(); this.marcarGuardado(caja, acc, T('✓ Escrito en la nota y registrado'));
+          };
+          ta.focus();
+        };
       }
+      const no = acc.createEl('button', { cls: 'mn-btn', text: T('Descartar') }); no.onclick = (e) => { e.stopPropagation(); zona.empty(); this.plugin.registrarDescarte(fr, res, 'persona').catch(() => {}); };
       const otra = acc.createEl('button', { cls: 'mn-btn', text: T('Reintentar') }); otra.onclick = (e) => { e.stopPropagation(); this.sugerirMotivo(fr, zona); };
-      const no = acc.createEl('button', { cls: 'mn-btn', text: T('Descartar') }); no.onclick = (e) => { e.stopPropagation(); zona.empty(); };
     } catch (err) {
       this.plugin.alEsperarIA = null;
       zona.empty(); zona.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + (err.message || String(err)) });
@@ -2456,8 +2657,8 @@ class VistaMapa extends ItemView {
   }
   panelVacios() {
     const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
-    const acciones = this.cabecera(p, T('Conexiones que faltan'), T('Revisar primero'),
-      T('Notas que comparten vecinos pero no se enlazan, de temas que se conectan menos de lo esperable.'));
+    const acciones = this.cabecera(p, T('Vínculos por revisar'), T('Revisar primero'),
+      T('Pares de notas que no se enlazan, aunque ambas se relacionan con las mismas notas. Si el vínculo tiene sentido, la IA propone el motivo y tú lo apruebas; si no, lo descartas.'));
     // Igual que los demás paneles: una ✕, no un botón de texto.
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
@@ -2466,7 +2667,7 @@ class VistaMapa extends ItemView {
     // Temas clave: la persona dice qué le importa (p. ej. proyectos y ventas) y eso sube primero.
     const temas = Object.entries(this.D.temas).filter(([id]) => this.D.nodos.some((n) => n.tema === id));
     if (temas.length > 1) {
-      lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('Marca los temas que más te importan (por ejemplo, proyectos y ventas): sus conexiones suben.') });
+      lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('Opcional: marca con ★ los temas que más te importan y sus pares aparecerán primero.') });
       const fila = lista.createDiv('mn-temas-clave');
       const clave = new Set(pl.ajustes.temasClave || []);
       for (const [id, [nombre, color]] of temas) {
@@ -2483,17 +2684,70 @@ class VistaMapa extends ItemView {
       const t = h.createDiv('mn-vacio-t');
       t.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': this.D.temas[c.ti]?.[1] }); t.appendText(` ${A.titulo}  ↔  `);
       t.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': this.D.temas[c.tj]?.[1] }); t.appendText(` ${B.titulo}`);
-      h.createDiv({ cls: 'mn-motivo', text: T('{0} vecino(s) en común · {1} ↔ {2}', c.comunes, this.D.temas[c.ti]?.[0] || c.ti, this.D.temas[c.tj]?.[0] || c.tj) });
+      const ult = this.D.capas.length - 1, ambas = [...this.adyBase[c.a]].filter((v) => this.adyBase[c.b].has(v)).map((v) => this.base[v]).filter((n) => n && n.propio && !n.fuente && n.capa !== ult);
+      const nombres = ambas.slice(0, 3).map((n) => n.titulo).join(', ') + (ambas.length > 3 ? '…' : '');
+      h.createDiv({ cls: 'mn-motivo', text: T('Las dos se relacionan con: {0}. ¿Deberían enlazarse?', nombres) });
       h.onclick = () => { this.sugerencia = [c.a, c.b]; this.foco = null; this.pedir(); };
       const acc = h.createDiv('mn-acciones'), zona = h.createDiv('mn-ia');
-      if (pl.tieneIA()) this.boton(acc, 'sparkles', T('Proponer motivo'), (e) => { e.stopPropagation(); this.sugerirMotivo({ origen: A.ruta, destino: B.ruta, linea: 0, nuevo: true }, zona); });
-      this.boton(acc, 'x', T('Descartar'), async (e) => {
+      if (pl.tieneIA()) this.boton(acc, 'sparkles', T('Sí, proponer motivo'), (e) => { e.stopPropagation(); this.sugerirMotivo({ origen: A.ruta, destino: B.ruta, linea: 0, nuevo: true }, zona); });
+      this.boton(acc, 'x', T('No, descartar'), async (e) => {
         e.stopPropagation();
         pl.ajustes.vaciosDescartados = [...new Set([...(pl.ajustes.vaciosDescartados || []), c.clave])];
         await pl.guardar(); h.remove(); this.pintarChips();
       });
     }
     p.addClass('abierto'); this.medir(); this.pedir(); // [1.33] sin esto la capa de temas quedaba bajo el panel
+  }
+  // Revisión con perspectiva: notas viejas que después tuvieron novedades alrededor. No juzga si algo es
+  // verdad (eso no se puede saber desde el texto): reúne las pistas y la persona decide si sigue vigente.
+  panelPerspectiva() {
+    const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
+    const acciones = this.cabecera(p, T('Revisar con perspectiva'), T('Notas con tiempo encima'),
+      T('Notas de hace meses que otras notas más nuevas enlazan o rodean. No te dice si siguen vigentes: te muestra dónde mirar. Abre la nota y, si sigue valiendo, márcala.'));
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    const lista = p.createDiv('mn-lista'), DIA = 86400000, ahora = Date.now(), vistas = pl.ajustes.revisadas || {};
+    const filas = candidatasPerspectiva(this.D.nodos, this.ady, this.porId, vistas, ahora);
+    if (!filas.length) lista.createDiv({ cls: 'mn-resumen', text: T('Nada con tiempo encima por ahora: no hay notas de más de 90 días con novedades alrededor.') });
+    for (const f of filas.slice(0, 30)) {
+      const n = f.nota, h = lista.createDiv('mn-vacio'), t = h.createDiv('mn-vacio-t');
+      t.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': this.D.temas[n.tema]?.[1] }); t.appendText(' ' + n.titulo);
+      h.createDiv({ cls: 'mn-motivo', text: T('Hace {0} meses · {1} nota(s) más nuevas la rodean: {2}', Math.round((ahora - n.fecha) / DIA / 30), f.nuevas.length, f.nuevas.slice(0, 2).map((x) => x.titulo).join(', ') + (f.nuevas.length > 2 ? '…' : '')) });
+      const acc = h.createDiv('mn-acciones');
+      this.boton(acc, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta));
+      this.boton(acc, 'check', T('Sigue vigente'), async () => { pl.ajustes.revisadas = { ...vistas, [n.ruta]: ahora }; await pl.guardar(); h.remove(); });
+    }
+    p.addClass('abierto'); this.medir(); this.pedir();
+  }
+  // Mapa por parecido: cada nota es un punto; las de texto parecido quedan juntas (t-SNE sobre TF-IDF, local).
+  async panelParecido() {
+    const p = this.panel; p.empty(); this.guia.hide(); this.novAbierto = false;
+    const acciones = this.cabecera(p, T('Mapa por parecido'), T('Notas por texto parecido'),
+      T('Cada punto es una nota; las que hablan de lo mismo quedan juntas. Solo importa quién está cerca de quién, no las distancias entre grupos. Toca un punto para abrir la nota.'));
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    const caja = p.createDiv('mn-lista'); caja.createDiv({ cls: 'mn-motivo mn-tenue', text: T('Calculando…') });
+    p.addClass('abierto'); this.medir(); this.pedir();
+    const notas = this.D.nodos.filter((n) => n.propio && !n.fuente && !n.virtual && n.ruta).sort((a, b) => this.ady[b.id].length - this.ady[a.id].length).slice(0, 250);
+    let ix; try { ix = await this.indiceDelMapa(); } catch { ix = null; }
+    caja.empty();
+    const conTexto = ix ? notas.filter((n) => ix.vecs.some((v) => v.ruta === n.ruta)) : [];
+    if (conTexto.length < 5) { caja.createDiv({ cls: 'mn-resumen', text: T('Hacen falta al menos 5 notas con texto para dibujar el mapa.') }); return; }
+    const pts = tsne(distanciasTfidf(ix, conTexto.map((n) => n.ruta)), conTexto.length);
+    const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(Math.max(...xs) - x0, 1e-9), h = Math.max(Math.max(...ys) - y0, 1e-9), esc = 92 / Math.max(w, h);
+    const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('class', 'mn-parecido'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', T('Mapa por parecido'));
+    conTexto.forEach((n, i) => {
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', String(4 + (pts[i][0] - x0) * esc)); c.setAttribute('cy', String(4 + (pts[i][1] - y0) * esc)); c.setAttribute('r', '1.4');
+      c.setAttribute('fill', this.D.temas[n.tema]?.[1] || '#8A93B8');
+      const tt = document.createElementNS(NS, 'title'); tt.textContent = n.titulo; c.appendChild(tt);
+      c.addEventListener('click', () => this.abrirNota(n.ruta)); svg.appendChild(c);
+    });
+    caja.appendChild(svg);
+    caja.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} notas, las más conectadas. Color = tema.', conTexto.length) });
   }
   // La bandeja: archivos de las carpetas de fuentes que ninguna nota del mapa cita. Es una lista al
   // costado, no puntos en el lienzo: no reordena nada. Y dice solo «sin cita reconocida».
@@ -2526,22 +2780,165 @@ class VistaMapa extends ItemView {
   async contarNovedades() {
     const chip = this.chipNovedades, pl = this.plugin;
     if (!chip) return;
-    // Un solo chip: si no hay novedades pero sí recortes sueltos, avisa de esos.
+    // Un solo chip «Por ingerir»: junta lo que llegó de afuera y lo del día, contando cada archivo una vez
+    // (los clips también viven en la carpeta de material). Contar es local y gratis.
+    const rutasAfuera = new Set((await pl.llegadasDeAfuera()).filter((x) => x.estado === 'nuevo' && x.reciente).map((x) => x.archivo.path));
     const sueltos = pl.recortesSueltos().length;
-    const mostrar = (texto, n) => {
+    const mostrar = (texto, n, dia = 0) => {
+      this.cuentas = { afuera: rutasAfuera.size, dia };
       if (n > 0) { chip.setText(texto); chip.show(); }
       else if (sueltos) { chip.setText(T('● {0} por ordenar', sueltos)); chip.show(); }
       else chip.hide();
     };
-    if (!pl.ingestaLista()) return mostrar('', 0);
+    if (!pl.ingestaLista()) return mostrar(T('● Por ingerir · {0}', rutasAfuera.size), rutasAfuera.size);
     const st = this.plugin.nov || await pl.recuperarRevision();
     if (st?.fase === 'buscando') return mostrar(T('● buscando…'), 1);
     const quedan = st?.prop ? st.prop.novedades.filter((n) => n.estado === 'nuevo' && !n.decision).length : 0;
-    if (quedan) return mostrar(T('● {0} nuevas', quedan), quedan);
-    // Contar es local y gratis: se leen los archivos, no se llama a la IA.
+    if (quedan) return mostrar(T('● {0} nuevas', quedan), quedan, quedan);
     const m = await pl.prepararMaterial(pl.reunirCrudo());
-    const n = new Set(m.piezas.map((x) => x.ruta)).size;
-    mostrar(T('● {0} por leer', n), n);
+    const dia = new Set(m.piezas.map((x) => x.ruta).filter((r) => !rutasAfuera.has(r))).size;
+    const total = rutasAfuera.size + dia;
+    mostrar(T('● Por ingerir · {0}', total), total, dia);
+  }
+  // Pestañas «De afuera · a» y «Del día · b» arriba de los dos paneles: son una sola bandeja.
+  pestanas(p, activa) {
+    const c = this.cuentas || { afuera: 0, dia: 0 }, fila = p.createDiv('mn-acciones');
+    const una = (id, texto, n, ir) => {
+      const b = fila.createEl('button', { cls: 'mn-btn' + (activa === id ? ' activo' : ''), text: texto + ' · ' + n });
+      b.onclick = ir;
+    };
+    una('afuera', T('De afuera'), c.afuera, () => this.panelLlegadas());
+    una('dia', T('Del día'), c.dia, () => this.panelNovedades());
+  }
+
+  etiquetaDia(t) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const dias = Math.round((hoy.getTime() - new Date(t).setHours(0, 0, 0, 0)) / 86400000);
+    if (dias <= 0) return T('Hoy'); if (dias === 1) return T('Ayer');
+    return new Date(t).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
+  }
+  async panelLlegadas() {
+    const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
+    const acciones = this.cabecera(p, T('Llegó de afuera'), T('Clips del teléfono y del Web Clipper'), T('Por día de llegada, con lo que ya se ingirió y lo que falta'));
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    this.pestanas(p, 'afuera');
+    const lista = p.createDiv('mn-lista mn-nov');
+    p.addClass('abierto'); this.medir(); this.pedir();
+    const todas = await pl.llegadasDeAfuera();
+    if (!pl.ajustes.carpetaRecortes) { lista.createDiv({ cls: 'mn-resumen', text: T('Falta la «carpeta de recortes» en los ajustes: de ahí leo lo que llega de afuera.') }); return; }
+    const nuevas = todas.filter((x) => x.estado === 'nuevo' && x.reciente);
+    const resumen = lista.createDiv({ cls: 'mn-resumen' });
+    resumen.setText(nuevas.length ? T('{0} clip(s) esperando ingesta.', nuevas.length) : T('Nada esperando: todo lo reciente ya se ingirió.'));
+    if (nuevas.length) {
+      const acc = lista.createDiv('mn-acciones');
+      if (!pl.ingestaLista()) lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('Para ingerir hace falta configurar la ingesta y una IA en los ajustes.') });
+      else this.boton(acc, 'sparkles', T('Ingerir novedades ({0})', nuevas.length), async () => {
+        const m = await pl.prepararMaterial(nuevas.map((x) => x.archivo));
+        // Solo estos clips: el sello de fecha no avanza, para no saltarse material recurrente más viejo.
+        m.hasta = 0;
+        if (!m.piezas.length) { await pl.confirmarIngesta(m); new Notice(T('Estos clips no traen nada nuevo para enviar.')); return this.panelLlegadas(); }
+        pl.buscarNovedades(m); this.panelNovedades();
+      }, true);
+    }
+    const extra = { adonde: await this.adondeFue().catch(() => new Map()) };
+    const ix = nuevas.length ? await this.indiceDelMapa().catch(() => null) : null;
+    const porClip = new Map();
+    if (ix) for (const x of nuevas.slice(0, 40)) porClip.set(x.archivo.path, parecidosA(ix, await this.app.vault.cachedRead(x.archivo)));
+    const conExtra = (x) => ({ ...extra, parecidos: porClip.get(x.archivo.path) });
+    const dias = new Map();
+    for (const x of todas) { const d = this.etiquetaDia(x.fecha); if (!dias.has(d)) dias.set(d, []); dias.get(d).push(x); }
+    const recientes = [...dias].filter(([, f]) => f[0].reciente), antiguos = todas.filter((x) => !x.reciente);
+    for (const [dia, filas] of recientes) {
+      const g = lista.createDiv('mn-nov-grupo');
+      const cab = g.createDiv('mn-nov-cab');
+      cab.createSpan({ cls: 'mn-nov-pagina', text: dia });
+      cab.createSpan({ cls: 'mn-nov-meta', text: T('{0} clip(s)', filas.length) });
+      for (const x of filas) this.filaLlegada(g, x, conExtra(x));
+    }
+    if (antiguos.length) {
+      const det = lista.createEl('details', { cls: 'mn-nov-plegable' });
+      det.createEl('summary', { text: T('Más de 14 días ({0}): no se cuentan', antiguos.length) });
+      for (const x of antiguos.slice(0, 60)) this.filaLlegada(det, x, extra);
+    }
+  }
+  // «Línea de tiempo»: una tarjeta por tema (con aire, no un punto más en el mapa) y, debajo, lo que
+  // cambió cada día. La fecha es la de la nota (propiedad, nombre o modificación), no la de ingesta.
+  panelLinea() {
+    const p = this.panel; p.empty(); this.guia.hide(); this.novAbierto = false;
+    const acciones = this.cabecera(p, T('Línea de tiempo'), T('Qué entró y adónde fue'), T('Por línea de negocio y por día, de lo más nuevo a lo más viejo'));
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    const lista = p.createDiv('mn-lista mn-nov');
+    p.addClass('abierto'); this.medir(); this.pedir();
+    const notas = this.D.nodos.filter((n) => !n.fuente && !n.virtual && n.fecha).sort((a, b) => b.fecha - a.fecha);
+    const fecha = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    const tarjetas = lista.createDiv('mn-tarjetas');
+    for (const [id, [nombre, color]] of Object.entries(this.D.temas)) {
+      const deTema = notas.filter((n) => n.tema === id); if (!deTema.length) continue;
+      const t = tarjetas.createDiv('mn-tarjeta');
+      const cab = t.createDiv('mn-nov-cab');
+      cab.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': color });
+      cab.createSpan({ cls: 'mn-nov-pagina', text: nombre });
+      cab.createSpan({ cls: 'mn-nov-meta', text: T('{0} nota(s)', deTema.length) });
+      t.createDiv({ cls: 'mn-motivo', text: deTema[0].titulo });
+      t.createDiv({ cls: 'mn-nov-meta', text: T('última novedad · {0}', fecha(deTema[0].fecha)) });
+      t.onclick = () => { this.solo = id; this.pintarChips(); this.pedir(); };
+    }
+    const dias = new Map();
+    for (const n of notas.slice(0, 120)) { const d = this.etiquetaDia(n.fecha); if (!dias.has(d)) dias.set(d, []); dias.get(d).push(n); }
+    for (const [dia, filas] of dias) {
+      const g = lista.createDiv('mn-nov-grupo');
+      const cab = g.createDiv('mn-nov-cab');
+      cab.createSpan({ cls: 'mn-nov-pagina', text: dia });
+      cab.createSpan({ cls: 'mn-nov-meta', text: T('{0} nota(s)', filas.length) });
+      for (const n of filas) {
+        const fila = g.createDiv('mn-nov-fila'); fila.addClass('mn-clic');
+        const cuerpo = fila.createDiv('mn-nov-cuerpo');
+        cuerpo.createDiv({ cls: 'mn-nov-texto', text: n.titulo });
+        cuerpo.createDiv({ cls: 'mn-nov-meta', text: [this.D.temas[n.tema]?.[0] || T('sin tema'), this.D.capas[n.capa]?.[1]].filter(Boolean).join(' · ') });
+        fila.onclick = () => this.irA(n.id);
+      }
+    }
+    if (!notas.length) lista.createDiv({ cls: 'mn-resumen', text: T('Todavía no hay notas con fecha.') });
+  }
+  filaLlegada(padre, x, extra = {}) {
+    const fila = padre.createDiv('mn-nov-fila' + (x.estado === 'ingerido' ? ' hecha' : x.estado === 'ignorado' ? ' descartada' : ''));
+    const cuerpo = fila.createDiv('mn-nov-cuerpo');
+    cuerpo.createDiv({ cls: 'mn-nov-texto', text: x.archivo.basename.replace(/^\d{4}-\d{2}-\d{2}-/, '').slice(0, 90) });
+    const hora = new Date(x.fecha).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const estado = { nuevo: T('nuevo'), ingerido: T('ingerido'), ignorado: T('ignorado') }[x.estado];
+    const fuente = fuenteDeClip(this.app.metadataCache.getFileCache(x.archivo)?.frontmatter);
+    cuerpo.createDiv({ cls: 'mn-nov-meta', text: [hora, fuente, estado].filter(Boolean).join(' · ') });
+    // «Adónde fue»: las páginas que recibieron líneas de este clip, según el registro de aprobaciones.
+    const fue = extra.adonde?.get(x.archivo.basename) || extra.adonde?.get(x.archivo.path);
+    if (fue?.size) cuerpo.createDiv({ cls: 'mn-nov-meta', text: T('→ fue a: {0}', [...fue].slice(0, 3).join(', ')) });
+    else if (x.estado === 'nuevo' && extra.parecidos?.length) cuerpo.createDiv({ cls: 'mn-nov-meta', text: T('Se parece a: {0}', extra.parecidos.map((p) => nombreNota(p.ruta)).join(', ')) });
+    fila.onclick = () => { this.app.workspace.openLinkText(x.archivo.path, '', false); };
+  }
+  // «Adónde fue»: lee los registros de aprobaciones (solo lectura) y arma clip → páginas destino.
+  async adondeFue() {
+    const pl = this.plugin, raiz = normalizePath(pl.ajustes.carpetaAuditoria || 'Mapa neuronal/aprobaciones'), mapa = new Map();
+    for (const f of this.app.vault.getMarkdownFiles()) {
+      if (!f.path.startsWith(raiz + '/') || f.name !== 'mapa-neuronal-motivos.md') continue;
+      const txt = await this.app.vault.cachedRead(f);
+      for (const m of txt.matchAll(/·\s*ingesta\s*→\s*(\S.*)\n(?:- .*\n)*?- [^\n]*Material de origen[^:]*:\s*(.+)/g)) {
+        const dest = nombreNota(m[1].trim()), org = m[2].trim().replace(/^\[\[|\]\]$/g, '');
+        for (const k of new Set([org, org.split('/').pop().replace(/\.md$/, '')])) { if (!mapa.has(k)) mapa.set(k, new Set()); mapa.get(k).add(dest); }
+      }
+    }
+    return mapa;
+  }
+  // Índice TF-IDF de las notas del mapa; se rehace solo si cambia su número.
+  async indiceDelMapa() {
+    const notas = (this.D?.nodos || []).filter((n) => !n.fuente && !n.virtual && n.ruta);
+    if (this.indiceCache?.n === notas.length) return this.indiceCache.ix;
+    const docs = [];
+    for (const n of notas) { const f = this.app.vault.getFileByPath(n.ruta); if (f) docs.push({ ruta: n.ruta, texto: await this.app.vault.cachedRead(f) }); }
+    const ix = indiceTfidf(docs); this.indiceCache = { n: notas.length, ix };
+    return ix;
   }
 
   pintarRecortes(lista, recortes) {
@@ -2577,6 +2974,7 @@ class VistaMapa extends ItemView {
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
     cerrar.onclick = () => { this.novAbierto = false; this.abrirPanel(this.foco ? this.porId[this.foco] : null); };
+    this.pestanas(p, 'dia');
     const lista = p.createDiv('mn-lista mn-nov');
     p.addClass('abierto'); this.medir(); this.pedir();
     if (!pl.ingestaLista()) {
@@ -2736,7 +3134,7 @@ class VistaMapa extends ItemView {
     const no = bs.createEl('button', { cls: 'mn-btn', text: '✗', attr: { 'aria-label': T('Rechazar'), title: T('Rechazar') } });
     const si = bs.createEl('button', { cls: 'mn-btn mn-btn-primario', text: '✓', attr: { 'aria-label': T('Aprobar'), title: T('Aprobar') } });
     if (!n.destino || !n.verificada || (n.crear && this.plugin.ajustes.permitirCrear === false)) si.disabled = true;
-    no.onclick = () => { n.decision = 'rechazada'; fila.addClass('descartada'); bs.remove(); this.contarNovedades(); this.plugin.guardarRevision(); };
+    no.onclick = () => { n.decision = 'rechazada'; this.plugin.registrar(`\n## ${new Date().toTimeString().slice(0, 5)} · ingesta descartada\n- Novedad descartada por la persona: ${n.texto}\n- Material de origen: ${n.fuente || '—'}\n`).catch(() => {}); fila.addClass('descartada'); bs.remove(); this.contarNovedades(); this.plugin.guardarRevision(); };
     si.onclick = async () => { si.disabled = no.disabled = true; if (await this.aprobarNovedad(n)) { fila.addClass(n.decision === 'aprobada' ? 'hecha' : 'descartada'); bs.remove(); } else si.disabled = no.disabled = false; };
   }
   async aprobarNovedad(n) {
@@ -2823,6 +3221,8 @@ class AjustesMapa extends PluginSettingTab {
       .addText((t) => t.setValue(p.ajustes.propiedadTema).onChange(async (v) => { p.ajustes.propiedadTema = v.trim(); await p.guardar(); }));
     area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7);
     area('Temas de contenido', 'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.', 'temasDeContenido', 6);
+    new Setting(c).setName(T('Tags de estado (no son temas)')).setDesc(T('Reutilizable, bloqueado, pendiente… «Sugerir temas» no los ofrece. Separados por comas.')).addText((x) => x.setValue(p.ajustes.tagsDeEstado ?? '').onChange(async (v) => { p.ajustes.tagsDeEstado = v.trim(); await p.guardar(); }));
+    new Setting(c).setName(T('Orden de los temas de contenido')).setDesc(T('Por número de notas (los más grandes primero) o alfabético.')).addDropdown((d) => d.addOptions({ notas: T('Por número de notas'), alfabetico: T('Alfabético') }).setValue(p.ajustes.ordenTemas || 'notas').onChange(async (v) => { p.ajustes.ordenTemas = v; await p.guardar(); }));
     new Setting(c).setName(T('Sugerir temas de contenido')).setDesc(T('Lista los tags de tu vault por frecuencia para que marques cuáles son temas.'))
       .addButton((b) => b.setButtonText(T('Sugerir desde el vault')).onClick(() => new SugerirTemas(this.app, p, () => this.refrescar()).open()));
     new Setting(c).setName(T('Notas visibles por capa')).setDesc(T('En vaults grandes, cada capa muestra sus notas más conectadas; las demás aparecen al buscarlas.'))
@@ -2834,6 +3234,7 @@ class AjustesMapa extends PluginSettingTab {
     this.pintarIA(c);
     new Setting(c).setName(T('Segunda revisión')).setDesc(T('Una segunda llamada revisa que el motivo sea fiel (negaciones, estados, pendientes). Cuesta el doble y bloquea errores de matiz.'))
       .addToggle((t) => t.setValue(p.ajustes.dobleVerificacion).onChange(async (v) => { p.ajustes.dobleVerificacion = v; await p.guardar(); }));
+    new Setting(c).setName(T('Voto en la segunda revisión')).setDesc(T('Si la segunda revisión rechaza un motivo, dos revisores más miran sin conocer ese veredicto y decide la mayoría. Cuesta hasta dos llamadas extra, solo cuando hay rechazo. Puede aprobar motivos que antes se bloqueaban.')).addToggle((t) => t.setValue(!!p.ajustes.votoRevision).onChange(async (v) => { p.ajustes.votoRevision = v; await p.guardar(); }));
     new Setting(c).setName(T('Carpeta del registro de aprobaciones')).setDesc(T('Cada motivo aprobado deja constancia (fecha, citas, modelo) en <carpeta>/<fecha>/mapa-neuronal-motivos.md.'))
       .addText((t) => t.setValue(p.ajustes.carpetaAuditoria).onChange(async (v) => { p.ajustes.carpetaAuditoria = v.trim(); await p.guardar(); }));
     new Setting(c).setName(T('Novedades')).setHeading();
@@ -2992,6 +3393,8 @@ class AjustesMapa extends PluginSettingTab {
         texto('Propiedad de tema', 'Propiedad del frontmatter que agrupa y colorea las notas. Vacío = sin temas.', 'propiedadTema'),
         area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7),
         area('Temas de contenido', 'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.', 'temasDeContenido', 6),
+        texto('Tags de estado (no son temas)', 'Reutilizable, bloqueado, pendiente… «Sugerir temas» no los ofrece. Separados por comas.', 'tagsDeEstado'),
+        { name: T('Orden de los temas de contenido'), render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty(); const p = this.plugin; new Setting(el).setName(T('Orden de los temas de contenido')).setDesc(T('Por número de notas (los más grandes primero) o alfabético.')).addDropdown((d) => d.addOptions({ notas: T('Por número de notas'), alfabetico: T('Alfabético') }).setValue(p.ajustes.ordenTemas || 'notas').onChange(async (v) => { p.ajustes.ordenTemas = v; await p.guardar(); })); } },
         { name: T('Sugerir temas de contenido'), aliases: ['tags', 'etiquetas'],
           render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty();
             new Setting(el).setName(T('Sugerir temas de contenido')).setDesc(T('Lista los tags de tu vault por frecuencia para que marques cuáles son temas.'))
@@ -3005,6 +3408,7 @@ class AjustesMapa extends PluginSettingTab {
         render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty(); el.addClass('mn-ajuste-ia'); this.pintarIA(el); } },
       { type: 'group', items: [
         interruptor('Segunda revisión', 'Una segunda llamada revisa que el motivo sea fiel (negaciones, estados, pendientes). Cuesta el doble y bloquea errores de matiz.', 'dobleVerificacion'),
+        interruptor('Voto en la segunda revisión', 'Si la segunda revisión rechaza un motivo, dos revisores más miran sin conocer ese veredicto y decide la mayoría. Cuesta hasta dos llamadas extra, solo cuando hay rechazo. Puede aprobar motivos que antes se bloqueaban.', 'votoRevision'),
         texto('Carpeta del registro de aprobaciones', 'Cada motivo aprobado deja constancia (fecha, citas, modelo) en <carpeta>/<fecha>/mapa-neuronal-motivos.md.', 'carpetaAuditoria'),
       ] },
       { type: 'group', heading: T('Novedades'), items: [
@@ -3298,6 +3702,14 @@ export default class MapaNeuronal extends Plugin {
       const sistema2 = 'Eres un revisor escéptico. Decides si un motivo de enlace es FIEL a dos notas. Es infiel si: afirma algo que las notas no dicen; convierte un pendiente, idea o posibilidad en un hecho; ignora una negación; atribuye algo a la nota equivocada; o describe otra relación distinta de la que el texto establece. Si hay cualquier duda, fiel=false.';
       const usuario2 = `<origen>\n${origen}\n</origen>\n\n<destino>\n${destino}\n</destino>\n\nEnlace: ${fr.nuevo ? 'nuevo, todavía no existe' : `línea ${fr.linea} de la nota de origen`}, hacia [[${nombre(fr.destino)}]].\nMotivo propuesto: "${res.motivo}"\nCitas: origen «${g.cita_origen}» · destino «${g.cita_destino}»\n\n¿Es fiel? Si no, explica el problema en una frase; si es fiel, problema="".`;
       res.revision = await this.llamarIA(sistema2, usuario2, esquema2);
+      // Voto (opcional, apagado por defecto): si el revisor dice «infiel», dos revisores más miran la misma
+      // pregunta sin saber el veredicto anterior y manda la mayoría. Solo se llama cuando hay desacuerdo.
+      if (!res.revision.fiel && this.ajustes.votoRevision) {
+        const otros = [];
+        for (let i = 0; i < 2; i++) otros.push(await this.llamarIA(sistema2, usuario2, esquema2).catch(() => null));
+        const votos = [res.revision, ...otros.filter(Boolean)], fieles = votos.filter((v) => v.fiel).length;
+        res.revision = { fiel: fieles * 2 > votos.length, problema: (votos.find((v) => !v.fiel) || {}).problema || '', votos: { fieles, total: votos.length } };
+      }
       res.aprobable = !!res.revision.fiel;
     } else res.aprobable = true;
     return res;
@@ -3370,6 +3782,27 @@ export default class MapaNeuronal extends Plugin {
     if (ruta.split('/').some((seg) => seg.startsWith('.'))) return true;
     return String(this.ajustes.ignorarIngesta || '').split(/[,\n]/).map((g) => g.trim()).filter(Boolean)
       .some((g) => comoPatron(g).test(g.includes('/') ? ruta : nombre));
+  }
+
+  // [1.35] Lo que llegó de afuera: los clips de la carpeta de recortes, con su día de llegada
+  // (creación en este equipo, no el nombre del archivo) y su estado. El estado sale del registro de
+  // huellas, no de «modificado después de la última ingesta»: un clip que Sync baja con fecha vieja
+  // no debe quedar invisible. Solo los últimos 14 días cuentan: antes de eso no hay registro fiable.
+  async llegadasDeAfuera() {
+    const dir = normalizePath(String(this.ajustes.carpetaRecortes || '').replace(/^\/+|\/+$/g, ''));
+    if (!dir || dir === '/') return [];
+    const reg = await this.leerRegistroIngesta(), limite = Date.now() - 14 * 86400000, out = [];
+    for (const f of this.app.vault.getMarkdownFiles()) {
+      if (!f.path.startsWith(dir + '/')) continue;
+      const fecha = f.stat?.ctime || f.stat?.mtime || 0;
+      let estado = 'ignorado';
+      if (!this.ignoradoEnIngesta(f.path)) {
+        const antes = reg.archivos[f.path];
+        estado = antes && antes.huella === huella(await this.app.vault.cachedRead(f)) ? 'ingerido' : 'nuevo';
+      }
+      out.push({ archivo: f, estado, fecha, reciente: fecha >= limite });
+    }
+    return out.sort((a, b) => b.fecha - a.fecha);
   }
 
   // Recortes sueltos: notas en la raíz que nadie enlaza, que no están en la lista de las que se
@@ -3816,6 +4249,14 @@ export default class MapaNeuronal extends Plugin {
     return resultado;
   }
 
+  // [1.35] Los descartes también quedan: sin ellos no se puede medir qué motivos sirven (aprobados vs. no).
+  async registrarDescarte(fr, res, quien) {
+    const base = String(fr.destino || '').split('/').pop().replace(/\.md$/, '');
+    const causa = quien === 'persona' ? 'descartado por la persona'
+      : [res.cita_origen, res.cita_destino].some((c) => c && !c.ok) ? 'rechazado: cita no literal'
+      : res.revision && !res.revision.fiel ? 'rechazado: segunda revisión no fiel' : 'rechazado: sin respaldo';
+    await this.registrar(`\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo descartado (no se escribió): ${res.motivo || '—'}\n- Causa: ${causa}\n- Modelo: ${res.modelo || this.ajustes.modeloIA}\n`);
+  }
   async registrar(entrada) {
     const hoyStr = hoy(), carpeta = normalizePath(`${this.ajustes.carpetaAuditoria || 'Mapa neuronal/aprobaciones'}/${hoyStr}`), ruta = normalizePath(`${carpeta}/mapa-neuronal-motivos.md`);
     if (!this.app.vault.getFolderByPath(carpeta)) await this.app.vault.createFolder(carpeta);
@@ -3842,7 +4283,7 @@ export default class MapaNeuronal extends Plugin {
       const prop = this.ajustes.propiedadFecha;
       await this.app.fileManager.processFrontMatter(f, (fm) => { fm[prop] = hoyStr; });
     }
-    const entrada = `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo aprobado: ${res.motivo}\n- Cita origen (línea ${fr.linea}): «${res.cita_origen?.texto}»\n- Cita destino: «${res.cita_destino?.texto}»\n- Modelo: ${res.modelo} · segunda revisión: ${res.revision ? (res.revision.fiel ? 'fiel' : 'no fiel') : 'desactivada'} · aprobado por la persona\n`;
+    const entrada = res.manual ? `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo escrito por la persona (sin IA): ${res.motivo}\n` : `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo aprobado: ${res.motivo}\n- Cita origen (línea ${fr.linea}): «${res.cita_origen?.texto}»\n- Cita destino: «${res.cita_destino?.texto}»\n- Modelo: ${res.modelo} · segunda revisión: ${res.revision ? (res.revision.fiel ? 'fiel' : 'no fiel') : 'desactivada'} · aprobado por la persona\n`;
     await this.registrar(entrada);
     this.refrescarVistas();
   }
