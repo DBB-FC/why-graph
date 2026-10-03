@@ -183,6 +183,12 @@ window.exports = window.module.exports;
     const ruta = a && b ? v.rutaMasCorta(a.id, b.id) : null;
     if (ruta) { v.camino = ruta; v.panelCamino(ruta); v.pintarEstado(); }
     else document.title = 'ERROR: sin camino entre esas notas';
+  } else if (vista === 'parecido') {
+    await v.panelParecido();
+  } else if (vista === 'perspectiva') {
+    // El vault de demo es de agosto: se adelanta el reloj 150 días para que haya notas "viejas".
+    const ahora = Date.now.bind(Date); Date.now = () => ahora() + 150 * 86400000;
+    v.panelPerspectiva();
   } else if (vista === 'novedades') {
     // El panel de novedades con una revisión ya hecha (datos de la demo, sin IA): para ver el
     // diseño sin gastar llamadas. El chip de la barra se pinta igual que con material real.
