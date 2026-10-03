@@ -500,6 +500,10 @@ const EN = {
   '● {0} nuevas': '● {0} new',
   '● Por ingerir · {0}': '● To ingest · {0}',
   'De afuera': 'From outside',
+  'Tags de estado (no son temas)': 'State tags (not topics)',
+  'Reutilizable, bloqueado, pendiente… «Sugerir temas» no los ofrece. Separados por comas.': 'Reusable, blocked, pending… “Suggest topics” does not offer them. Comma-separated.',
+  '→ fue a: {0}': '→ went to: {0}',
+  'Se parece a: {0}': 'Looks like: {0}',
   'Del día': 'From today',
   '● {0} por ordenar': '● {0} to file',
   '⌁ vínculos por revisar · {0} de {1}': '⌁ links to review · {0} of {1}',
@@ -702,6 +706,8 @@ const AJUSTES_BASE = {
   // [1.35] Temas de contenido: tags que la persona declara como temas («valor = nombre visible»).
   // Vacío = la última capa se arma como siempre, con las carpetas.
   temasDeContenido: '',
+  // [1.35] Tags de estado de página que no se ofrecen como tema al sugerir (lista editable en los ajustes).
+  tagsDeEstado: 'reutilizable, bloqueado, pendiente',
   temasClave: [],
   vaciosDescartados: [],
 };
@@ -1159,8 +1165,44 @@ function tagsDelVault(app, ajustes) {
     for (const t of [].concat(fm.tipo ?? fm.type ?? [])) tipos.add(normalizarTag(t));
     for (const t of new Set(tagsDe(fm))) cuenta[t] = (cuenta[t] || 0) + 1;
   }
-  return Object.entries(cuenta).filter(([t]) => !negocio.has(t) && !tipos.has(t)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const estados = tagsDeEstadoDe(ajustes);
+  return Object.entries(cuenta).filter(([t]) => !negocio.has(t) && !tipos.has(t) && !estados.has(t)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
+// [1.35] Tags que nombran un estado de página, no un tema: no se ofrecen al sugerir temas.
+const TAGS_DE_ESTADO = 'reutilizable, bloqueado, pendiente';
+const tagsDeEstadoDe = (aj) => new Set(String(aj.tagsDeEstado ?? TAGS_DE_ESTADO).split(/[,\n]/).map((x) => normalizarTag(x.trim())).filter(Boolean));
+
+// [1.35] De dónde vino un clip: X, repo o web, leído del frontmatter (source, url o link).
+function fuenteDeClip(fm) {
+  const v = [].concat(fm?.source ?? fm?.url ?? fm?.link ?? [])[0];
+  if (!v) return '';
+  try {
+    const h = new URL(String(v)).hostname.replace(/^www\./, '');
+    if (/^(x|twitter)\.com$/.test(h)) return 'X';
+    if (h === 'github.com') return 'repo';
+    return h;
+  } catch { return ''; }
+}
+
+// [1.35] «Se parece a…»: TF-IDF sobre el texto de las notas del mapa. Es local, sin IA, y solo sugiere:
+// medido el 03.10.2026 acierta el tema principal en 79 % de las notas (contra 63 % de «siempre ia»).
+const PALABRAS_VACIAS = new Set('de la el en y a los las que un una por con para se del al es lo como más pero sus le ya o este sí porque esta entre cuando muy sin sobre también me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mí antes algunos qué unos yo otro otras otra él tanto esa estos mucho quienes nada muchos cual poco ella estar estas algunas algo nosotros the of and to in is that for it with as on are be this by or from at an not have has but was were their they will can you your its more one which about also into than'.split(' '));
+const tokensDe = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9ñ]+/).filter((w) => w.length > 2 && !PALABRAS_VACIAS.has(w));
+function indiceTfidf(docs) {
+  const df = new Map(), vecs = [];
+  for (const d of docs) { const tf = new Map(); for (const w of tokensDe(d.texto)) tf.set(w, (tf.get(w) || 0) + 1); vecs.push({ ruta: d.ruta, tf }); for (const w of tf.keys()) df.set(w, (df.get(w) || 0) + 1); }
+  const N = docs.length || 1, idf = (w) => Math.log(1 + N / (df.get(w) || 1));
+  const norma = (tf) => Math.sqrt([...tf].reduce((s, [w, c]) => s + (c * idf(w)) ** 2, 0)) || 1;
+  for (const v of vecs) v.norma = norma(v.tf);
+  return { vecs, idf, norma };
+}
+function parecidosA(ix, texto, k = 2) {
+  const tf = new Map(); for (const w of tokensDe(texto)) tf.set(w, (tf.get(w) || 0) + 1);
+  const nq = ix.norma(tf);
+  return ix.vecs.map((v) => { let p = 0; for (const [w, c] of tf) { const o = v.tf.get(w); if (o) p += c * o * ix.idf(w) ** 2; } return { ruta: v.ruta, sim: p / (nq * v.norma) }; })
+    .filter((x) => x.sim > 0.05).sort((a, b) => b.sim - a.sim).slice(0, k);
+}
+
 class SugerirTemas extends Modal {
   constructor(app, plugin, alGuardar) { super(app); this.plugin = plugin; this.alGuardar = alGuardar; }
   onOpen() {
@@ -2459,6 +2501,7 @@ class VistaMapa extends ItemView {
       if (res.advertencia) caja.createDiv({ cls: 'mn-ia-rev', text: '⚠ ' + res.advertencia });
       // Rechazado: decir en simple qué pasó y qué puede hacer la persona, no solo «No se puede aprobar».
       if (!res.aprobable) {
+        this.plugin.registrarDescarte(fr, res, 'candados').catch(() => {});
         const fallaCita = [res.cita_origen, res.cita_destino].some((c) => c && !c.ok);
         caja.createDiv({ cls: 'mn-ia-porque', text: fallaCita
           ? T('Qué pasó: la IA citó una frase que no aparece tal cual en la nota, así que no se puede confiar en el motivo. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.')
@@ -2482,7 +2525,7 @@ class VistaMapa extends ItemView {
           ta.focus();
         };
       }
-      const no = acc.createEl('button', { cls: 'mn-btn', text: T('Descartar') }); no.onclick = (e) => { e.stopPropagation(); zona.empty(); };
+      const no = acc.createEl('button', { cls: 'mn-btn', text: T('Descartar') }); no.onclick = (e) => { e.stopPropagation(); zona.empty(); this.plugin.registrarDescarte(fr, res, 'persona').catch(() => {}); };
       const otra = acc.createEl('button', { cls: 'mn-btn', text: T('Reintentar') }); otra.onclick = (e) => { e.stopPropagation(); this.sugerirMotivo(fr, zona); };
     } catch (err) {
       this.plugin.alEsperarIA = null;
@@ -2641,6 +2684,11 @@ class VistaMapa extends ItemView {
         pl.buscarNovedades(m); this.panelNovedades();
       }, true);
     }
+    const extra = { adonde: await this.adondeFue().catch(() => new Map()) };
+    const ix = nuevas.length ? await this.indiceDelMapa().catch(() => null) : null;
+    const porClip = new Map();
+    if (ix) for (const x of nuevas.slice(0, 40)) porClip.set(x.archivo.path, parecidosA(ix, await this.app.vault.cachedRead(x.archivo)));
+    const conExtra = (x) => ({ ...extra, parecidos: porClip.get(x.archivo.path) });
     const dias = new Map();
     for (const x of todas) { const d = this.etiquetaDia(x.fecha); if (!dias.has(d)) dias.set(d, []); dias.get(d).push(x); }
     const recientes = [...dias].filter(([, f]) => f[0].reciente), antiguos = todas.filter((x) => !x.reciente);
@@ -2649,12 +2697,12 @@ class VistaMapa extends ItemView {
       const cab = g.createDiv('mn-nov-cab');
       cab.createSpan({ cls: 'mn-nov-pagina', text: dia });
       cab.createSpan({ cls: 'mn-nov-meta', text: T('{0} clip(s)', filas.length) });
-      for (const x of filas) this.filaLlegada(g, x);
+      for (const x of filas) this.filaLlegada(g, x, conExtra(x));
     }
     if (antiguos.length) {
       const det = lista.createEl('details', { cls: 'mn-nov-plegable' });
       det.createEl('summary', { text: T('Más de 14 días ({0}): no se cuentan', antiguos.length) });
-      for (const x of antiguos.slice(0, 60)) this.filaLlegada(det, x);
+      for (const x of antiguos.slice(0, 60)) this.filaLlegada(det, x, extra);
     }
   }
   // «Línea de tiempo»: una tarjeta por tema (con aire, no un punto más en el mapa) y, debajo, lo que
@@ -2698,14 +2746,41 @@ class VistaMapa extends ItemView {
     }
     if (!notas.length) lista.createDiv({ cls: 'mn-resumen', text: T('Todavía no hay notas con fecha.') });
   }
-  filaLlegada(padre, x) {
+  filaLlegada(padre, x, extra = {}) {
     const fila = padre.createDiv('mn-nov-fila' + (x.estado === 'ingerido' ? ' hecha' : x.estado === 'ignorado' ? ' descartada' : ''));
     const cuerpo = fila.createDiv('mn-nov-cuerpo');
     cuerpo.createDiv({ cls: 'mn-nov-texto', text: x.archivo.basename.replace(/^\d{4}-\d{2}-\d{2}-/, '').slice(0, 90) });
     const hora = new Date(x.fecha).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
     const estado = { nuevo: T('nuevo'), ingerido: T('ingerido'), ignorado: T('ignorado') }[x.estado];
-    cuerpo.createDiv({ cls: 'mn-nov-meta', text: `${hora} · ${estado}` });
+    const fuente = fuenteDeClip(this.app.metadataCache.getFileCache(x.archivo)?.frontmatter);
+    cuerpo.createDiv({ cls: 'mn-nov-meta', text: [hora, fuente, estado].filter(Boolean).join(' · ') });
+    // «Adónde fue»: las páginas que recibieron líneas de este clip, según el registro de aprobaciones.
+    const fue = extra.adonde?.get(x.archivo.basename) || extra.adonde?.get(x.archivo.path);
+    if (fue?.size) cuerpo.createDiv({ cls: 'mn-nov-meta', text: T('→ fue a: {0}', [...fue].slice(0, 3).join(', ')) });
+    else if (x.estado === 'nuevo' && extra.parecidos?.length) cuerpo.createDiv({ cls: 'mn-nov-meta', text: T('Se parece a: {0}', extra.parecidos.map((p) => nombreNota(p.ruta)).join(', ')) });
     fila.onclick = () => { this.app.workspace.openLinkText(x.archivo.path, '', false); };
+  }
+  // «Adónde fue»: lee los registros de aprobaciones (solo lectura) y arma clip → páginas destino.
+  async adondeFue() {
+    const pl = this.plugin, raiz = normalizePath(pl.ajustes.carpetaAuditoria || 'Mapa neuronal/aprobaciones'), mapa = new Map();
+    for (const f of this.app.vault.getMarkdownFiles()) {
+      if (!f.path.startsWith(raiz + '/') || f.name !== 'mapa-neuronal-motivos.md') continue;
+      const txt = await this.app.vault.cachedRead(f);
+      for (const m of txt.matchAll(/·\s*ingesta\s*→\s*(\S.*)\n(?:- .*\n)*?- [^\n]*Material de origen[^:]*:\s*(.+)/g)) {
+        const dest = nombreNota(m[1].trim()), org = m[2].trim().replace(/^\[\[|\]\]$/g, '');
+        for (const k of new Set([org, org.split('/').pop().replace(/\.md$/, '')])) { if (!mapa.has(k)) mapa.set(k, new Set()); mapa.get(k).add(dest); }
+      }
+    }
+    return mapa;
+  }
+  // Índice TF-IDF de las notas del mapa; se rehace solo si cambia su número.
+  async indiceDelMapa() {
+    const notas = (this.D?.nodos || []).filter((n) => !n.fuente && !n.virtual && n.ruta);
+    if (this.indiceCache?.n === notas.length) return this.indiceCache.ix;
+    const docs = [];
+    for (const n of notas) { const f = this.app.vault.getFileByPath(n.ruta); if (f) docs.push({ ruta: n.ruta, texto: await this.app.vault.cachedRead(f) }); }
+    const ix = indiceTfidf(docs); this.indiceCache = { n: notas.length, ix };
+    return ix;
   }
 
   pintarRecortes(lista, recortes) {
@@ -2901,7 +2976,7 @@ class VistaMapa extends ItemView {
     const no = bs.createEl('button', { cls: 'mn-btn', text: '✗', attr: { 'aria-label': T('Rechazar'), title: T('Rechazar') } });
     const si = bs.createEl('button', { cls: 'mn-btn mn-btn-primario', text: '✓', attr: { 'aria-label': T('Aprobar'), title: T('Aprobar') } });
     if (!n.destino || !n.verificada || (n.crear && this.plugin.ajustes.permitirCrear === false)) si.disabled = true;
-    no.onclick = () => { n.decision = 'rechazada'; fila.addClass('descartada'); bs.remove(); this.contarNovedades(); this.plugin.guardarRevision(); };
+    no.onclick = () => { n.decision = 'rechazada'; this.plugin.registrar(`\n## ${new Date().toTimeString().slice(0, 5)} · ingesta descartada\n- Novedad descartada por la persona: ${n.texto}\n- Material de origen: ${n.fuente || '—'}\n`).catch(() => {}); fila.addClass('descartada'); bs.remove(); this.contarNovedades(); this.plugin.guardarRevision(); };
     si.onclick = async () => { si.disabled = no.disabled = true; if (await this.aprobarNovedad(n)) { fila.addClass(n.decision === 'aprobada' ? 'hecha' : 'descartada'); bs.remove(); } else si.disabled = no.disabled = false; };
   }
   async aprobarNovedad(n) {
@@ -2988,6 +3063,7 @@ class AjustesMapa extends PluginSettingTab {
       .addText((t) => t.setValue(p.ajustes.propiedadTema).onChange(async (v) => { p.ajustes.propiedadTema = v.trim(); await p.guardar(); }));
     area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7);
     area('Temas de contenido', 'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.', 'temasDeContenido', 6);
+    new Setting(c).setName(T('Tags de estado (no son temas)')).setDesc(T('Reutilizable, bloqueado, pendiente… «Sugerir temas» no los ofrece. Separados por comas.')).addText((x) => x.setValue(p.ajustes.tagsDeEstado ?? '').onChange(async (v) => { p.ajustes.tagsDeEstado = v.trim(); await p.guardar(); }));
     new Setting(c).setName(T('Sugerir temas de contenido')).setDesc(T('Lista los tags de tu vault por frecuencia para que marques cuáles son temas.'))
       .addButton((b) => b.setButtonText(T('Sugerir desde el vault')).onClick(() => new SugerirTemas(this.app, p, () => this.refrescar()).open()));
     new Setting(c).setName(T('Notas visibles por capa')).setDesc(T('En vaults grandes, cada capa muestra sus notas más conectadas; las demás aparecen al buscarlas.'))
@@ -3157,6 +3233,7 @@ class AjustesMapa extends PluginSettingTab {
         texto('Propiedad de tema', 'Propiedad del frontmatter que agrupa y colorea las notas. Vacío = sin temas.', 'propiedadTema'),
         area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7),
         area('Temas de contenido', 'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.', 'temasDeContenido', 6),
+        texto('Tags de estado (no son temas)', 'Reutilizable, bloqueado, pendiente… «Sugerir temas» no los ofrece. Separados por comas.', 'tagsDeEstado'),
         { name: T('Sugerir temas de contenido'), aliases: ['tags', 'etiquetas'],
           render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty();
             new Setting(el).setName(T('Sugerir temas de contenido')).setDesc(T('Lista los tags de tu vault por frecuencia para que marques cuáles son temas.'))
@@ -4002,6 +4079,14 @@ export default class MapaNeuronal extends Plugin {
     return resultado;
   }
 
+  // [1.35] Los descartes también quedan: sin ellos no se puede medir qué motivos sirven (aprobados vs. no).
+  async registrarDescarte(fr, res, quien) {
+    const base = String(fr.destino || '').split('/').pop().replace(/\.md$/, '');
+    const causa = quien === 'persona' ? 'descartado por la persona'
+      : [res.cita_origen, res.cita_destino].some((c) => c && !c.ok) ? 'rechazado: cita no literal'
+      : res.revision && !res.revision.fiel ? 'rechazado: segunda revisión no fiel' : 'rechazado: sin respaldo';
+    await this.registrar(`\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo descartado (no se escribió): ${res.motivo || '—'}\n- Causa: ${causa}\n- Modelo: ${res.modelo || this.ajustes.modeloIA}\n`);
+  }
   async registrar(entrada) {
     const hoyStr = hoy(), carpeta = normalizePath(`${this.ajustes.carpetaAuditoria || 'Mapa neuronal/aprobaciones'}/${hoyStr}`), ruta = normalizePath(`${carpeta}/mapa-neuronal-motivos.md`);
     if (!this.app.vault.getFolderByPath(carpeta)) await this.app.vault.createFolder(carpeta);
