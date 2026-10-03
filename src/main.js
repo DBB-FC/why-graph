@@ -239,6 +239,11 @@ const EN = {
   'Aprobar y guardar en la nota': 'Approve and save in the note',
   'Aprobar y escribir en la nota': 'Approve and write in the note',
   'Reintentar': 'Try again',
+  'Qué pasó: la IA citó una frase que no aparece tal cual en la nota, así que no se puede confiar en el motivo. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.': 'What happened: the AI quoted a phrase that does not appear verbatim in the note, so the reason cannot be trusted. If you know why they are related, write it; if not, discard it.',
+  'Qué pasó: la IA propuso un motivo, pero al revisarlo no halló en las dos notas una frase que lo respalde. Pueden estar cerca por tema sin una relación escrita. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.': 'What happened: the AI proposed a reason, but on review found no phrase in the two notes that backs it. They may be close by topic without a written relation. If you know why they are related, write it; if not, discard it.',
+  'Escribir yo el motivo': 'Write the reason myself',
+  'Una frase: por qué estas dos notas se relacionan': 'One sentence: why these two notes are related',
+  'Guardar en la nota': 'Save to the note',
   'Descartar': 'Discard',
   'Motivo escrito en la nota y registrado.': 'Reason written in the note and logged.',
   '✓ Escrito en la nota y registrado': '✓ Written to the note and logged',
@@ -2453,13 +2458,33 @@ class VistaMapa extends ItemView {
       }
       if (res.revision) caja.createDiv({ cls: 'mn-ia-rev', text: (res.revision.fiel ? T('✓ Segunda revisión: fiel al texto') : T('✕ Segunda revisión: ') + res.revision.problema) });
       if (res.advertencia) caja.createDiv({ cls: 'mn-ia-rev', text: '⚠ ' + res.advertencia });
+      // Rechazado: decir en simple qué pasó y qué puede hacer la persona, no solo «No se puede aprobar».
+      if (!res.aprobable) {
+        const fallaCita = [res.cita_origen, res.cita_destino].some((c) => c && !c.ok);
+        caja.createDiv({ cls: 'mn-ia-porque', text: fallaCita
+          ? T('Qué pasó: la IA citó una frase que no aparece tal cual en la nota, así que no se puede confiar en el motivo. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.')
+          : T('Qué pasó: la IA propuso un motivo, pero al revisarlo no halló en las dos notas una frase que lo respalde. Pueden estar cerca por tema sin una relación escrita. Si tú sabes por qué se relacionan, escríbelo; si no, descártalo.') });
+      }
       const acc = caja.createDiv('mn-acciones');
       if (res.aprobable) {
         const ok = acc.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Aprobar y escribir en la nota') });
         ok.onclick = async (e) => { e.stopPropagation(); ok.disabled = true; await this.plugin.aprobar(fr, res); new Notice(T('Motivo escrito en la nota y registrado.')); this.marcarGuardado(caja, acc, T('✓ Escrito en la nota y registrado')); };
+      } else {
+        const yo = acc.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Escribir yo el motivo') });
+        yo.onclick = (e) => {
+          e.stopPropagation(); yo.disabled = true;
+          const ta = caja.createEl('textarea', { cls: 'mn-ia-manual', attr: { rows: '3', placeholder: T('Una frase: por qué estas dos notas se relacionan') } });
+          const g = caja.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Guardar en la nota') });
+          g.onclick = async (ev) => {
+            ev.stopPropagation(); const motivo = ta.value.trim(); if (!motivo) return;
+            g.disabled = true; await this.plugin.aprobar(fr, { motivo, manual: true });
+            new Notice(T('Motivo escrito en la nota y registrado.')); ta.remove(); g.remove(); this.marcarGuardado(caja, acc, T('✓ Escrito en la nota y registrado'));
+          };
+          ta.focus();
+        };
       }
-      const otra = acc.createEl('button', { cls: 'mn-btn', text: T('Reintentar') }); otra.onclick = (e) => { e.stopPropagation(); this.sugerirMotivo(fr, zona); };
       const no = acc.createEl('button', { cls: 'mn-btn', text: T('Descartar') }); no.onclick = (e) => { e.stopPropagation(); zona.empty(); };
+      const otra = acc.createEl('button', { cls: 'mn-btn', text: T('Reintentar') }); otra.onclick = (e) => { e.stopPropagation(); this.sugerirMotivo(fr, zona); };
     } catch (err) {
       this.plugin.alEsperarIA = null;
       zona.empty(); zona.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + (err.message || String(err)) });
@@ -3996,7 +4021,7 @@ export default class MapaNeuronal extends Plugin {
       const prop = this.ajustes.propiedadFecha;
       await this.app.fileManager.processFrontMatter(f, (fm) => { fm[prop] = hoyStr; });
     }
-    const entrada = `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo aprobado: ${res.motivo}\n- Cita origen (línea ${fr.linea}): «${res.cita_origen?.texto}»\n- Cita destino: «${res.cita_destino?.texto}»\n- Modelo: ${res.modelo} · segunda revisión: ${res.revision ? (res.revision.fiel ? 'fiel' : 'no fiel') : 'desactivada'} · aprobado por la persona\n`;
+    const entrada = res.manual ? `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo escrito por la persona (sin IA): ${res.motivo}\n` : `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo aprobado: ${res.motivo}\n- Cita origen (línea ${fr.linea}): «${res.cita_origen?.texto}»\n- Cita destino: «${res.cita_destino?.texto}»\n- Modelo: ${res.modelo} · segunda revisión: ${res.revision ? (res.revision.fiel ? 'fiel' : 'no fiel') : 'desactivada'} · aprobado por la persona\n`;
     await this.registrar(entrada);
     this.refrescarVistas();
   }

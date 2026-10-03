@@ -235,6 +235,27 @@ const RECORRIDOS = {
     await M.cerrar(); M.ia.citaRepetida = 0;
     return `llamadas: ${llamadas1} con reintento que sirve, ${llamadas2} cuando no sirve`;
   },
+  async 'motivo rechazado por la segunda revisión: se explica y la persona puede escribirlo ella'(M) {
+    M.ia.revisorRechaza = true;
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('crm');
+    await s.pulsa('Sugerir motivo ✦');
+    if (s.ve('Aprobar y escribir en la nota')) M.hallazgo('aprobó un motivo que la revisión rechazó', s.textoVisible().slice(0, 240));
+    if (!s.ve('Qué pasó')) M.hallazgo('el rechazo no dice qué pasó ni qué hacer', s.textoVisible().slice(0, 240));
+    if (!s.ve('Escribir yo el motivo')) M.hallazgo('el rechazo no deja escribir el motivo a mano', s.textoVisible().slice(0, 240));
+    await s.pulsa('Escribir yo el motivo');
+    const ta = s.vista.contentEl.querySelector('textarea.mn-ia-manual');
+    if (!ta) M.hallazgo('no aparece dónde escribir', s.textoVisible().slice(0, 200));
+    else {
+      ta.value = 'ambas son del mismo cliente y comparten el pedido de abril';
+      await s.pulsa('Guardar en la nota');
+      const conMotivo = Object.keys(M.notas).filter((r) => r.startsWith('wiki/') && /ambas son del mismo cliente/.test(M.notas[r]));
+      if (conMotivo.length !== 1) M.hallazgo('el motivo escrito a mano no quedó en la nota', `notas con el motivo: ${conMotivo.join(', ') || 'ninguna'}`);
+      const log = Object.keys(M.notas).find((r) => /mapa-neuronal-motivos\.md$/.test(r));
+      if (!log || !/escrito por la persona/.test(M.notas[log])) M.hallazgo('lo escrito a mano no dejó registro', 'sin entrada de auditoría');
+    }
+    await M.cerrar(); M.ia.revisorRechaza = false;
+    return 'rechazo explicado · motivo manual guardado y registrado';
+  },
   async 'resumir una nota con IA y verlo después de reiniciar'(M) {
     let s = await M.abrir('mac'); await s.abrirMapa(); await s.toca('tostadora');
     if (!(await s.pulsa('Resumir con IA', { opcional: true }))) { M.hallazgo('botón que no está', 'Resumir con IA'); await M.cerrar(); return; }

@@ -225,3 +225,6 @@
 .mn-raiz .mn-panel .mn-tarjeta:hover { border-color: rgba(170,185,255,.5); }
 .mn-raiz .mn-panel .mn-tarjeta .mn-motivo { overflow-wrap: anywhere; }
 .mn-raiz .mn-panel .mn-nov-fila.mn-clic { cursor: pointer; }
+
+.mn-ia-porque { margin: 6px 0; font-size: 0.95em; line-height: 1.4; color: var(--text-muted); }
+.mn-ia-manual { width: 100%; margin: 6px 0; }
