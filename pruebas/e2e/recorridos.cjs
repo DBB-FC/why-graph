@@ -262,6 +262,35 @@ const RECORRIDOS = {
     if (/por ordenar/.test(chip)) M.hallazgo('recortes que vuelven', `tras ordenar y dejar, el chip sigue: «${chip}» (en la raíz: ${enRaiz.join(', ')})`);
     return `en la raíz: ${enRaiz.join(', ') || '—'}`;
   },
+  async 'llegó de afuera: un clip del teléfono se ve con su día y se ingiere con un botón'(M) {
+    // Un clip nuevo con fecha de hoy, aunque el sello de última ingesta sea más nuevo que su fecha.
+    M.escribir('raw/articles/karpathy-tweet-llegado.md', '# Tweet de Karpathy\n\n' + parrafos('Karpathy sobre CRM', 6, '(clip nuevo)'));
+    let s = await M.abrir('mac'); await s.abrirMapa();
+    const chip = s.pulsables().map((n) => textoDe(n)).find((t) => /Llegó de afuera/.test(t));
+    if (!chip) { M.hallazgo('un clip nuevo no tiene aviso propio', 'no hay botón «Llegó de afuera»'); await M.cerrar(); return; }
+    await s.pulsa(/Llegó de afuera/);
+    if (!s.ve('Hoy')) M.hallazgo('los clips no se agrupan por día', s.textoVisible().slice(0, 200));
+    if (!s.ve('karpathy-tweet-llegado')) M.hallazgo('el clip no aparece en su día', s.textoVisible().slice(0, 200));
+    if (!/nuevo/.test(s.textoVisible())) M.hallazgo('el clip no dice su estado', s.textoVisible().slice(0, 200));
+    M.busqueda = 'b1';
+    if (!(await s.pulsa(/Ingerir novedades/, { opcional: true }))) { M.hallazgo('no hay botón para ingerir', s.textoVisible().slice(0, 200)); await M.cerrar(); return; }
+    await s.calma();
+    await s.pulsa('Terminar', { opcional: true });
+    await s.pulsa(/Llegó de afuera/, { opcional: true });
+    const despues = s.pulsables().map((n) => textoDe(n)).find((t) => /Llegó de afuera/.test(t));
+    await M.cerrar();
+    if (despues) M.hallazgo('el clip ingerido sigue contando como nuevo', despues);
+    return `aviso antes: «${chip}» · después: «${despues || '—'}»`;
+  },
+  async 'línea de tiempo: tarjetas por tema con su última novedad y notas por día'(M) {
+    const s = await M.abrir('mac'); await s.abrirMapa();
+    if (!(await s.pulsa(/línea de tiempo/, { opcional: true }))) { M.hallazgo('botón que no está', 'línea de tiempo'); await M.cerrar(); return; }
+    const t = s.textoVisible();
+    if (!/última novedad/.test(t)) M.hallazgo('la línea de tiempo no muestra tarjetas por tema', t.slice(0, 200));
+    if (!/\d+ nota\(s\)/.test(t)) M.hallazgo('la línea de tiempo no cuenta notas', t.slice(0, 200));
+    await M.cerrar();
+    return `tarjetas: ${(t.match(/última novedad/g) || []).length}`;
+  },
   async 'buscar: una nota nueva aparece sin reiniciar, y lo de fuera del mapa se abre'(M) {
     const s = await M.abrir('mac'); await s.abrirMapa();
     M.escribir('wiki/clientes/nueva-cliente.md', '---\ntema: clientes\n---\n# Nueva Cliente\n\nRecién llegada, trabaja con [[andes]].\n'); await s.calma();

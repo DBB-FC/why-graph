@@ -11,3 +11,9 @@ Cosas que quedaron fuera del build en curso para no ampliarlo. Cada una con su o
 - **Sugerir temas: marcar solos los tags de estado** («reutilizable», «bloqueado», «pendiente») como no
   temas, con una lista corta editable. Hoy la persona los desmarca a mano. Origen: build temas de
   contenido, 28.09.2026.
+- **Aviso diario «N clips esperando»** que solo cuente y no escriba en `wiki/`. Felipe lo pidió solo si lo
+  necesita; hoy la ingesta es por el botón «Ingerir novedades». Origen: PLAN-UX-ENTRADA §B.3, 02.10.2026.
+- **«Llegó de afuera» con fuente (X, web, repo)** en cada fila, leída del frontmatter del clip. Origen:
+  PLAN-UX-ENTRADA §A.3; quedó solo hora y estado.
+- **Línea de tiempo: «adónde fue»** (a qué página del wiki fue cada clip) leyendo `mapa-neuronal-motivos.md`.
+  Hoy muestra qué nota cambió por día y su tema. Origen: PLAN-UX-ENTRADA §C.2.

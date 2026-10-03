@@ -495,6 +495,29 @@ const EN = {
   '● {0} nuevas': '● {0} new',
   '● {0} por leer': '● {0} to read',
   '● {0} por ordenar': '● {0} to file',
+  '⌁ vínculos por revisar · {0} de {1}': '⌁ links to review · {0} of {1}',
+  '⌁ vínculos por revisar · {0}': '⌁ links to review · {0}',
+  '↓ Llegó de afuera · {0}': '↓ Arrived from outside · {0}',
+  '◷ línea de tiempo': '◷ timeline',
+  'Línea de tiempo': 'Timeline',
+  'Qué entró y adónde fue': 'What came in and where it went',
+  'Por línea de negocio y por día, de lo más nuevo a lo más viejo': 'By business line and by day, newest first',
+  '{0} nota(s)': '{0} note(s)',
+  'última novedad · {0}': 'latest · {0}',
+  'Todavía no hay notas con fecha.': 'No dated notes yet.',
+  'Llegó de afuera': 'Arrived from outside',
+  'Clips del teléfono y del Web Clipper': 'Clips from your phone and the Web Clipper',
+  'Por día de llegada, con lo que ya se ingirió y lo que falta': 'By day of arrival, with what is ingested and what is left',
+  'Hoy': 'Today', 'Ayer': 'Yesterday',
+  'Falta la «carpeta de recortes» en los ajustes: de ahí leo lo que llega de afuera.': 'Set the “clippings folder” in settings: that is where outside arrivals are read from.',
+  '{0} clip(s) esperando ingesta.': '{0} clip(s) waiting to be ingested.',
+  'Nada esperando: todo lo reciente ya se ingirió.': 'Nothing waiting: everything recent was already ingested.',
+  'Para ingerir hace falta configurar la ingesta y una IA en los ajustes.': 'To ingest, set up ingestion and an AI in settings.',
+  'Ingerir novedades ({0})': 'Ingest what is new ({0})',
+  'Estos clips no traen nada nuevo para enviar.': 'These clips have nothing new to send.',
+  '{0} clip(s)': '{0} clip(s)',
+  'Más de 14 días ({0}): no se cuentan': 'Older than 14 days ({0}): not counted',
+  'nuevo': 'new', 'ingerido': 'ingested', 'ignorado': 'ignored',
   'Recortes sueltos': 'Loose clippings',
   'Notas en la raíz que ninguna otra enlaza. Se mueven sin tocar su contenido; si ya había una igual, la repetida va a la papelera.': 'Notes in the vault root that nothing links to. They are moved without touching their content; if an identical one already exists, the duplicate goes to the trash.',
   'Ver notas ({0})': 'Show notes ({0})',
@@ -550,7 +573,6 @@ const EN = {
   'No hay conexiones pendientes: los temas se enlazan entre sí en proporción a su tamaño.': 'No pending connections: topics link to each other in proportion to their size.',
   '{0} vecino(s) en común · {1} ↔ {2}': '{0} neighbor(s) in common · {1} ↔ {2}',
   'Proponer motivo': 'Propose a reason',
-  '⌁ revisar · {0}': '⌁ review · {0}',
   '{0} no respondió en {1} s. Vuelve a intentar en un rato.': '{0} did not answer within {1} s. Try again in a while.',
   '{0} está ocupado; reintento en {1} s…': '{0} is busy; retrying in {1} s…',
   'No se pudo leer nada': 'Nothing could be read',
@@ -579,7 +601,6 @@ const EN = {
   'Ninguna nota de tu vault tiene tags en el frontmatter: no hay temas que sugerir.': 'No note in your vault has tags in its frontmatter: there are no topics to suggest.',
   'Marca los tags que nombran un tema (seguridad, agentes…), no un tipo ni un estado de página (decisión, pendiente…). Cada uno será un nodo en la última capa, unido a las notas que lo llevan.':
     'Mark the tags that name a topic (security, agents…), not a page type or state (decision, pending…). Each one becomes a node in the last layer, linked to the notes that carry it.',
-  '{0} nota(s)': '{0} note(s)',
   'Cancelar': 'Cancel',
   'Guardar temas': 'Save topics',
   '{0} temas de contenido guardados. El mapa se recarga.': '{0} content topics saved. The map reloads.',
@@ -1332,6 +1353,12 @@ class VistaMapa extends ItemView {
     // Solo aparece si hay material nuevo: una barra sin nada que hacer no muestra este chip.
     this.chipNovedades = barra.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
     this.chipNovedades.onclick = () => this.panelNovedades();
+    // [1.35] Lo que entró de afuera (teléfono, Web Clipper), con su día y su estado: separado de lo recurrente.
+    this.chipLlegadas = barra.createEl('button', { cls: 'mn-chip mn-chip-llegadas' }); this.chipLlegadas.hide();
+    this.chipLlegadas.onclick = () => this.panelLlegadas();
+    // [1.35] Qué entró cada día y en qué línea de negocio; tarjetas por tema con su última novedad.
+    const linea = barra.createEl('button', { cls: 'mn-chip', text: T('◷ línea de tiempo') });
+    linea.onclick = () => this.panelLinea();
     const herramientas = barra.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
     herramientas.onclick = (e) => this.menuHerramientas(e);
     this.estado = barra.createDiv('mn-estado');
@@ -1618,6 +1645,8 @@ class VistaMapa extends ItemView {
       }
     }
     const res = lista.sort((x, y) => y.puntaje - x.puntaje).slice(0, 20);
+    // [1.35] El tope de 20 es de la lista de trabajo, no la cantidad real: el chip decía siempre «20».
+    this.pendientesTotal = lista.length;
     this.pendientesCache = { llave, lista: res };
     return res;
   }
@@ -1628,7 +1657,7 @@ class VistaMapa extends ItemView {
     // «Revisar primero»: lo primero que ve quien abre el mapa, si hay algo que revisar.
     const pendientes = this.D?.aristas && this.adyBase ? this.calcularPendientes().length : 0;
     if (pendientes) {
-      const r = this.chips.createEl('button', { cls: 'mn-chip mn-chip-revisar', text: T('⌁ revisar · {0}', pendientes) });
+      const r = this.chips.createEl('button', { cls: 'mn-chip mn-chip-revisar', text: (this.pendientesTotal || 0) > pendientes ? T('⌁ vínculos por revisar · {0} de {1}', pendientes, this.pendientesTotal) : T('⌁ vínculos por revisar · {0}', pendientes) });
       r.onclick = () => { this.vacios = true; this.panelVacios(); this.pintarEstado(); this.pedir(); };
     }
     for (const [id, [nombre, c]] of Object.entries(this.D.temas)) {
@@ -2526,6 +2555,7 @@ class VistaMapa extends ItemView {
   async contarNovedades() {
     const chip = this.chipNovedades, pl = this.plugin;
     if (!chip) return;
+    this.contarLlegadas();
     // Un solo chip: si no hay novedades pero sí recortes sueltos, avisa de esos.
     const sueltos = pl.recortesSueltos().length;
     const mostrar = (texto, n) => {
@@ -2542,6 +2572,109 @@ class VistaMapa extends ItemView {
     const m = await pl.prepararMaterial(pl.reunirCrudo());
     const n = new Set(m.piezas.map((x) => x.ruta)).size;
     mostrar(T('● {0} por leer', n), n);
+  }
+
+  // «Llegó de afuera»: los clips de la carpeta de recortes de los últimos días. Contar es local.
+  async contarLlegadas() {
+    const chip = this.chipLlegadas; if (!chip) return;
+    const n = (await this.plugin.llegadasDeAfuera()).filter((x) => x.estado === 'nuevo' && x.reciente).length;
+    if (n) { chip.setText(T('↓ Llegó de afuera · {0}', n)); chip.show(); } else chip.hide();
+  }
+  etiquetaDia(t) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const dias = Math.round((hoy.getTime() - new Date(t).setHours(0, 0, 0, 0)) / 86400000);
+    if (dias <= 0) return T('Hoy'); if (dias === 1) return T('Ayer');
+    return new Date(t).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
+  }
+  async panelLlegadas() {
+    const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
+    const acciones = this.cabecera(p, T('Llegó de afuera'), T('Clips del teléfono y del Web Clipper'), T('Por día de llegada, con lo que ya se ingirió y lo que falta'));
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    const lista = p.createDiv('mn-lista mn-nov');
+    p.addClass('abierto'); this.medir(); this.pedir();
+    const todas = await pl.llegadasDeAfuera();
+    if (!pl.ajustes.carpetaRecortes) { lista.createDiv({ cls: 'mn-resumen', text: T('Falta la «carpeta de recortes» en los ajustes: de ahí leo lo que llega de afuera.') }); return; }
+    const nuevas = todas.filter((x) => x.estado === 'nuevo' && x.reciente);
+    const resumen = lista.createDiv({ cls: 'mn-resumen' });
+    resumen.setText(nuevas.length ? T('{0} clip(s) esperando ingesta.', nuevas.length) : T('Nada esperando: todo lo reciente ya se ingirió.'));
+    if (nuevas.length) {
+      const acc = lista.createDiv('mn-acciones');
+      if (!pl.ingestaLista()) lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('Para ingerir hace falta configurar la ingesta y una IA en los ajustes.') });
+      else this.boton(acc, 'sparkles', T('Ingerir novedades ({0})', nuevas.length), async () => {
+        const m = await pl.prepararMaterial(nuevas.map((x) => x.archivo));
+        // Solo estos clips: el sello de fecha no avanza, para no saltarse material recurrente más viejo.
+        m.hasta = 0;
+        if (!m.piezas.length) { await pl.confirmarIngesta(m); new Notice(T('Estos clips no traen nada nuevo para enviar.')); return this.panelLlegadas(); }
+        pl.buscarNovedades(m); this.panelNovedades();
+      }, true);
+    }
+    const dias = new Map();
+    for (const x of todas) { const d = this.etiquetaDia(x.fecha); if (!dias.has(d)) dias.set(d, []); dias.get(d).push(x); }
+    const recientes = [...dias].filter(([, f]) => f[0].reciente), antiguos = todas.filter((x) => !x.reciente);
+    for (const [dia, filas] of recientes) {
+      const g = lista.createDiv('mn-nov-grupo');
+      const cab = g.createDiv('mn-nov-cab');
+      cab.createSpan({ cls: 'mn-nov-pagina', text: dia });
+      cab.createSpan({ cls: 'mn-nov-meta', text: T('{0} clip(s)', filas.length) });
+      for (const x of filas) this.filaLlegada(g, x);
+    }
+    if (antiguos.length) {
+      const det = lista.createEl('details', { cls: 'mn-nov-plegable' });
+      det.createEl('summary', { text: T('Más de 14 días ({0}): no se cuentan', antiguos.length) });
+      for (const x of antiguos.slice(0, 60)) this.filaLlegada(det, x);
+    }
+  }
+  // «Línea de tiempo»: una tarjeta por tema (con aire, no un punto más en el mapa) y, debajo, lo que
+  // cambió cada día. La fecha es la de la nota (propiedad, nombre o modificación), no la de ingesta.
+  panelLinea() {
+    const p = this.panel; p.empty(); this.guia.hide(); this.novAbierto = false;
+    const acciones = this.cabecera(p, T('Línea de tiempo'), T('Qué entró y adónde fue'), T('Por línea de negocio y por día, de lo más nuevo a lo más viejo'));
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    const lista = p.createDiv('mn-lista mn-nov');
+    p.addClass('abierto'); this.medir(); this.pedir();
+    const notas = this.D.nodos.filter((n) => !n.fuente && !n.virtual && n.fecha).sort((a, b) => b.fecha - a.fecha);
+    const fecha = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    const tarjetas = lista.createDiv('mn-tarjetas');
+    for (const [id, [nombre, color]] of Object.entries(this.D.temas)) {
+      const deTema = notas.filter((n) => n.tema === id); if (!deTema.length) continue;
+      const t = tarjetas.createDiv('mn-tarjeta');
+      const cab = t.createDiv('mn-nov-cab');
+      cab.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': color });
+      cab.createSpan({ cls: 'mn-nov-pagina', text: nombre });
+      cab.createSpan({ cls: 'mn-nov-meta', text: T('{0} nota(s)', deTema.length) });
+      t.createDiv({ cls: 'mn-motivo', text: deTema[0].titulo });
+      t.createDiv({ cls: 'mn-nov-meta', text: T('última novedad · {0}', fecha(deTema[0].fecha)) });
+      t.onclick = () => { this.solo = id; this.pintarChips(); this.pedir(); };
+    }
+    const dias = new Map();
+    for (const n of notas.slice(0, 120)) { const d = this.etiquetaDia(n.fecha); if (!dias.has(d)) dias.set(d, []); dias.get(d).push(n); }
+    for (const [dia, filas] of dias) {
+      const g = lista.createDiv('mn-nov-grupo');
+      const cab = g.createDiv('mn-nov-cab');
+      cab.createSpan({ cls: 'mn-nov-pagina', text: dia });
+      cab.createSpan({ cls: 'mn-nov-meta', text: T('{0} nota(s)', filas.length) });
+      for (const n of filas) {
+        const fila = g.createDiv('mn-nov-fila'); fila.addClass('mn-clic');
+        const cuerpo = fila.createDiv('mn-nov-cuerpo');
+        cuerpo.createDiv({ cls: 'mn-nov-texto', text: n.titulo });
+        cuerpo.createDiv({ cls: 'mn-nov-meta', text: [this.D.temas[n.tema]?.[0] || T('sin tema'), this.D.capas[n.capa]?.[1]].filter(Boolean).join(' · ') });
+        fila.onclick = () => this.irA(n.id);
+      }
+    }
+    if (!notas.length) lista.createDiv({ cls: 'mn-resumen', text: T('Todavía no hay notas con fecha.') });
+  }
+  filaLlegada(padre, x) {
+    const fila = padre.createDiv('mn-nov-fila' + (x.estado === 'ingerido' ? ' hecha' : x.estado === 'ignorado' ? ' descartada' : ''));
+    const cuerpo = fila.createDiv('mn-nov-cuerpo');
+    cuerpo.createDiv({ cls: 'mn-nov-texto', text: x.archivo.basename.replace(/^\d{4}-\d{2}-\d{2}-/, '').slice(0, 90) });
+    const hora = new Date(x.fecha).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const estado = { nuevo: T('nuevo'), ingerido: T('ingerido'), ignorado: T('ignorado') }[x.estado];
+    cuerpo.createDiv({ cls: 'mn-nov-meta', text: `${hora} · ${estado}` });
+    fila.onclick = () => { this.app.workspace.openLinkText(x.archivo.path, '', false); };
   }
 
   pintarRecortes(lista, recortes) {
@@ -3370,6 +3503,27 @@ export default class MapaNeuronal extends Plugin {
     if (ruta.split('/').some((seg) => seg.startsWith('.'))) return true;
     return String(this.ajustes.ignorarIngesta || '').split(/[,\n]/).map((g) => g.trim()).filter(Boolean)
       .some((g) => comoPatron(g).test(g.includes('/') ? ruta : nombre));
+  }
+
+  // [1.35] Lo que llegó de afuera: los clips de la carpeta de recortes, con su día de llegada
+  // (creación en este equipo, no el nombre del archivo) y su estado. El estado sale del registro de
+  // huellas, no de «modificado después de la última ingesta»: un clip que Sync baja con fecha vieja
+  // no debe quedar invisible. Solo los últimos 14 días cuentan: antes de eso no hay registro fiable.
+  async llegadasDeAfuera() {
+    const dir = normalizePath(String(this.ajustes.carpetaRecortes || '').replace(/^\/+|\/+$/g, ''));
+    if (!dir || dir === '/') return [];
+    const reg = await this.leerRegistroIngesta(), limite = Date.now() - 14 * 86400000, out = [];
+    for (const f of this.app.vault.getMarkdownFiles()) {
+      if (!f.path.startsWith(dir + '/')) continue;
+      const fecha = f.stat?.ctime || f.stat?.mtime || 0;
+      let estado = 'ignorado';
+      if (!this.ignoradoEnIngesta(f.path)) {
+        const antes = reg.archivos[f.path];
+        estado = antes && antes.huella === huella(await this.app.vault.cachedRead(f)) ? 'ingerido' : 'nuevo';
+      }
+      out.push({ archivo: f, estado, fecha, reciente: fecha >= limite });
+    }
+    return out.sort((a, b) => b.fecha - a.fecha);
   }
 
   // Recortes sueltos: notas en la raíz que nadie enlaza, que no están en la lista de las que se
