@@ -498,11 +498,12 @@ const EN = {
   'Cita': 'Quote',
   '● buscando…': '● searching…',
   '● {0} nuevas': '● {0} new',
-  '● {0} por leer': '● {0} to read',
+  '● Por ingerir · {0}': '● To ingest · {0}',
+  'De afuera': 'From outside',
+  'Del día': 'From today',
   '● {0} por ordenar': '● {0} to file',
   '⌁ vínculos por revisar · {0} de {1}': '⌁ links to review · {0} of {1}',
   '⌁ vínculos por revisar · {0}': '⌁ links to review · {0}',
-  '↓ Llegó de afuera · {0}': '↓ Arrived from outside · {0}',
   '◷ línea de tiempo': '◷ timeline',
   'Línea de tiempo': 'Timeline',
   'Qué entró y adónde fue': 'What came in and where it went',
@@ -1357,10 +1358,8 @@ class VistaMapa extends ItemView {
     this.registerDomEvent(this.chips, 'scroll', () => this.marcarDesborde(), { passive: true });
     // Solo aparece si hay material nuevo: una barra sin nada que hacer no muestra este chip.
     this.chipNovedades = barra.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
-    this.chipNovedades.onclick = () => this.panelNovedades();
+    this.chipNovedades.onclick = () => (this.cuentas?.dia || !this.cuentas?.afuera ? this.panelNovedades() : this.panelLlegadas());
     // [1.35] Lo que entró de afuera (teléfono, Web Clipper), con su día y su estado: separado de lo recurrente.
-    this.chipLlegadas = barra.createEl('button', { cls: 'mn-chip mn-chip-llegadas' }); this.chipLlegadas.hide();
-    this.chipLlegadas.onclick = () => this.panelLlegadas();
     // [1.35] Qué entró cada día y en qué línea de negocio; tarjetas por tema con su última novedad.
     const linea = barra.createEl('button', { cls: 'mn-chip', text: T('◷ línea de tiempo') });
     linea.onclick = () => this.panelLinea();
@@ -2580,31 +2579,37 @@ class VistaMapa extends ItemView {
   async contarNovedades() {
     const chip = this.chipNovedades, pl = this.plugin;
     if (!chip) return;
-    this.contarLlegadas();
-    // Un solo chip: si no hay novedades pero sí recortes sueltos, avisa de esos.
+    // Un solo chip «Por ingerir»: junta lo que llegó de afuera y lo del día, contando cada archivo una vez
+    // (los clips también viven en la carpeta de material). Contar es local y gratis.
+    const rutasAfuera = new Set((await pl.llegadasDeAfuera()).filter((x) => x.estado === 'nuevo' && x.reciente).map((x) => x.archivo.path));
     const sueltos = pl.recortesSueltos().length;
-    const mostrar = (texto, n) => {
+    const mostrar = (texto, n, dia = 0) => {
+      this.cuentas = { afuera: rutasAfuera.size, dia };
       if (n > 0) { chip.setText(texto); chip.show(); }
       else if (sueltos) { chip.setText(T('● {0} por ordenar', sueltos)); chip.show(); }
       else chip.hide();
     };
-    if (!pl.ingestaLista()) return mostrar('', 0);
+    if (!pl.ingestaLista()) return mostrar(T('● Por ingerir · {0}', rutasAfuera.size), rutasAfuera.size);
     const st = this.plugin.nov || await pl.recuperarRevision();
     if (st?.fase === 'buscando') return mostrar(T('● buscando…'), 1);
     const quedan = st?.prop ? st.prop.novedades.filter((n) => n.estado === 'nuevo' && !n.decision).length : 0;
-    if (quedan) return mostrar(T('● {0} nuevas', quedan), quedan);
-    // Contar es local y gratis: se leen los archivos, no se llama a la IA.
+    if (quedan) return mostrar(T('● {0} nuevas', quedan), quedan, quedan);
     const m = await pl.prepararMaterial(pl.reunirCrudo());
-    const n = new Set(m.piezas.map((x) => x.ruta)).size;
-    mostrar(T('● {0} por leer', n), n);
+    const dia = new Set(m.piezas.map((x) => x.ruta).filter((r) => !rutasAfuera.has(r))).size;
+    const total = rutasAfuera.size + dia;
+    mostrar(T('● Por ingerir · {0}', total), total, dia);
+  }
+  // Pestañas «De afuera · a» y «Del día · b» arriba de los dos paneles: son una sola bandeja.
+  pestanas(p, activa) {
+    const c = this.cuentas || { afuera: 0, dia: 0 }, fila = p.createDiv('mn-acciones');
+    const una = (id, texto, n, ir) => {
+      const b = fila.createEl('button', { cls: 'mn-btn' + (activa === id ? ' activo' : ''), text: texto + ' · ' + n });
+      b.onclick = ir;
+    };
+    una('afuera', T('De afuera'), c.afuera, () => this.panelLlegadas());
+    una('dia', T('Del día'), c.dia, () => this.panelNovedades());
   }
 
-  // «Llegó de afuera»: los clips de la carpeta de recortes de los últimos días. Contar es local.
-  async contarLlegadas() {
-    const chip = this.chipLlegadas; if (!chip) return;
-    const n = (await this.plugin.llegadasDeAfuera()).filter((x) => x.estado === 'nuevo' && x.reciente).length;
-    if (n) { chip.setText(T('↓ Llegó de afuera · {0}', n)); chip.show(); } else chip.hide();
-  }
   etiquetaDia(t) {
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const dias = Math.round((hoy.getTime() - new Date(t).setHours(0, 0, 0, 0)) / 86400000);
@@ -2617,6 +2622,7 @@ class VistaMapa extends ItemView {
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
     cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    this.pestanas(p, 'afuera');
     const lista = p.createDiv('mn-lista mn-nov');
     p.addClass('abierto'); this.medir(); this.pedir();
     const todas = await pl.llegadasDeAfuera();
@@ -2735,6 +2741,7 @@ class VistaMapa extends ItemView {
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
     cerrar.onclick = () => { this.novAbierto = false; this.abrirPanel(this.foco ? this.porId[this.foco] : null); };
+    this.pestanas(p, 'dia');
     const lista = p.createDiv('mn-lista mn-nov');
     p.addClass('abierto'); this.medir(); this.pedir();
     if (!pl.ingestaLista()) {
