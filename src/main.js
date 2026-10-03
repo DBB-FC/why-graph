@@ -574,15 +574,20 @@ const EN = {
   'Mapa': 'Map',
   'Avanzado': 'Advanced',
   'Fuentes, exclusiones, exportar y propiedades del frontmatter.': 'Sources, exclusions, export and frontmatter properties.',
-  'Conexiones que faltan': 'Missing connections',
-  'Ocultar conexiones que faltan': 'Hide missing connections',
+  'Vínculos por revisar': 'Links to review',
+  'Pares de notas que no se enlazan, aunque ambas se relacionan con las mismas notas. Si el vínculo tiene sentido, la IA propone el motivo y tú lo apruebas; si no, lo descartas.': 'Pairs of notes that are not linked, although both relate to the same notes. If the link makes sense, the AI proposes the reason and you approve it; if not, you dismiss it.',
+  'Ocultar vínculos por revisar': 'Hide links to review',
+  'Opcional: marca con ★ los temas que más te importan y sus pares aparecerán primero.': 'Optional: mark with ★ the topics you care about most and their pairs will show first.',
+  'Las dos se relacionan con: {0}. ¿Deberían enlazarse?': 'Both relate to: {0}. Should they be linked?',
+  'Sí, proponer motivo': 'Yes, propose a reason',
+  'No, descartar': 'No, dismiss',
+  'Orden de los temas de contenido': 'Content topics order',
+  'Por número de notas (los más grandes primero) o alfabético.': 'By number of notes (largest first) or alphabetical.',
+  'Por número de notas': 'By number of notes',
+  'Alfabético': 'Alphabetical',
   '⌁ conexiones que faltan': '⌁ missing connections',
   'Revisar primero': 'Review first',
-  'Notas que comparten vecinos pero no se enlazan, de temas que se conectan menos de lo esperable.': 'Notes that share neighbors but are not linked, from topics that connect less than expected.',
-  'Marca los temas que más te importan (por ejemplo, proyectos y ventas): sus conexiones suben.': 'Mark the topics that matter most to you (for example, projects and sales): their connections move up.',
   'No hay conexiones pendientes: los temas se enlazan entre sí en proporción a su tamaño.': 'No pending connections: topics link to each other in proportion to their size.',
-  '{0} vecino(s) en común · {1} ↔ {2}': '{0} neighbor(s) in common · {1} ↔ {2}',
-  'Proponer motivo': 'Propose a reason',
   '{0} no respondió en {1} s. Vuelve a intentar en un rato.': '{0} did not answer within {1} s. Try again in a while.',
   '{0} está ocupado; reintento en {1} s…': '{0} is busy; retrying in {1} s…',
   'No se pudo leer nada': 'Nothing could be read',
@@ -708,6 +713,7 @@ const AJUSTES_BASE = {
   temasDeContenido: '',
   // [1.35] Tags de estado de página que no se ofrecen como tema al sugerir (lista editable en los ajustes).
   tagsDeEstado: 'reutilizable, bloqueado, pendiente',
+  ordenTemas: 'notas',
   temasClave: [],
   vaciosDescartados: [],
 };
@@ -1025,7 +1031,7 @@ async function construir(app, s) {
   // [1.35] Con temas de contenido, la entrada se lee por tiempo (lo más nuevo arriba) y los temas por
   // cuántas notas reúnen. Esas dos columnas no se reordenan para cruzar menos curvas.
   const fija = (capa) => modoContenido && (capa === 0 || capa === capaTemas);
-  const ordenFijo = (capa) => (capa === 0 ? (p, q) => (q.fecha || 0) - (p.fecha || 0) || p.titulo.localeCompare(q.titulo) : (p, q) => q.grado - p.grado || p.titulo.localeCompare(q.titulo));
+  const ordenFijo = (capa) => (capa === 0 ? (p, q) => (q.fecha || 0) - (p.fecha || 0) || p.titulo.localeCompare(q.titulo) : (p, q) => (s.ordenTemas === 'alfabetico' ? 0 : q.grado - p.grado) || p.titulo.localeCompare(q.titulo));
   cols.forEach((c, capa) => c.sort(fija(capa) ? ordenFijo(capa) : (p, q) => (ordenTema[p.tema] ?? 99) - (ordenTema[q.tema] ?? 99) || q.grado - p.grado));
   const pos = {};
   const indexar = () => cols.forEach((c) => c.forEach((n, i) => (pos[n.id] = i / Math.max(c.length - 1, 1))));
@@ -1771,7 +1777,7 @@ class VistaMapa extends ItemView {
       if (this.radial && !this.foco) new Notice(T('Toca una nota para ponerla al centro'));
       this.medir(); this.encuadrar(); this.pintarEstado();
     }));
-    m.addItem((i) => i.setTitle(this.vacios ? T('Ocultar conexiones que faltan') : T('Conexiones que faltan')).setIcon('unlink').onClick(() => {
+    m.addItem((i) => i.setTitle(this.vacios ? T('Ocultar vínculos por revisar') : T('Vínculos por revisar')).setIcon('unlink').onClick(() => {
       this.vacios = !this.vacios; this.sugerencia = null;
       if (this.vacios) { this.listaVacios = this.calcularVacios(); this.panelVacios(); } else this.abrirPanel(this.foco ? this.porId[this.foco] : null);
       this.pintarEstado(); this.pedir();
@@ -2552,8 +2558,8 @@ class VistaMapa extends ItemView {
   }
   panelVacios() {
     const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
-    const acciones = this.cabecera(p, T('Conexiones que faltan'), T('Revisar primero'),
-      T('Notas que comparten vecinos pero no se enlazan, de temas que se conectan menos de lo esperable.'));
+    const acciones = this.cabecera(p, T('Vínculos por revisar'), T('Revisar primero'),
+      T('Pares de notas que no se enlazan, aunque ambas se relacionan con las mismas notas. Si el vínculo tiene sentido, la IA propone el motivo y tú lo apruebas; si no, lo descartas.'));
     // Igual que los demás paneles: una ✕, no un botón de texto.
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
@@ -2562,7 +2568,7 @@ class VistaMapa extends ItemView {
     // Temas clave: la persona dice qué le importa (p. ej. proyectos y ventas) y eso sube primero.
     const temas = Object.entries(this.D.temas).filter(([id]) => this.D.nodos.some((n) => n.tema === id));
     if (temas.length > 1) {
-      lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('Marca los temas que más te importan (por ejemplo, proyectos y ventas): sus conexiones suben.') });
+      lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('Opcional: marca con ★ los temas que más te importan y sus pares aparecerán primero.') });
       const fila = lista.createDiv('mn-temas-clave');
       const clave = new Set(pl.ajustes.temasClave || []);
       for (const [id, [nombre, color]] of temas) {
@@ -2579,11 +2585,13 @@ class VistaMapa extends ItemView {
       const t = h.createDiv('mn-vacio-t');
       t.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': this.D.temas[c.ti]?.[1] }); t.appendText(` ${A.titulo}  ↔  `);
       t.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': this.D.temas[c.tj]?.[1] }); t.appendText(` ${B.titulo}`);
-      h.createDiv({ cls: 'mn-motivo', text: T('{0} vecino(s) en común · {1} ↔ {2}', c.comunes, this.D.temas[c.ti]?.[0] || c.ti, this.D.temas[c.tj]?.[0] || c.tj) });
+      const ult = this.D.capas.length - 1, ambas = [...this.adyBase[c.a]].filter((v) => this.adyBase[c.b].has(v)).map((v) => this.base[v]).filter((n) => n && n.propio && !n.fuente && n.capa !== ult);
+      const nombres = ambas.slice(0, 3).map((n) => n.titulo).join(', ') + (ambas.length > 3 ? '…' : '');
+      h.createDiv({ cls: 'mn-motivo', text: T('Las dos se relacionan con: {0}. ¿Deberían enlazarse?', nombres) });
       h.onclick = () => { this.sugerencia = [c.a, c.b]; this.foco = null; this.pedir(); };
       const acc = h.createDiv('mn-acciones'), zona = h.createDiv('mn-ia');
-      if (pl.tieneIA()) this.boton(acc, 'sparkles', T('Proponer motivo'), (e) => { e.stopPropagation(); this.sugerirMotivo({ origen: A.ruta, destino: B.ruta, linea: 0, nuevo: true }, zona); });
-      this.boton(acc, 'x', T('Descartar'), async (e) => {
+      if (pl.tieneIA()) this.boton(acc, 'sparkles', T('Sí, proponer motivo'), (e) => { e.stopPropagation(); this.sugerirMotivo({ origen: A.ruta, destino: B.ruta, linea: 0, nuevo: true }, zona); });
+      this.boton(acc, 'x', T('No, descartar'), async (e) => {
         e.stopPropagation();
         pl.ajustes.vaciosDescartados = [...new Set([...(pl.ajustes.vaciosDescartados || []), c.clave])];
         await pl.guardar(); h.remove(); this.pintarChips();
@@ -3064,6 +3072,7 @@ class AjustesMapa extends PluginSettingTab {
     area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7);
     area('Temas de contenido', 'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.', 'temasDeContenido', 6);
     new Setting(c).setName(T('Tags de estado (no son temas)')).setDesc(T('Reutilizable, bloqueado, pendiente… «Sugerir temas» no los ofrece. Separados por comas.')).addText((x) => x.setValue(p.ajustes.tagsDeEstado ?? '').onChange(async (v) => { p.ajustes.tagsDeEstado = v.trim(); await p.guardar(); }));
+    new Setting(c).setName(T('Orden de los temas de contenido')).setDesc(T('Por número de notas (los más grandes primero) o alfabético.')).addDropdown((d) => d.addOptions({ notas: T('Por número de notas'), alfabetico: T('Alfabético') }).setValue(p.ajustes.ordenTemas || 'notas').onChange(async (v) => { p.ajustes.ordenTemas = v; await p.guardar(); }));
     new Setting(c).setName(T('Sugerir temas de contenido')).setDesc(T('Lista los tags de tu vault por frecuencia para que marques cuáles son temas.'))
       .addButton((b) => b.setButtonText(T('Sugerir desde el vault')).onClick(() => new SugerirTemas(this.app, p, () => this.refrescar()).open()));
     new Setting(c).setName(T('Notas visibles por capa')).setDesc(T('En vaults grandes, cada capa muestra sus notas más conectadas; las demás aparecen al buscarlas.'))
@@ -3234,6 +3243,7 @@ class AjustesMapa extends PluginSettingTab {
         area('Temas', 'Una por línea: «valor = nombre visible = #color». Los temas que no estén aquí reciben un color automático.', 'temas', 7),
         area('Temas de contenido', 'Opcional. Una por línea: «tag = nombre visible». Si hay alguno, la última capa muestra estos temas (uno por tag, unido a las notas que lo llevan), lo que las carpetas mandaban ahí baja una capa y la primera se ordena por fecha. Vacío = como siempre.', 'temasDeContenido', 6),
         texto('Tags de estado (no son temas)', 'Reutilizable, bloqueado, pendiente… «Sugerir temas» no los ofrece. Separados por comas.', 'tagsDeEstado'),
+        { name: T('Orden de los temas de contenido'), render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty(); const p = this.plugin; new Setting(el).setName(T('Orden de los temas de contenido')).setDesc(T('Por número de notas (los más grandes primero) o alfabético.')).addDropdown((d) => d.addOptions({ notas: T('Por número de notas'), alfabetico: T('Alfabético') }).setValue(p.ajustes.ordenTemas || 'notas').onChange(async (v) => { p.ajustes.ordenTemas = v; await p.guardar(); })); } },
         { name: T('Sugerir temas de contenido'), aliases: ['tags', 'etiquetas'],
           render: (setting) => { const el = setting?.settingEl; if (!el) return; el.empty();
             new Setting(el).setName(T('Sugerir temas de contenido')).setDesc(T('Lista los tags de tu vault por frecuencia para que marques cuáles son temas.'))

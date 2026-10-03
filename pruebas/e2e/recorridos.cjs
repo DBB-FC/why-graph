@@ -265,10 +265,10 @@ const RECORRIDOS = {
     await M.cerrar();
   },
   async 'conexiones que faltan: descartar un par y que no vuelva'(M) {
-    let s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Conexiones que faltan');
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
     const antes = s.textoVisible();
-    if (!(await s.pulsa('Descartar', { opcional: true }))) { await M.cerrar(); return 'no había pares que revisar'; }
-    await M.cerrar(); s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Conexiones que faltan');
+    if (!(await s.pulsa('No, descartar', { opcional: true }))) { await M.cerrar(); return 'no había pares que revisar'; }
+    await M.cerrar(); s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
     const despues = s.textoVisible(); await M.cerrar();
     return `pares visibles antes/después: ${(antes.match(/↔/g) || []).length} → ${(despues.match(/↔/g) || []).length}`;
   },
@@ -538,7 +538,7 @@ const RECORRIDOS = {
     M.idioma = 'en'; const e = await M.abrir('mac');
     await e.abrirMapa(); juntar(e); await e.toca('crm'); juntar(e);
     await e.pulsa(/to read|new|por leer/, { opcional: true }); juntar(e); await e.pulsa(/Find what|Buscar/, { opcional: true }); juntar(e);
-    await e.menu(/Missing connections|Conexiones/); juntar(e);
+    await e.menu(/Links to review|Vínculos/); juntar(e);
     for (const a of M.avisos) vistos.add(a.texto);
     await M.cerrar(); M.idioma = 'es';
     const espanol = /\b(por leer|nuevas|Buscar|Terminar|Aprobar|Descartar|Sugerir|motivo|novedades|salto|conexiones|notas|archivos|enlaces|Cerrar|Abrir|Camino|Resumir|Detener|herramientas|Revisar|seguras|Ver )\b/;
