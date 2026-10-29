@@ -16,7 +16,7 @@ const DETALLE = args.includes('--detalle');
 // --vault <ruta>: los recorridos genéricos sobre una COPIA EN MEMORIA de un vault real (solo se lee
 // del disco; nada se escribe) con su data.json y la IA falsa. Encuentra lo que un vault de prueba no tiene.
 const VAULT = args.includes('--vault') ? args[args.indexOf('--vault') + 1] : null;
-const GENERICOS = ['temas de contenido en un vault cualquiera', 'novedades con cuota diaria', 'aprobar parte', 'material nuevo', 'respeta el tope', 'detener una búsqueda', 'cuota agotada', 'teléfono: tocar', 'aprobar lo mismo'];
+const GENERICOS = ['temas de contenido en un vault cualquiera', 'novedades con cuota diaria', 'aprobar parte', 'material nuevo', 'respeta el tope', 'detener una búsqueda', 'cuota agotada', 'teléfono: tocar', 'mouse: pasar', 'aprobar lo mismo', 'cola de motivos'];
 
 // ── El vault de la persona: un LLM wiki con material crudo de varios días ──────────────────────
 const parrafos = (tema, n, extra = '') => Array.from({ length: n }, (_, k) => `${tema} ${k + 1}: se acordó con el equipo avanzar en la entrega número ${k + 1} y revisar el presupuesto el jueves ${extra}.`).join('\n\n');
@@ -174,11 +174,15 @@ const RECORRIDOS = {
   async 'al abrir Obsidian varias veces el mismo día, respeta el tope y avanza cada día'(M) {
     Object.assign(M.datos, { autoIngesta: true, topeDiario: 2 });
     const cuentas = [], porDia = [];
+    // Solo cuenta lo que la búsqueda automática puede alcanzar: sin sello, mira los últimos 7 días. En un vault
+    // real hay miles de archivos viejos que ese recorrido no toca por diseño (se leen a mano); contarlos
+    // daba un «día sin avanzar» falso (29.10.2026: 27 archivos recientes, consumidos en 2 días).
+    const desde = M.reloj - 7 * 86400000, alcance = () => M.sinLeer().filter((r) => (M.mtimes[r] ?? 0) > desde);
     for (let dia = 1; dia <= 3; dia++) {
       const antes = M.ia.llamadas.length;
       for (let i = 0; i < 3; i++) {
         const s = await M.abrir('mac'); M.busqueda = `auto${dia}-${i}`; await s.calma(); await s.abrirMapa();
-        if (i === 0) cuentas.push(M.sinLeer().length);
+        if (i === 0) cuentas.push(alcance().length);
         await s.pulsa(/nuevas/, { opcional: true }); await s.pulsa('Terminar', { opcional: true });   // revisa y termina
         await M.cerrar(); M.pasarMinutos(20);
       }
@@ -188,8 +192,8 @@ const RECORRIDOS = {
     }
     if (porDia.every((x) => x === 0) && cuentas[0] > 0) M.hallazgo('la búsqueda automática nunca arranca', `con ${cuentas[0]} archivos por leer y tope 2, 0 llamadas en 3 días`);
     // Si queda material sin leer, un día sin llamadas es un día perdido.
-    porDia.forEach((x, i) => { if (!x && (cuentas[i] ?? M.sinLeer().length) > 0) M.hallazgo('un día sin avanzar', `día ${i + 1}: 0 llamadas con ${cuentas[i]} archivos sin leer`); });
-    return `llamadas por día: ${porDia.join(', ')} (tope 2) · sin leer (según lo recibido por la IA): ${cuentas.join(' → ')} → ${M.sinLeer().length}`;
+    porDia.forEach((x, i) => { if (!x && (cuentas[i] ?? alcance().length) > 0) M.hallazgo('un día sin avanzar', `día ${i + 1}: 0 llamadas con ${cuentas[i]} archivos sin leer`); });
+    return `llamadas por día: ${porDia.join(', ')} (tope 2) · sin leer (según lo recibido por la IA): ${cuentas.join(' → ')} → ${alcance().length} (solo lo que alcanza la búsqueda automática)`;
   },
   async 'un registro del día que crece: solo se envía lo agregado'(M) {
     M.ia.cuotaDiaria = Infinity;
@@ -271,6 +275,37 @@ const RECORRIDOS = {
     await M.cerrar(); s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
     const despues = s.textoVisible(); await M.cerrar();
     return `pares visibles antes/después: ${(antes.match(/↔/g) || []).length} → ${(despues.match(/↔/g) || []).length}`;
+  },
+  async 'cola de motivos: se prepara una vez, sobrevive al reinicio y la cuota'(M) {
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
+    if (!s.ve('Preparar motivos')) {
+      if (s.ve('↔')) M.hallazgo('botón que no está', 'Preparar motivos: hay pares por revisar pero ninguna forma de prepararlos todos');
+      await M.cerrar(); return 'no había pares que preparar';
+    }
+    const pares = (s.textoVisible().match(/↔/g) || []).length;
+    M.ia.cuotaDiaria = 3; // la capa gratis: se acaba a mitad de la cola
+    await s.pulsa(/Preparar motivos de los \d+ pares/);
+    await M.esperar?.(200);
+    const t1 = s.textoVisible();
+    if (!/cuota|límite|quota|✕/i.test(t1)) M.hallazgo('la cola se detuvo sin decir por qué', t1.slice(0, 300));
+    await M.cerrar();
+    const pagadas = M.ia.llamadas.length;
+    s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
+    if (!/motivo ya preparado/.test(s.textoVisible())) M.hallazgo('los motivos preparados se perdieron al reiniciar', s.textoVisible().slice(0, 300));
+    if (M.ia.llamadas.length !== pagadas) M.hallazgo('pagó de nuevo al reabrir', `${pagadas} → ${M.ia.llamadas.length}`);
+    // Al día siguiente sigue donde quedó, sin repetir lo hecho.
+    M.pasarDias(1); M.ia.cuotaDiaria = Infinity;
+    await M.cerrar(); s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
+    const antes = M.ia.llamadas.length;
+    await s.pulsa(/Preparar motivos de los \d+ pares/, { opcional: true });
+    await M.esperar?.(200);
+    const nAntes = (s.textoVisible().match(/↔/g) || []).length;
+    const aprobo = await s.pulsa('Aprobar y escribir en la nota', { opcional: true });
+    await M.esperar?.(50);
+    const nDespues = (s.textoVisible().match(/↔/g) || []).length;
+    await M.cerrar();
+    if (aprobo && nDespues >= nAntes) M.hallazgo('el par aprobado sigue en la lista', `${nAntes} → ${nDespues}`);
+    return `${pares} pares · llamadas ${pagadas} (cuota) + ${M.ia.llamadas.length - antes} (día 2) · aprobó: ${aprobo}`;
   },
   async 'recortes sueltos: ordenar y dejar'(M) {
     M.escribir('otro recorte.md', '# Otro\n\nTexto recortado que también quedó en la raíz del vault.\n'); M.pasarMinutos(10);
@@ -518,6 +553,33 @@ const RECORRIDOS = {
     if (!v.panel.hasClass('abierto')) M.hallazgo('tocar no abre el panel', n.titulo);
     else if (y > panel.top) M.hallazgo('la nota tocada queda bajo el panel', `${n.titulo}: y=${Math.round(y)} y el panel empieza en ${Math.round(panel.top)}`);
     await M.cerrar();
+  },
+  async 'mouse: pasar por un enlace muestra su porqué'(M) {
+    const s = await M.abrir('mac'); await s.abrirMapa();
+    const v = s.vista, k = v.vista.k;
+    const mover = (px, py, tipo) => { for (const f of v.lienzo.eventos.pointermove || []) f({ type: 'pointermove', pointerId: 1, pointerType: tipo, clientX: px, clientY: py, preventDefault() {} }); };
+    const tip = () => { const t = v.tipArista; if (!t || t.hasClass('mn-oculto')) return ''; let x = ''; for (const n of t.recorrer()) x += ' ' + n.texto; return x.replace(/\\s+/g, ' ').trim(); };
+    v.dibujar();   // el mundo de pruebas no tiene cuadros de animación: se pide el dibujo a mano
+    if (!(v.golpes || []).length) { M.hallazgo('el mapa no tiene enlaces señalables', 'ningún enlace dibujado con fuerza'); await M.cerrar(); return; }
+    // Un enlace que no pase por encima de ninguna nota: la nota tiene prioridad sobre el enlace.
+    const punto = (A, B) => { const L = A.x <= B.x ? A : B, R = L === A ? B : A, mx = (L.x + R.x) / 2; return L.capa === R.capa ? null : [(L.x + 3 * mx + 3 * mx + R.x) / 8, (L.y + 3 * L.y + 3 * R.y + R.y) / 8]; };
+    let hecho = false, motivoVisto = '';
+    for (const [A, B] of v.golpes) {
+      const pt = punto(A, B); if (!pt) continue;
+      const px = pt[0] * k + v.vista.x, py = pt[1] * k + v.vista.y;
+      if (v.nodoEn(px, py)) continue;
+      mover(px, py, 'mouse'); const t = tip();
+      if (!t.includes(A.titulo) || !t.includes(B.titulo)) continue;
+      motivoVisto = t; hecho = true;
+      mover(px, py, 'touch');   // en el celular no hay «pasar por encima»: la etiqueta de antes se queda hasta que el mouse salga
+      mover(px + 500, py + 500, 'mouse');
+      if (tip()) M.hallazgo('la etiqueta no se va al salir del enlace', t);
+      break;
+    }
+    if (!hecho) M.hallazgo('pasar por un enlace no muestra su porqué', `${v.golpes.length} enlaces señalables y ninguno respondió al mouse`);
+    else if (!/sin motivo todavía|no reason yet|[a-zA-ZáéíóúñÁÉÍÓÚ]{4,}/.test(motivoVisto.replace(/\s+/g, ' ').split('→').slice(-1)[0] || '')) M.hallazgo('la etiqueta no trae motivo ni aviso', motivoVisto);
+    await M.cerrar();
+    return hecho ? `etiqueta: ${motivoVisto.slice(0, 90)}` : 'sin etiqueta';
   },
   async 'aprobar lo mismo otra vez no duplica'(M) {
     let s = await M.abrir('mac'); await s.abrirMapa(); await s.pulsa(/Por ingerir/); M.busqueda = 'b1'; await s.pulsa('Buscar novedades');

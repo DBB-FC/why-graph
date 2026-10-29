@@ -57,3 +57,11 @@ Si el recorrido sirve para cualquier vault, agrega su nombre a `GENERICOS` para 
 - La batería también encontró dos errores en el propio arreglo antes de publicarlo:
   - una revisión vacía que escondía el material por leer;
   - la búsqueda automática que nunca arrancaba si el atraso superaba el tope.
+
+## Cola de motivos (1.36)
+
+El recorrido `cola de motivos` abre «Vínculos por revisar», pulsa «Preparar motivos de los N pares» con
+la cuota de la IA en 3 llamadas, y comprueba: que diga por qué se detuvo, que lo preparado sobreviva al
+reinicio sin pagarse otra vez, que al día siguiente siga donde quedó, y que «Aprobar y escribir en la nota»
+saque el par de la lista. Contra la 1.35.0 falla con `botón que no está` (no había forma de preparar todos).
+Corre también con `--vault`.

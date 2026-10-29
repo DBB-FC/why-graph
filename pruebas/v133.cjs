@@ -123,7 +123,7 @@ const respuesta = (obj) => ({ status: 200, json: { choices: [{ message: { conten
     let error = ''; try { await v.pl.llamarIA('s', 'u', { type: 'object', properties: {} }); } catch (e) { error = e.message; }
     p.cierto('openrouter: un error dentro de un 200 se dice como error', /upstream caído/.test(error));
     let n = 0; global.__req = async () => { n++; return { status: 429, headers: { 'x-ratelimit-limit': '50' }, json: { error: { code: 429, message: 'Rate limit exceeded: free-models-per-day' } } }; };
-    error = ''; try { await v.pl.pedirReintentando({ url: 'x' }, 'OpenRouter'); } catch (e) { error = e.message; }
+    error = ''; try { await v.pl.pedirReintentando({ url: 'https://openrouter.ai/api/v1/chat/completions' }, 'OpenRouter'); } catch (e) { error = e.message; }
     p.cierto('openrouter: el límite diario de los modelos gratis no se reintenta', n === 1 && /cuota diaria|daily quota/i.test(error) && /50/.test(error));
     global.__req = null;
   }

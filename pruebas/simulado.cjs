@@ -55,7 +55,7 @@ function obsidianSimulado() {
       debounce: (f) => f,
       setIcon: () => {},
       requestUrl: async (o) => (global.__req ? global.__req(o) : { status: 500, json: {} }),
-      normalizePath: (p) => String(p).replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, ''),
+      normalizePath: (p) => String(p).replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '') || '/',   // como Obsidian: '' -> '/'
       getLanguage: () => global.__idioma || 'en',
     },
   };
@@ -157,7 +157,7 @@ function cargarPlugin(rutaMain) {
   global.document = global.document || { visibilityState: 'visible' };
   global.getComputedStyle = global.getComputedStyle || (() => ({ getPropertyValue: () => '' }));
   global.ResizeObserver = global.ResizeObserver || class { observe() {} disconnect() {} };
-  new Function('require', 'module', 'exports', texto + '\nmodule.exports.__t = { construir, VistaMapa, AsistenteCapas, AjustesMapa, AJUSTES_BASE, PROVEEDORES, CAPAS_ESTANDAR, EN, T, enlacesDe, detectarCarpetas, leerAjustes, CLAVE_IA, citasDe, carpetasFuentesDe, nodoFuenteDe, inventarioFuentes, detectarFuentes, subcarpetasFechadas, PLANTILLAS, REGLAS, plantillaActual, tsne, distanciasTfidf, indiceTfidf, candidatasPerspectiva };')(
+  new Function('require', 'module', 'exports', texto + '\nmodule.exports.__t = { construir, VistaMapa, AsistenteCapas, Entrevista: typeof Entrevista === \"function\" ? Entrevista : undefined, AjustesMapa, AJUSTES_BASE, PROVEEDORES, CAPAS_ESTANDAR, EN, T, enlacesDe, detectarCarpetas, detectarForma: typeof detectarForma === \"function\" ? detectarForma : undefined, leerAjustes, CLAVE_IA, citasDe, carpetasFuentesDe, nodoFuenteDe, inventarioFuentes, detectarFuentes, subcarpetasFechadas, PLANTILLAS, REGLAS, plantillaActual, tsne, distanciasTfidf, indiceTfidf, candidatasPerspectiva };')(
     (n) => (n === 'obsidian' ? sim.modulo : require(n)), m, m.exports);
   return { Plugin: m.exports.default || m.exports, interno: m.exports.__t, avisos: sim.avisos, filas: sim.filas, ajustesUI: sim.ajustesUI };
 }

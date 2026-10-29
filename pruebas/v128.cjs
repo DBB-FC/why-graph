@@ -178,7 +178,7 @@ const menuFalso = () => ({ items: [], addItem(f) { const c = { titulo: '', setTi
 
   // ── 6. Plugin: comandos y recarga de ajustes ─────────────────────────────────────────────────
   const pl = new Plugin(); pl.app = app; await pl.onload();
-  p.igual('registra cuatro comandos', pl.comandos.length, 4);
+  p.igual('registra cinco comandos (con la configuración guiada)', pl.comandos.length, 5);
   p.cierto('uno es recargar-ajustes', pl.comandos.some((c) => c.id === 'recargar-ajustes'));
   pl._datos = Object.assign({}, AJUSTES, { capas: 'A | a\nB | b', carpetaExport: 'otra' });
   await pl.recargarAjustes();
@@ -207,7 +207,7 @@ const menuFalso = () => ({ items: [], addItem(f) { const c = { titulo: '', setTi
   p.igual('con el enlace largo, a0 baja bajo b0', con.indexOf('a0') > con.indexOf('b0'), true);
 
   // ── 8. Plantillas y asistente con config existente ───────────────────────────────────────────
-  p.igual('hay cinco plantillas, con la de negocio', PLANTILLAS.map((x) => x[0]).join(','), 'llm,negocio,profesional,academico,zettel');
+  p.igual('hay seis plantillas, con la de negocio y PARA', PLANTILLAS.map((x) => x[0]).join(','), 'llm,negocio,profesional,academico,para,zettel');
   p.cierto('la primera es la de siempre', PLANTILLAS[0][2] === CAPAS_ESTANDAR);
   p.igual('la profesional tiene cinco capas', PLANTILLAS.find((x) => x[0] === 'profesional')[2].length, 5);
   p.igual('sin carpetas no hay plantilla actual', plantillaActual(Object.assign({}, AJUSTES_BASE, { carpetas: '' })), null);
