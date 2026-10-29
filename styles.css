@@ -231,3 +231,14 @@
 .mn-parecido { width: 100%; max-width: 100%; aspect-ratio: 1; background: var(--background-secondary); border-radius: 6px; }
 .mn-parecido circle { cursor: pointer; opacity: 0.85; }
 .mn-parecido circle:hover { opacity: 1; stroke: var(--text-normal); stroke-width: 0.4; }
+
+/* [1.36] Fondo «papel»: el texto sobre el lienzo pasa a tinta oscura. */
+.mn-papel .mn-marca { color: #1E2140; }
+.mn-papel .mn-guia { color: #565C7A; }
+
+/* [1.36] Etiqueta con el porqué de un enlace al pasar el mouse (solo con mouse). */
+.mn-tip-enlace { position: absolute; left: var(--mn-x, 0); top: var(--mn-y, 0); z-index: 4; max-width: 280px; pointer-events: none; padding: 8px 10px; border-radius: 8px; background: rgba(6,10,24,.94); color: #E6EAFF; border: 1px solid rgba(170,185,255,.3); font: 12px/1.4 var(--font-interface); }
+.mn-tip-enlace.mn-oculto { display: none; }
+.mn-tip-ruta { font-weight: 600; margin-bottom: 3px; }
+.mn-tip-sin { opacity: .65; font-style: italic; }
+.mn-tip-frase { margin-top: 3px; opacity: .8; }

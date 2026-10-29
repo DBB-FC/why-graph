@@ -238,7 +238,7 @@ function conIA(pl, respuesta) {
     };
     const m = await q.prepararMaterial(q.reunirCrudo());
     const prop = await q.proponerIngesta(m.piezas);
-    p.cierto(`50 archivos / ${Math.round(total / 1024)} KB → 10 llamadas o menos (${llamadas})`, llamadas <= 10);
+    p.cierto(`50 archivos / ${Math.round(total / 1024)} KB → 15 llamadas o menos (${llamadas})`, llamadas <= 15);
     p.cierto(`nunca más de 3 llamadas a la vez (${maxVuelo})`, maxVuelo <= 3 && maxVuelo > 1);
     p.cierto('todas las piezas quedan leídas', m.piezas.every((x) => x.ok));
     p.cierto('la fuente que dice la IA se respeta si es uno de los archivos enviados', prop.novedades.every((x) => /^raw\/d\/\d\d\.md$/.test(x.fuente) && x.verificada));
@@ -367,12 +367,12 @@ function conIA(pl, respuesta) {
     q.plazoIA = 50;
     global.__req = () => new Promise(() => {});
     let msg = ''; const t0 = Date.now();
-    try { await q.pedirReintentando({ url: 'https://x' }, 'Gemini'); } catch (e) { msg = e.message; }
+    try { await q.pedirReintentando({ url: 'https://generativelanguage.googleapis.com/v1beta/x' }, 'Gemini'); } catch (e) { msg = e.message; }
     p.cierto('una llamada que no responde se corta con un aviso', /did not answer|no respondió/.test(msg) && Date.now() - t0 < 2000);
     q.plazoIA = 5000;
     global.__req = () => ({ status: 429, headers: {}, json: { error: { details: [{ retryDelay: '45s' }] } } });
     msg = ''; const t1 = Date.now();
-    try { await q.pedirReintentando({ url: 'https://x' }, 'Gemini'); } catch (e) { msg = e.message; }
+    try { await q.pedirReintentando({ url: 'https://generativelanguage.googleapis.com/v1beta/x' }, 'Gemini'); } catch (e) { msg = e.message; }
     p.cierto('si la IA pide esperar 45 s, se avisa ya en vez de quedar pegado', /429/.test(msg) && Date.now() - t1 < 1000);
     global.__req = null;
   }

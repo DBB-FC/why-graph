@@ -35,7 +35,7 @@ const AJUSTES = Object.assign({}, AJUSTES_BASE, {
   pl.app = app;
   await pl.onload();
   p.igual('registra la vista del mapa', pl.vistas.length, 1);
-  p.igual('registra cuatro comandos', pl.comandos.length, 4);
+  p.igual('registra cinco comandos (con la configuración guiada)', pl.comandos.length, 5);
   p.igual('registra el ícono de la barra', pl.ribbon.length, 1);
   p.igual('registra la pestaña de ajustes', pl.pestanas.length, 1);
   p.cierto('los comandos no repiten el nombre del plugin', !pl.comandos.some((c) => /mapa neuronal/i.test(c.name)));

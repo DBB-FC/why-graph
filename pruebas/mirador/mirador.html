@@ -137,6 +137,8 @@ window.exports = window.module.exports;
   plugin.app = app;
   plugin.ajustes = Object.assign({}, window.__AJUSTES_BASE || {}, ajustes, { animacion: false, configurado: true });
   // ?contenido=1 → la última capa con los temas de contenido de ejemplo (tags inventados del vault).
+  // ?fondo=papel|tema|noche → el fondo del mapa (1.36).
+  if (new URLSearchParams(location.search).get('fondo')) plugin.ajustes.fondoMapa = new URLSearchParams(location.search).get('fondo');
   if (new URLSearchParams(location.search).get('contenido')) plugin.ajustes.temasDeContenido = ajustes.temasDeContenidoEjemplo || '';
   plugin.guardar = async () => {};
   plugin.refrescarVistas = () => {};
@@ -169,6 +171,16 @@ window.exports = window.module.exports;
   v.contentEl = document.getElementById('hoja');
   await v.onOpen();
   window.__v = v;
+  // ?enlace=1 → el mouse sobre un enlace: se dibuja y se mueve el puntero al punto medio de uno señalable (1.36).
+  if (new URLSearchParams(location.search).get('enlace')) {
+    v.dibujar();
+    const par = (v.golpes || []).find(([a, b]) => a.capa !== b.capa && !v.nodoEn(((a.x + b.x) / 2) * v.vista.k + v.vista.x, ((a.y + b.y) / 2) * v.vista.k + v.vista.y));
+    if (par) {
+      const [a, b] = par, L = a.x <= b.x ? a : b, R = L === a ? b : a, mx = (L.x + R.x) / 2, k = v.vista.k;
+      const px = ((L.x + 6 * mx + R.x) / 8) * k + v.vista.x, py = ((L.y * 4 + R.y * 4) / 8) * k + v.vista.y, r = v.lienzo.getBoundingClientRect();
+      v.lienzo.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, pointerType: 'mouse', clientX: r.left + px, clientY: r.top + py, bubbles: true }));
+    }
+  }
   // Un foco opcional por la URL: ?foco=nombre-de-nota
   const q = new URLSearchParams(location.search);
   const buscar = (t) => v.N.find((x) => x.titulo.toLowerCase().includes(String(t).toLowerCase()));
