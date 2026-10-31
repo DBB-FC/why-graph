@@ -78,6 +78,18 @@ const NOTAS = {
   const sin = await q.preguntarAlMapa(D, 'andes.md', '¿Cuánto factura Andes?');
   p.cierto('una respuesta sin citas no se muestra como respuesta', sin.suficiente === false && sin.sinCitas === true && sin.respuesta === '');
 
+  // ── 4a. Citas en el formato que venga, y respuestas rotas con un mensaje legible ──────────────
+  for (const [como, citas, esperado] of [['«C1»', ['C1'], 'c1'], ['«c1, c3» en un texto', ['c1, c3'], 'c1,c3'], ['«[c1] (andes) …»', ['[c1] (andes) --[usa]--> (crm)'], 'c1'], ['«[2]»', ['[2]'], 'c2'], ['un texto en vez de lista', 'c3', 'c3']]) {
+    respuesta = { suficiente: true, respuesta: 'Andes usa el CRM.', citas };
+    const x = await q.preguntarAlMapa(D, 'andes.md', '¿Qué usa Andes?');
+    p.igual(`cita ${como}`, [x.suficiente, x.citas.map((l) => l.id).join()], [true, esperado]);
+  }
+  for (const [como, r] of [['null', null], ['sin lista de citas', { suficiente: true, respuesta: 'x', citas: { a: 1 } }], ['respuesta que no es texto', { suficiente: true, respuesta: 42, citas: ['c1'] }]]) {
+    respuesta = r; let m = '', x = null;
+    try { x = await q.preguntarAlMapa(D, 'andes.md', '¿Qué usa Andes?'); } catch (e) { m = e.message; }
+    p.cierto(`respuesta rota (${como}): mensaje legible, nunca «is not a function»`, !/is not a function|Cannot read/.test(m) && (m ? /readable|legible/.test(m) : x && x.suficiente === false));
+  }
+
   // ── 4b. Lo que el modal anuncia es lo que se manda (dos saltos, total real, tope de 200) ─────────
   {
     q.tieneIA = () => true;
@@ -93,6 +105,8 @@ const NOTAS = {
     p.cierto('el modal dice el total real y cuántas se envían', /250 connections among 251 notes · the 200 closest are sent/.test(texto));
     await q.preguntarAlMapa(De, 'centro.md', '¿qué hay?');
     p.igual('a la IA van como mucho 200 líneas', (pedido.match(/^\[c\d+\]/gm) || []).length, 200);
+    const w1 = vaultSimulado({ 'u.md': '# U\n\n[[v]]\n', 'v.md': '# V\n' });
+    p.cierto('en inglés, el singular: «1 connection between 2 notes»', /\b1 connection between 2 notes\b/.test(abrirModal(q, await construir(w1.app, AJ), 'u.md')));
     q.tieneIA = Plugin.prototype.tieneIA;
   }
 

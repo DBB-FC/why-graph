@@ -725,19 +725,26 @@ const EN = {
   'Etiquetar conexiones · {0}': 'Label connections · {0}',
   'verbo fuera de la lista: {0}': 'verb not on the list: {0}',
   'verbo fuera de la lista': 'verb not on the list',
-  '{0} conexión(es) con verbo fuera de la lista: se ven, pero conviene usar uno de la lista.': '{0} connection(s) with a verb not on the list: they show, but one from the list is better.',
+  '{0} conexión con verbo fuera de la lista: se ve, pero conviene usar uno de la lista.': '{0} connection with a verb not on the list: it shows, but one from the list is better.',
+  '{0} conexiones con verbo fuera de la lista: se ven, pero conviene usar uno de la lista.': '{0} connections with a verb not on the list: they show, but one from the list is better.',
   'Verbo: {0}': 'Verb: {0}',
   'Un verbo para cada conexión con motivo': 'A verb for each connection with a reason',
   'Tu IA propone, para cada conexión que ya tiene motivo, qué relación es («usa», «es cliente de»…), elegida de una lista fija. Solo lee los nombres de las dos notas y el motivo. Nada se escribe hasta que lo apruebes.':
     'For each connection that already has a reason, your AI proposes what kind of relation it is («uses», «is a client of»…), chosen from a fixed list. It only reads the names of the two notes and the reason. Nothing is written until you approve it.',
   'No hay conexiones por etiquetar.': 'There are no connections to label.',
-  '{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.': '{0} line(s) with several notes at once are not labelled: the verb would apply to all of them.',
+  '{0} línea con varias notas a la vez no se etiqueta: el verbo valdría para todas.': '{0} line with several notes at once is not labelled: the verb would apply to all of them.',
+  '{0} líneas con varias notas a la vez no se etiquetan: el verbo valdría para todas.': '{0} lines with several notes at once are not labelled: the verb would apply to all of them.',
+  '{0} conexión con motivo y sin verbo. Para proponer verbos, conecta tu IA en los ajustes del plugin.': '{0} connection with a reason and no verb. To propose verbs, connect your AI in the plugin settings.',
   '{0} conexiones con motivo y sin verbo. Para proponer verbos, conecta tu IA en los ajustes del plugin.': '{0} connections with a reason and no verb. To propose verbs, connect your AI in the plugin settings.',
+  '{0} conexión con motivo y sin verbo · {1} con verbo propuesto': '{0} connection with a reason and no verb · {1} with a proposed verb',
   '{0} conexiones con motivo y sin verbo · {1} con verbo propuesto': '{0} connections with a reason and no verb · {1} with a proposed verb',
   'Proponiendo verbos… {0} de {1}': 'Proposing verbs… {0} of {1}',
+  'Proponer el verbo de la conexión': 'Propose the verb for the connection',
   'Proponer verbos para las {0} conexiones': 'Propose verbs for the {0} connections',
+  'Aprobar el verbo propuesto': 'Approve the proposed verb',
   'Aprobar los {0} verbos propuestos': 'Approve the {0} proposed verbs',
-  '{0} verbo(s) escritos en las notas y registrados.': '{0} verb(s) written to the notes and logged.',
+  'Verbo escrito en la nota y registrado.': 'Verb written to the note and logged.',
+  '{0} verbos escritos en las notas y registrados.': '{0} verbs written to the notes and logged.',
   'Verbo propuesto: {0}': 'Proposed verb: {0}',
   'Se muestran 200 de {0}.': 'Showing 200 of {0}.',
   'La línea de «{0}» ya no está como estaba (se editó o ya tiene verbo): no se escribió nada.': 'The line for «{0}» is no longer as it was (it was edited or already has a verb): nothing was written.',
@@ -746,6 +753,7 @@ const EN = {
   'Pregunta sobre «{0}» y lo que la rodea a dos saltos. A tu IA solo van las conexiones (nombres de notas, verbo y motivo), nunca el texto de las notas.':
     'Ask about «{0}» and what surrounds it within two hops. Only the connections go to your AI (note names, verb and reason), never the text of the notes.',
   'Esta nota no tiene conexiones: el mapa no tiene datos para responder nada sobre ella.': 'This note has no connections: the map has no data to answer anything about it.',
+  '{0} conexión entre {1} notas': '{0} connection between {1} notes',
   '{0} conexiones entre {1} notas': '{0} connections among {1} notes',
   'se envían las {0} más cercanas': 'the {0} closest are sent',
   'Preguntar al mapa usa tu IA, y no hay una conectada en este dispositivo. Conéctala en los ajustes del plugin. No se envió nada.': 'Ask the map uses your AI, and none is connected on this device. Connect it in the plugin settings. Nothing was sent.',
@@ -755,8 +763,10 @@ const EN = {
   'El mapa no tiene datos para responder eso.': 'The map has no data to answer that.',
   'La IA respondió sin citar ninguna conexión del mapa, así que no se muestra: no se podría comprobar.': 'The AI answered without citing any connection from the map, so it is not shown: it could not be checked.',
   'Conexiones citadas ({0})': 'Cited connections ({0})',
-  '{0} cita(s) a conexiones que no están en el mapa se ignoraron.': '{0} citation(s) to connections that are not on the map were ignored.',
+  '{0} cita a una conexión que no está en el mapa se ignoró.': '{0} citation to a connection that is not on the map was ignored.',
+  '{0} citas a conexiones que no están en el mapa se ignoraron.': '{0} citations to connections that are not on the map were ignored.',
   'Escribe una pregunta.': 'Write a question.',
+  'Lo propuesto hasta aquí quedó guardado.': 'What was proposed so far is saved.',
 };
 let _es = null; // se resuelve una vez: Obsidian pide reiniciar para cambiar de idioma
 const enEspanol = () => {
@@ -1813,7 +1823,7 @@ class PreguntarMapa extends Modal {
     this.setTitle(T('Preguntar al mapa'));
     c.createDiv({ cls: 'mn-motivo', text: T('Pregunta sobre «{0}» y lo que la rodea a dos saltos. A tu IA solo van las conexiones (nombres de notas, verbo y motivo), nunca el texto de las notas.', nodo?.titulo || sub.centro) });
     if (!sub.lineas.length) { c.createDiv({ cls: 'mn-resumen', text: T('Esta nota no tiene conexiones: el mapa no tiene datos para responder nada sobre ella.') }); return; }
-    c.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} conexiones entre {1} notas', sub.total, sub.notas) + (sub.recortado ? ' · ' + T('se envían las {0} más cercanas', sub.lineas.length) : '') });
+    c.createDiv({ cls: 'mn-motivo mn-tenue', text: T(sub.total === 1 ? '{0} conexión entre {1} notas' : '{0} conexiones entre {1} notas', sub.total, sub.notas) + (sub.recortado ? ' · ' + T('se envían las {0} más cercanas', sub.lineas.length) : '') });
     if (!pl.tieneIA()) { c.createDiv({ cls: 'mn-resumen', text: T('Preguntar al mapa usa tu IA, y no hay una conectada en este dispositivo. Conéctala en los ajustes del plugin. No se envió nada.') }); return; }
     const ta = c.createEl('textarea', { cls: 'mn-pregunta', attr: { rows: '3', placeholder: T('Por ejemplo: ¿qué clientes usan este sistema?') } });
     const ir = c.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Preguntar') });
@@ -1846,7 +1856,7 @@ class PreguntarMapa extends Modal {
       nota(l.de); fila.appendText(' · ' + nombreVerbo(l.verbo) + ' · '); nota(l.a);
       if (l.motivo) fila.createDiv({ cls: 'mn-tenue', text: l.motivo });
     }
-    if (r.inventadas) salida.createDiv({ cls: 'mn-tenue', text: T('{0} cita(s) a conexiones que no están en el mapa se ignoraron.', r.inventadas) });
+    if (r.inventadas) salida.createDiv({ cls: 'mn-tenue', text: T(r.inventadas === 1 ? '{0} cita a una conexión que no está en el mapa se ignoró.' : '{0} citas a conexiones que no están en el mapa se ignoraron.', r.inventadas) });
   }
   onClose() { this.contentEl.empty(); }
 }
@@ -2851,9 +2861,12 @@ class VistaMapa extends ItemView {
     const tip = this.tipArista;
     if (this.tipClave !== clave) {
       tip.empty(); this.tipClave = clave;
-      tip.createDiv({ cls: 'mn-tip-ruta', text: `${A.titulo} → ${B.titulo}` });
       const motivo = this.motivo?.[clave], fr = this.frase?.[clave], se = this.sentido?.[clave];
-      if (se?.verbo) { const de = this.porId[se.de] || A, a = this.porId[se.a] || B; tip.createDiv({ cls: 'mn-tip-verbo', text: `${de.titulo} · ${nombreVerbo(se.verbo)} · ${a.titulo}` }); }
+      // Con verbo, la ruta va en el sentido en que se escribió y lleva el verbo en medio: cada título una vez.
+      if (se?.verbo) {
+        const de = this.porId[se.de] || A, a = this.porId[se.a] || B, r = tip.createDiv({ cls: 'mn-tip-ruta' });
+        r.appendText(de.titulo + ' '); r.createSpan({ cls: 'mn-tip-verbo', text: '— ' + nombreVerbo(se.verbo) + ' →' }); r.appendText(' ' + a.titulo);
+      } else tip.createDiv({ cls: 'mn-tip-ruta', text: `${A.titulo} → ${B.titulo}` });
       if (!se?.verbo || motivo !== se.verbo) tip.createDiv({ cls: motivo ? 'mn-tip-motivo' : 'mn-tip-motivo mn-tip-sin', text: motivo || T('sin motivo todavía') });
       if (!motivo && fr?.texto) tip.createDiv({ cls: 'mn-tip-frase', text: T('en el texto: «{0}»', fr.texto) });
     }
@@ -2969,11 +2982,12 @@ class VistaMapa extends ItemView {
     if ((!n.virtual || n.ruta) && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta), true);
     if (!this.radial) this.boton(acciones, 'orbit', T('Radial'), () => { this.radial = true; this.foco = n.id; this.medir(); this.encuadrar(); this.pintarEstado(); });
     this.boton(acciones, 'route', T('Camino'), () => { this.eligiendo = { desde: n.id }; this.abrirPanel(null); new Notice(T('Toca la nota de destino')); this.pintarEstado(); this.pedir(); });
-    if (!n.agrupados) this.boton(acciones, 'message-circle-question', T('Preguntar al mapa'), () => new PreguntarMapa(this.app, this, n.id).open());
     if (n.tema && (n.agrupados || n.capa === ultima)) this.boton(acciones, this.colapsados.has(n.tema) ? 'maximize-2' : 'minimize-2', this.colapsados.has(n.tema) ? 'Expandir' : 'Colapsar', () => this.alternarColapso(n.tema));
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
     cerrar.onclick = () => { this.foco = null; this.camino = null; this.sugerencia = null; if (this.plugin.ajustes.fuentes === 'demanda') this.rehacer(); if (this.radial) this.medir(); this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
+    // [F3] En su propia fila: en la de arriba empujaba la ✕ a otra línea en el escritorio.
+    if (!n.agrupados) this.boton(cab.createDiv('mn-acciones mn-acciones-2'), 'message-circle-question', T('Preguntar al mapa'), () => new PreguntarMapa(this.app, this, n.id).open());
 
     const lista = p.createDiv('mn-lista');
     const explica = lista.createDiv('mn-explica');
@@ -3060,7 +3074,8 @@ class VistaMapa extends ItemView {
       const se = n && this.sentido[n.id + '|' + v.id];
       if (se?.verbo) {
         const fuera = !verboEnLista(se.verbo);
-        txt.createDiv({ cls: 'mn-verbo' + (fuera && this.salud ? ' mn-alerta' : ''), text: (se.de === n.id ? '→ ' : '← ') + nombreVerbo(se.verbo) + (fuera && this.salud ? ' · ⚠ ' + T('verbo fuera de la lista') : '') });
+        // Entre comillas y en cursiva: no se confunde con los títulos de grupo «Usa» y «Se relaciona con».
+        txt.createDiv({ cls: 'mn-verbo' + (fuera && this.salud ? ' mn-alerta' : ''), text: (se.de === n.id ? '→ «' : '← «') + nombreVerbo(se.verbo) + '»' + (fuera && this.salud ? ' · ⚠ ' + T('verbo fuera de la lista') : '') });
       }
       if (!se?.verbo || m !== se.verbo) txt.createDiv({ cls: 'mn-motivo', text: m });
     } else if (fr) {
@@ -3308,40 +3323,41 @@ class VistaMapa extends ItemView {
     p.addClass('abierto'); this.medir(); this.pedir();
     if (!conexiones.length) {
       lista.createDiv({ cls: 'mn-resumen', text: T('No hay conexiones por etiquetar.') });
-      if (varias) lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) });
+      if (varias) lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T(varias === 1 ? '{0} línea con varias notas a la vez no se etiqueta: el verbo valdría para todas.' : '{0} líneas con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) });
       return;
     }
-    if (!pl.tieneIA()) { lista.createDiv({ cls: 'mn-resumen', text: T('{0} conexiones con motivo y sin verbo. Para proponer verbos, conecta tu IA en los ajustes del plugin.', conexiones.length) }); return; }
+    if (!pl.tieneIA()) { lista.createDiv({ cls: 'mn-resumen', text: T(conexiones.length === 1 ? '{0} conexión con motivo y sin verbo. Para proponer verbos, conecta tu IA en los ajustes del plugin.' : '{0} conexiones con motivo y sin verbo. Para proponer verbos, conecta tu IA en los ajustes del plugin.', conexiones.length) }); return; }
     const cola = lista.createDiv('mn-cola'), filas = lista.createDiv();
     const pintar = (prep) => {
       cola.empty(); filas.empty();
       const vivas = conexiones.filter((c) => !prep[c.clave]?.res?.descartado);
-      if (!vivas.length) { cola.createDiv({ cls: 'mn-resumen', text: T('No hay conexiones por etiquetar.') }); if (varias) cola.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) }); return; }
+      if (!vivas.length) { cola.createDiv({ cls: 'mn-resumen', text: T('No hay conexiones por etiquetar.') }); if (varias) cola.createDiv({ cls: 'mn-motivo mn-tenue', text: T(varias === 1 ? '{0} línea con varias notas a la vez no se etiqueta: el verbo valdría para todas.' : '{0} líneas con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) }); return; }
       const propuestas = vivas.filter((c) => prep[c.clave]), faltan = vivas.length - propuestas.length;
-      cola.createDiv({ cls: 'mn-resumen', text: T('{0} conexiones con motivo y sin verbo · {1} con verbo propuesto', vivas.length, propuestas.length) });
-      if (varias) cola.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) });
+      cola.createDiv({ cls: 'mn-resumen', text: T(vivas.length === 1 ? '{0} conexión con motivo y sin verbo · {1} con verbo propuesto' : '{0} conexiones con motivo y sin verbo · {1} con verbo propuesto', vivas.length, propuestas.length) });
+      if (varias) cola.createDiv({ cls: 'mn-motivo mn-tenue', text: T(varias === 1 ? '{0} línea con varias notas a la vez no se etiqueta: el verbo valdría para todas.' : '{0} líneas con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) });
       if (pl.colaVerbos) {
         cola.createDiv({ cls: 'mn-ia-estado', text: T('Proponiendo verbos… {0} de {1}', pl.colaVerbos.hechas, pl.colaVerbos.n) });
         const par = cola.createEl('button', { cls: 'mn-btn', text: T('Detener') }); par.onclick = (e) => { e.stopPropagation(); pl.colaVerbos.detenida = true; par.disabled = true; };
       } else if (faltan > 0) {
-        const ir = cola.createEl('button', { cls: 'mn-btn' + (propuestas.length ? '' : ' mn-btn-primario'), text: T('Proponer verbos para las {0} conexiones', faltan) });
+        const ir = cola.createEl('button', { cls: 'mn-btn' + (propuestas.length ? '' : ' mn-btn-primario'), text: T(faltan === 1 ? 'Proponer el verbo de la conexión' : 'Proponer verbos para las {0} conexiones', faltan) });
         ir.onclick = async (e) => {
           e.stopPropagation();
           const arranque = pl.prepararVerbos(vivas, (clave, dato) => { prep[clave] = dato; if (this.panel.hasClass('abierto')) pintar(prep); });
           pintar(prep);
           const st = await arranque;
           pintar(await pl.motivosPreparados());
-          if (st.error) cola.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + st.error + ' ' + T('Lo preparado hasta aquí quedó guardado; puedes seguir cuando el proveedor responda.') });
+          // Con «Solo IA local» no hay proveedor que vaya a responder más tarde: solo se dice que lo hecho quedó.
+          if (st.error) cola.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + st.error + ' ' + (pl.ajustes.soloLocal ? T('Lo propuesto hasta aquí quedó guardado.') : T('Lo preparado hasta aquí quedó guardado; puedes seguir cuando el proveedor responda.')) });
           else if (st.tope) cola.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + T('Se llegó al tope diario de llamadas automáticas. Lo que falta queda para la próxima vez.') });
         };
       }
       if (propuestas.length && !pl.colaVerbos) {
-        const todo = cola.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Aprobar los {0} verbos propuestos', propuestas.length) });
+        const todo = cola.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T(propuestas.length === 1 ? 'Aprobar el verbo propuesto' : 'Aprobar los {0} verbos propuestos', propuestas.length) });
         todo.onclick = async (e) => {
           e.stopPropagation(); todo.disabled = true;
           let hechos = 0; const fallas = [];
           for (const c of propuestas) { try { await pl.aprobarVerbo(c.clave, prep[c.clave]); hechos++; } catch (err) { fallas.push(err.message); } }
-          new Notice(T('{0} verbo(s) escritos en las notas y registrados.', hechos));
+          new Notice(T(hechos === 1 ? 'Verbo escrito en la nota y registrado.' : '{0} verbos escritos en las notas y registrados.', hechos));
           for (const f of fallas.slice(0, 3)) new Notice(f, 8000);
           await this.recargar(); this.panelEtiquetar();
         };
@@ -3355,7 +3371,7 @@ class VistaMapa extends ItemView {
         const acc = h.createDiv('mn-acciones');
         this.boton(acc, 'check', T('Aprobar'), async (e) => {
           e.stopPropagation();
-          try { await pl.aprobarVerbo(c.clave, d); new Notice(T('{0} verbo(s) escritos en las notas y registrados.', 1)); } catch (err) { new Notice(err.message, 8000); }
+          try { await pl.aprobarVerbo(c.clave, d); new Notice(T('Verbo escrito en la nota y registrado.')); } catch (err) { new Notice(err.message, 8000); }
           delete prep[c.clave]; conexiones.splice(conexiones.indexOf(c), 1); pintar(prep);
         });
         this.boton(acc, 'x', T('Descartar'), async (e) => { e.stopPropagation(); await pl.descartarVerbo(c.clave, d); prep[c.clave] = { ...d, res: { ...d.res, descartado: true } }; pintar(prep); });
@@ -3826,7 +3842,7 @@ class VistaMapa extends ItemView {
     const fuera = this.D.config?.sinCapa.length || 0;
     if (fuera) new Notice(T('{0} nota(s) fuera de toda capa: no aparecen en el mapa. Revisa «Carpetas → capa».', fuera), 8000);
     const verbosFuera = this.D.aristas.filter((x) => x[5]?.verbo && !verboEnLista(x[5].verbo)).length;
-    if (verbosFuera) new Notice(T('{0} conexión(es) con verbo fuera de la lista: se ven, pero conviene usar uno de la lista.', verbosFuera), 8000);
+    if (verbosFuera) new Notice(T(verbosFuera === 1 ? '{0} conexión con verbo fuera de la lista: se ve, pero conviene usar uno de la lista.' : '{0} conexiones con verbo fuera de la lista: se ven, pero conviene usar uno de la lista.', verbosFuera), 8000);
   }
   async exportar() {
     const blob = await new Promise((ok) => this.lienzo.toBlob(ok, 'image/png'));
@@ -4707,12 +4723,19 @@ export default class MapaNeuronal extends Plugin {
     let g;
     try { g = await this.llamarIA(sistema, usuario, esquema); }
     finally { await this.anotarUso((this.llamadasHechas || 0) - antes).catch(() => {}); }
+    if (!g || typeof g !== 'object') throw new Error(T('La IA no devolvió un resultado legible. Prueba con otro modelo.'));
     const porId = Object.fromEntries(sub.lineas.map((l) => [l.id, l]));
-    const ids = [...new Set((g.citas || []).map((c) => String(c).replace(/[[\]\s]/g, '')))];
+    // Las citas como vengan: «C1», «c1, c2», «[c1] (A) …», «[1]» o un texto en vez de una lista.
+    const crudas = Array.isArray(g.citas) ? g.citas : g.citas != null ? [g.citas] : [];
+    const ids = [...new Set(crudas.flatMap((c) => String(c).toLowerCase().split(/[,;\s]+/)).map((x) => {
+      const m = x.match(/^[[(]?c(\d+)[\]).:]*$/) || x.match(/^[[(]?(\d+)[\]).:]*$/);
+      return m ? 'c' + m[1] : null;
+    }).filter(Boolean))];
     const citas = ids.map((c) => porId[c]).filter(Boolean);
     // Una respuesta que no cita ninguna conexión del mapa no se puede comprobar: no se muestra como respuesta.
-    const suficiente = !!g.suficiente && citas.length > 0 && !!String(g.respuesta || '').trim();
-    return { suficiente, respuesta: suficiente ? String(g.respuesta).trim() : '', citas: suficiente ? citas : [], sinCitas: !!g.suficiente && !citas.length, inventadas: ids.length - citas.length, sub };
+    const texto = typeof g.respuesta === 'string' ? g.respuesta.trim() : '';
+    const suficiente = !!g.suficiente && citas.length > 0 && !!texto;
+    return { suficiente, respuesta: suficiente ? texto : '', citas: suficiente ? citas : [], sinCitas: !!g.suficiente && !citas.length, inventadas: ids.length - citas.length, sub };
   }
 
   // ── Novedades: buscar (a mano o al abrir Obsidian) ──────────────────────────────────────────

@@ -16,7 +16,7 @@ const DETALLE = args.includes('--detalle');
 // --vault <ruta>: los recorridos genéricos sobre una COPIA EN MEMORIA de un vault real (solo se lee
 // del disco; nada se escribe) con su data.json y la IA falsa. Encuentra lo que un vault de prueba no tiene.
 const VAULT = args.includes('--vault') ? args[args.indexOf('--vault') + 1] : null;
-const GENERICOS = ['temas de contenido en un vault cualquiera', 'novedades con cuota diaria', 'aprobar parte', 'material nuevo', 'respeta el tope', 'detener una búsqueda', 'cuota agotada', 'teléfono: tocar', 'mouse: pasar', 'aprobar lo mismo', 'cola de motivos'];
+const GENERICOS = ['temas de contenido en un vault cualquiera', 'novedades con cuota diaria', 'aprobar parte', 'material nuevo', 'respeta el tope', 'detener una búsqueda', 'cuota agotada', 'teléfono: tocar', 'mouse: pasar', 'aprobar lo mismo', 'cola de motivos', 'verbos y preguntar en un vault cualquiera'];
 
 // ── El vault de la persona: un LLM wiki con material crudo de varios días ──────────────────────
 const parrafos = (tema, n, extra = '') => Array.from({ length: n }, (_, k) => `${tema} ${k + 1}: se acordó con el equipo avanzar en la entrega número ${k + 1} y revisar el presupuesto el jueves ${extra}.`).join('\n\n');
@@ -95,9 +95,12 @@ function revisarEscrituras(M, inicial) {
   }
   // El crudo solo lo cambia la persona: se compara con su última versión, no con la inicial.
   for (const [ruta, t] of Object.entries(inicial)) if (ruta.startsWith('raw/') && M.notas[ruta] !== undefined && M.notas[ruta] !== (M.dePersona?.[ruta] ?? t)) M.hallazgo('modificó el material crudo', ruta);
+  // Duplicada = una línea que aparece más veces que al empezar. Las que la persona ya tenía repetidas en su vault
+  // (p. ej. un subtítulo «- **[[cliente]]:**» dos veces en un diario) no son culpa del plugin.
+  const cuenta = (t) => { const c = new Map(); for (const l of String(t || '').split('\n')) if (/^- \S/.test(l)) c.set(l, (c.get(l) || 0) + 1); return c; };
   for (const [ruta, t] of Object.entries(M.notas)) if (ruta.startsWith('wiki/')) {
-    const lineas = t.split('\n').filter((l) => /^- \S/.test(l)), vistas = new Set();
-    for (const l of lineas) { if (vistas.has(l)) M.hallazgo('línea duplicada en el wiki', `${ruta}: ${l.slice(0, 90)}`); vistas.add(l); }
+    const antes = cuenta(inicial[ruta]);
+    for (const [l, n] of cuenta(t)) if (n > 1 && n > (antes.get(l) || 0)) M.hallazgo('línea duplicada en el wiki', `${ruta}: ${l.slice(0, 90)}`);
   }
   const ing = M.internos['.obsidian/plugins/mapa-neuronal/ingesta.json'];
   if (ing) { try { JSON.parse(ing); } catch { M.hallazgo('ingesta.json ilegible', ing.slice(0, 80)); } if (ing.length > 2e6) M.hallazgo('ingesta.json crece sin tope', `${ing.length} bytes`); }
@@ -331,7 +334,7 @@ const RECORRIDOS = {
     if (!s.ve('No hay conexiones por etiquetar')) M.hallazgo('lo aprobado sigue en la lista', s.textoVisible().slice(0, 300));
     // El verbo se ve en el panel de la nota del otro lado.
     await s.toca('crm');
-    if (!s.ve('← usa')) M.hallazgo('el verbo no se ve en el panel', s.textoVisible().slice(0, 300));
+    if (!s.ve('← «usa»')) M.hallazgo('el verbo no se ve en el panel', s.textoVisible().slice(0, 300));
     // Preguntar al mapa: solo líneas del grafo, respuesta con citas que abren la nota.
     const antes = { ...M.notas }, llamadas = M.ia.llamadas.length;
     if (!(await s.pulsa('Preguntar al mapa'))) { await M.cerrar(); return 'sin botón de preguntar'; }
@@ -381,6 +384,45 @@ const RECORRIDOS = {
     if (M.notas[andes] !== original) M.hallazgo('escribió sin aprobación', 'descartar cambió la nota');
     if (M.ia.llamadas.filter((x) => x.tipo === 'verbos').length !== pagadas) M.hallazgo('pagó de nuevo lo descartado', '');
     return `verbos pagados: ${pagadas}`;
+  },
+  async 'verbos y preguntar en un vault cualquiera: proponer sin escribir y preguntar sin mandar notas'(M) {
+    // Corre con --vault: no escribe motivos propios. Usa lo que el vault ya tiene.
+    const inicial = { ...M.notas };
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
+    let nota = 'sin conexiones por etiquetar';
+    const etq = s.textoVisible().match(/Etiquetar conexiones · (\d+)/);
+    if (etq) {
+      await s.pulsa(/Etiquetar conexiones · \d+/);
+      if (!s.ve(`${etq[1]} conexiones con motivo y sin verbo`) && !s.ve(`${etq[1]} conexión con motivo y sin verbo`)) M.hallazgo('cuenta rara de conexiones sin verbo', `botón ${etq[1]} · panel: ${s.textoVisible().slice(0, 200)}`);
+      await s.pulsa(/Proponer (verbos para las \d+ conexiones|el verbo de la conexión)/);
+      const enviados = M.ia.llamadas.filter((x) => x.tipo === 'verbos');
+      if (enviados.length > (M.datos.topeDiario || 30)) M.hallazgo('pasó el tope diario', `${enviados.length} llamadas de verbos`);
+      if (!s.ve('Verbo propuesto')) M.hallazgo('no se ven los verbos propuestos', s.textoVisible().slice(0, 300));
+      nota = `${etq[1]} sin verbo · ${enviados.length} llamada(s)`;
+      // Sin aprobar: nada cambió en las notas.
+      if (Object.keys(inicial).some((r) => M.notas[r] !== inicial[r])) M.hallazgo('escribió sin aprobación', 'proponer verbos');
+      await s.pulsa('Cerrar', { opcional: true });
+    }
+    // Preguntar sobre la nota más conectada que se ve.
+    const v = s.vista, n = v.N.filter((x) => v.visible(x) && !x.fuente && !x.virtual && !x.agrupados).sort((a, b) => v.ady[b.id].length - v.ady[a.id].length)[0];
+    if (!n) { await M.cerrar(); return nota + ' · sin notas'; }
+    await s.toca(n.titulo);
+    if (!(await s.pulsa('Preguntar al mapa'))) { await M.cerrar(); return nota; }
+    const ta = M.modal?.contentEl.querySelector('textarea'); if (ta) ta.value = '¿Con qué se relaciona esta nota?';
+    await s.pulsa('Preguntar');
+    const env = M.ia.llamadas.filter((x) => x.tipo === 'pregunta').pop();
+    if (!env) M.hallazgo('preguntar no llamó a la IA', '');
+    else {
+      // Ninguna frase del cuerpo de la nota (sin enlaces) viaja: solo nombres, verbo y motivo.
+      const cuerpo = String(M.notas[n.ruta] || '').replace(/^---[\s\S]*?\n---\n?/, '').split('\n').map((l) => l.trim()).filter((l) => l.length > 40 && !/\[\[|^#|^- |^\|/.test(l));
+      const fuga = cuerpo.find((l) => env.usuario.includes(l));
+      if (fuga) M.hallazgo('mandó texto de la nota', fuga.slice(0, 120));
+      if ((env.usuario.match(/^\[c\d+\]/gm) || []).length > 200) M.hallazgo('mandó más de 200 conexiones', '');
+    }
+    if (!s.ve('Conexiones citadas') && !s.ve('El mapa no tiene datos para responder eso')) M.hallazgo('la pregunta no mostró respuesta', s.textoVisible().slice(-300));
+    await M.cerrar();
+    if (Object.keys(inicial).some((r) => M.notas[r] !== inicial[r])) M.hallazgo('preguntar escribió en el vault', '');
+    return `${nota} · preguntó sobre «${n.titulo}»`;
   },
   async 'recortes sueltos: ordenar y dejar'(M) {
     M.escribir('otro recorte.md', '# Otro\n\nTexto recortado que también quedó en la raíz del vault.\n'); M.pasarMinutos(10);

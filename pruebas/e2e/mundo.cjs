@@ -141,6 +141,8 @@ class Mundo {
     const dia = this.hoy(), usadas = this.ia.usadas[dia] || 0;
     const llamada = { dia, sesion: this.sesion?.id, dispositivo: this.sesion?.dispositivo, tipo: tipoPrompt(sistema), bytes: String(usuario).length, ok: false };
     this.ia.llamadas.push(llamada);
+    // Para comprobar qué se envió en las funciones que prometen no mandar el texto de las notas.
+    if (llamada.tipo === 'pregunta' || llamada.tipo === 'verbos') llamada.usuario = String(usuario);
     if (this.ia.caida > 0) { this.ia.caida--; llamada.status = 503; return { status: 503, json: { error: { message: 'overloaded' } } }; }
     if (usadas >= this.ia.cuotaDiaria) {
       llamada.status = 429;
