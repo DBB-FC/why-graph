@@ -307,6 +307,59 @@ const RECORRIDOS = {
     if (aprobo && nDespues >= nAntes) M.hallazgo('el par aprobado sigue en la lista', `${nAntes} → ${nDespues}`);
     return `${pares} pares · llamadas ${pagadas} (cuota) + ${M.ia.llamadas.length - antes} (día 2) · aprobó: ${aprobo}`;
   },
+  async 'verbos: etiquetar lo existente, aprobar otro día y preguntar al mapa'(M) {
+    // La persona ya tenía motivos escritos a mano, sin verbo, desde antes de la versión con verbos.
+    const andes = 'wiki/clientes/andes.md';
+    M.escribir(andes, M.notas[andes].replace('## Conexiones\n\n', '## Conexiones\n\n- [[crm]] — sigue sus ventas en el sistema\n- [[tostadora]] — le compra café cada semana\n'));
+    const original = M.notas[andes];
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
+    if (!(await s.pulsa(/Etiquetar conexiones · \d+/))) { await M.cerrar(); return 'sin botón'; }
+    if (!s.ve('2 conexiones con motivo y sin verbo')) M.hallazgo('cuenta rara de conexiones sin verbo', s.textoVisible().slice(0, 300));
+    await s.pulsa(/Proponer verbos para las \d+ conexiones/);
+    if (!s.ve('Verbo propuesto: usa') || !s.ve('Verbo propuesto: es cliente de')) M.hallazgo('no se ven los verbos propuestos', s.textoVisible().slice(0, 300));
+    if (M.notas[andes] !== original) M.hallazgo('escribió sin aprobación', 'proponer verbos cambió la nota');
+    const pagadas = M.ia.llamadas.filter((x) => x.tipo === 'verbos').length;
+    // Cierra sin aprobar; al día siguiente sigue ahí, sin pagarse otra vez.
+    await M.cerrar(); M.pasarDias(1);
+    s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar'); await s.pulsa(/Etiquetar conexiones · \d+/);
+    if (!s.ve('2 con verbo propuesto')) M.hallazgo('los verbos propuestos se perdieron al reiniciar', s.textoVisible().slice(0, 300));
+    await s.pulsa(/Aprobar los \d+ verbos propuestos/);
+    await M.esperar?.(50);
+    if (M.ia.llamadas.filter((x) => x.tipo === 'verbos').length !== pagadas) M.hallazgo('pagó de nuevo al reabrir', 'verbos');
+    const escrito = /^- \[\[crm\]\] — \*\*usa\*\* · sigue sus ventas en el sistema$/m.test(M.notas[andes]) && /^- \[\[tostadora\]\] — \*\*es cliente de\*\* · le compra café cada semana$/m.test(M.notas[andes]);
+    if (!escrito) M.hallazgo('el verbo aprobado no se escribió', M.notas[andes].split('## Conexiones')[1]);
+    if (!s.ve('No hay conexiones con motivo y sin verbo')) M.hallazgo('lo aprobado sigue en la lista', s.textoVisible().slice(0, 300));
+    // El verbo se ve en el panel de la nota del otro lado.
+    await s.toca('crm');
+    if (!s.ve('← usa')) M.hallazgo('el verbo no se ve en el panel', s.textoVisible().slice(0, 300));
+    // Preguntar al mapa: solo líneas del grafo, respuesta con citas que abren la nota.
+    const antes = { ...M.notas }, llamadas = M.ia.llamadas.length;
+    if (!(await s.pulsa('Preguntar al mapa'))) { await M.cerrar(); return 'sin botón de preguntar'; }
+    const ta = M.modal?.contentEl.querySelector('textarea'); if (ta) ta.value = '¿Qué sistema usa Andes?';
+    await s.pulsa('Preguntar');
+    if (!s.ve('Conexiones citadas (1)')) M.hallazgo('la respuesta no cita conexiones', s.textoVisible().slice(-300));
+    const enviado = M.ia.llamadas.slice(llamadas).filter((x) => x.tipo === 'pregunta');
+    if (enviado.length !== 1) M.hallazgo('preguntar no hizo una sola llamada', String(enviado.length));
+    if (ta) ta.value = '¿Cuánto factura Andes?';
+    await s.pulsa('Preguntar');
+    if (!s.ve('El mapa no tiene datos para responder eso')) M.hallazgo('inventó una respuesta que el mapa no tiene', s.textoVisible().slice(-300));
+    if (ta) ta.value = '¿Qué sistema usa Andes?';
+    await s.pulsa('Preguntar');
+    const cita = s.pulsables().find((n) => n.clases.has('mn-citada-nota'));
+    if (cita) { M.clicar(cita); await s.calma(); } else M.hallazgo('botón que no está', 'nota citada clicable');
+    if (!M.registro.some((r) => r.accion === 'abre-nota')) M.hallazgo('la cita no abre la nota', '');
+    if (Object.keys(M.notas).some((r) => M.notas[r] !== antes[r])) M.hallazgo('preguntar escribió en el vault', '');
+    await M.cerrar();
+    // En un dispositivo sin IA: explica por qué y no llama nada.
+    M.dispositivos.iphone = { ls: {}, telefono: true };
+    const n0 = M.ia.llamadas.length;
+    s = await M.abrir('iphone', { telefono: true }); await s.abrirMapa(); await s.toca('crm');
+    await s.pulsa('Preguntar al mapa');
+    if (!s.ve('no hay una conectada en este dispositivo')) M.hallazgo('sin IA no explica por qué', s.textoVisible().slice(-300));
+    await M.cerrar();
+    if (M.ia.llamadas.length !== n0) M.hallazgo('llamó a la IA sin llave', 'preguntar al mapa');
+    return `verbos pagados: ${pagadas} llamada(s) · escritos: ${escrito}`;
+  },
   async 'recortes sueltos: ordenar y dejar'(M) {
     M.escribir('otro recorte.md', '# Otro\n\nTexto recortado que también quedó en la raíz del vault.\n'); M.pasarMinutos(10);
     let s = await M.abrir('mac'); await s.abrirMapa();
@@ -599,11 +652,13 @@ const RECORRIDOS = {
     const juntar = (s) => { for (const n of s.pulsables()) if (n.tag === 'button' || n.tag === 'summary') vistos.add(textoDe(n)); const c = s.chip(); if (c) vistos.add(c); for (const n of s.vista.contentEl.querySelectorAll('.mn-ojo, .mn-cab, .mn-nov-titulo, .mn-resumen, .mn-grupo2-fila, .mn-ayuda')) if (M.visible(n)) vistos.add(n.texto); };
     M.idioma = 'en'; const e = await M.abrir('mac');
     await e.abrirMapa(); juntar(e); await e.toca('crm'); juntar(e);
+    // [F3] El modal de «Preguntar al mapa», con su explicación y su botón.
+    if (await e.pulsa(/Ask the map|Preguntar al mapa/, { opcional: true })) { juntar(e); for (const n of M.modal?.contentEl.recorrer() || []) if (n.texto && M.visible(n)) vistos.add(n.texto); M.modal?.close(); }
     await e.pulsa(/to read|new|por leer/, { opcional: true }); juntar(e); await e.pulsa(/Find what|Buscar/, { opcional: true }); juntar(e);
     await e.menu(/Links to review|Vínculos/); juntar(e);
     for (const a of M.avisos) vistos.add(a.texto);
     await M.cerrar(); M.idioma = 'es';
-    const espanol = /\b(por leer|nuevas|Buscar|Terminar|Aprobar|Descartar|Sugerir|motivo|novedades|salto|conexiones|notas|archivos|enlaces|Cerrar|Abrir|Camino|Resumir|Detener|herramientas|Revisar|seguras|Ver )\b/;
+    const espanol = /\b(Preguntar|Pregunta|verbo|por leer|nuevas|Buscar|Terminar|Aprobar|Descartar|Sugerir|motivo|novedades|salto|conexiones|notas|archivos|enlaces|Cerrar|Abrir|Camino|Resumir|Detener|herramientas|Revisar|seguras|Ver )\b/;
     for (const t of vistos) if (espanol.test(t)) M.hallazgo('texto en español con la interfaz en inglés', t.slice(0, 120));
     return `${vistos.size} textos de interfaz revisados`;
   },

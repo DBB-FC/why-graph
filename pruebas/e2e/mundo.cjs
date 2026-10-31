@@ -221,6 +221,8 @@ function tipoPrompt(s) {
   if (/^Explicas por qué/.test(s)) return 'motivo';
   if (/^Resumes una nota/.test(s)) return 'resumen';
   if (/^Eres un revisor/.test(s)) return 'revisor';
+  if (/^Clasificas conexiones/.test(s)) return 'verbos';
+  if (/^Respondes preguntas sobre un mapa/.test(s)) return 'pregunta';
   if (/prueba|test/i.test(s) || /^Responde solo con JSON\.$/.test(s)) return 'probar';
   return 'otro';
 }
@@ -258,6 +260,14 @@ function responderPrompt(tipo, sistema, usuario, mundo) {
   }
   if (tipo === 'resumen') { const n = String(usuario).match(/<nota>\n([\s\S]*?)\n<\/nota>/)?.[1] || ''; const c = citaDe(n); return { suficiente: true, resumen: 'Nota sobre ' + c, citas: [c] }; }
   if (tipo === 'revisor') return mundo.ia.revisorRechaza ? { fiel: false, problema: 'Las notas no dicen que el sistema sea objeto de esos reportes.' } : { fiel: true, problema: '' };
+  // [F2] Un verbo de la lista por conexión: «usa» si el motivo habla de un sistema, si no «es cliente de».
+  if (tipo === 'verbos') return { verbos: [...String(usuario).matchAll(/^(v\d+): .*motivo: (.*)$/gm)].map((m) => ({ id: m[1], verbo: /sistema|crm|ventas/i.test(m[2]) ? 'usa' : 'es cliente de' })) };
+  // [F3] Responde con la primera conexión de la nota y la cita; si la pregunta es sobre dinero, no alcanza.
+  if (tipo === 'pregunta') {
+    if (/factura|precio|cuánto/i.test(String(usuario).split('PREGUNTA:').pop())) return { suficiente: false, respuesta: 'el mapa no tiene datos para responder eso', citas: [] };
+    const l = String(usuario).match(/^\[(c\d+)\] (.*)$/m);
+    return l ? { suficiente: true, respuesta: 'Según el mapa: ' + l[2], citas: [l[1]] } : { suficiente: false, respuesta: '', citas: [] };
+  }
   if (tipo === 'probar') return { ok: true, fiel: true, problema: '', suficiente: true };
   return null;
 }
