@@ -357,8 +357,12 @@ function conIA(pl, respuesta) {
     p.cierto('para un par sin enlace, la IA sabe que el enlace todavía no existe', /TODAVÍA NO se enlazan/.test(pedido) && !/está en la línea/.test(pedido));
     p.cierto('y el motivo se verifica con las mismas citas literales', res.aprobable === true);
     await q.aprobar({ origen: 'a.md', destino: 'b.md', linea: 0, nuevo: true }, res);
-    // [F2] Desde los verbos la línea lleva «**verbo** · » delante del motivo (aquí, el de reserva).
-    p.cierto('aprobar crea el enlace en la sección de conexiones', /## (Conexiones|Connections)[\s\S]*- \[\[b\]\] — (\*\*[^*]+\*\* · )?El hotel necesita/.test(v.notas['a.md']));
+    // Sin verbo en la respuesta de la IA, la línea queda en el formato de siempre, exacta.
+    p.cierto('aprobar crea el enlace en la sección de conexiones', /## (Conexiones|Connections)\n\n- \[\[b\]\] — El hotel necesita más café cuando llegue la tostadora\n$/.test(v.notas['a.md']));
+    // [F2] Con un verbo de la lista, el formato nuevo, exacto.
+    q.llamarIA = async () => ({ suficiente: true, verbo: 'depende de', motivo: 'El hotel necesita más café cuando llegue la tostadora', cita_origen: 'La tostadora nueva llega en octubre', cita_destino: 'El hotel pide más café desde octubre' });
+    await q.aprobar({ origen: 'b.md', destino: 'a.md', linea: 0, nuevo: true }, await q.sugerir({ origen: 'b.md', destino: 'a.md', linea: 0, nuevo: true }));
+    p.cierto('con verbo, aprobar escribe «- [[a]] — **depende de** · motivo»', /## (Conexiones|Connections)\n\n- \[\[a\]\] — \*\*depende de\*\* · El hotel necesita más café cuando llegue la tostadora\n$/.test(v.notas['b.md']));
   }
 
   // ── 16. Nada queda en «Leyendo…» para siempre ──────────────────────────────────────────────

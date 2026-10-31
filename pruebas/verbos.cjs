@@ -25,6 +25,7 @@ const NOTAS = {
   p.igual('una negrita que es parte del motivo no es verbo', partirMotivo('**clave** para todo'), { verbo: '', motivo: '**clave** para todo' });
   p.cierto('un verbo fuera de la lista se lee igual, pero no está en la lista', partirMotivo('**adora a** · x').verbo === 'adora a' && !verboEnLista('adora a'));
   p.cierto('mayúsculas y espacios no sacan un verbo de la lista', verboEnLista('  Es Cliente  de '));
+  p.igual('una negrita vacía no es verbo: se lee entero', partirMotivo('** ** · motivo'), { verbo: '', motivo: '** ** · motivo' });
 
   // ── 2. Escritura del formato nuevo ─────────────────────────────────────────────────────────────
   p.igual('con verbo, el formato nuevo', lineaMotivo('crm', 'el sistema de ventas.', 'usa'), '- [[crm]] — **usa** · el sistema de ventas');
@@ -77,9 +78,13 @@ const NOTAS = {
     await q.aprobar(fr, res);
     p.cierto('aprobar escribe «- [[y]] — **es cliente de** · motivo»', /^- \[\[y\]\] — \*\*es cliente de\*\* · la ferretería compra herramientas al proveedor cada mes$/m.test(w.notas['x.md']));
     verbo = 'ama a'; res = await q.sugerir(fr);
-    p.igual('un verbo inventado por la IA se cambia por el de reserva', res.verbo, 'se relaciona con');
+    p.igual('un verbo inventado por la IA no se escribe', res.verbo, '');
     verbo = undefined; res = await q.sugerir(fr);
-    p.igual('sin verbo en la respuesta, el de reserva', res.verbo, 'se relaciona con');
+    p.igual('sin verbo en la respuesta, sin verbo', res.verbo, '');
+    verbo = 'se relaciona con'; res = await q.sugerir(fr);
+    p.igual('el de reserva tampoco se escribe desde «Proponer motivo»', res.verbo, '');
+    await q.aprobar({ origen: 'y.md', destino: 'x.md', linea: 0, nuevo: true }, res);
+    p.cierto('y la línea va sin verbo, en el formato de siempre', /^- \[\[x\]\] — la ferretería compra herramientas al proveedor cada mes$/m.test(w.notas['y.md']));
   }
 
   // ── 6. Etiquetar lo existente: cola sin escribir, tope diario, aprobar y descartar ────────────
@@ -120,6 +125,23 @@ const NOTAS = {
     llamadas = 0; await q.prepararVerbos(conexiones.filter((c) => c.destino !== 'n1.md'));   // n1 ya tiene verbo: el panel la saca
     p.igual('lo descartado no se vuelve a pagar', llamadas, 0);
     p.cierto('y descartar no escribe', !/\[\[n2\]\] — \*\*/.test(w.notas['a.md']));
+  }
+
+  // ── 6b. Aprobar toca una sola línea: el resto del archivo queda byte a byte ───────────────────
+  {
+    const cuerpo = '---\ntema: x  \n---\n# A  \n\nTexto con espacios al final   \n\t\n```\n- [[b]] — dentro de un bloque de código\n```\n\n## Conexiones\n\n- [[b]] — le compra café  \n- [[c]] — otra cosa\t\n\n## Después\n\nCola con espacios  \n\n\n';
+    const w = vaultSimulado({ 'a.md': cuerpo, 'b.md': '# B\n', 'c.md': '# C\n', 'y.md': '# Y\n' });
+    const q = new Plugin(); q.app = w.app; await q.onload();
+    await q.aprobarVerbo('verbo:a.md|b.md', { origen: 'a.md', destino: 'b.md', motivo: 'le compra café', res: { verbo: 'es cliente de', modelo: 'm' } });
+    const antes = cuerpo.split('\n'), despues = w.notas['a.md'].split('\n');
+    const cambiadas = antes.map((l, i) => (l === despues[i] ? null : i)).filter((i) => i !== null);
+    p.igual('aprobar un verbo cambia una sola línea y deja el resto igual (espacios y tabs incluidos)', [antes.length === despues.length, cambiadas.length, despues[cambiadas[0]]], [true, 1, '- [[b]] — **es cliente de** · le compra café']);
+    p.cierto('el bloque de código no se toca', despues.includes('- [[b]] — dentro de un bloque de código'));
+    // Aprobar un motivo nuevo agrega su línea en la sección y no reescribe lo demás.
+    await q.aprobar({ origen: 'a.md', destino: 'y.md', linea: 0, nuevo: true }, { motivo: 'algo nuevo', verbo: 'usa', manual: true });
+    const fuera = (t) => t.split('\n').filter((l) => !/\[\[y\]\]/.test(l));
+    const sinNueva = fuera(w.notas['a.md']);
+    p.cierto('aprobar un motivo deja intactas las líneas con espacios al final', ['# A  ', 'Texto con espacios al final   ', '\t', 'Cola con espacios  ', 'tema: x  ', '- [[c]] — otra cosa\t'].every((l) => sinNueva.includes(l)));
   }
 
   // ── 7. El verbo se ve en el lienzo al tocar una nota, también en enlaces cortos ───────────────

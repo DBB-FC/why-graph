@@ -940,7 +940,8 @@ const nombreVerbo = (v) => {
 // que no va seguida de «·» o del fin de línea es parte del motivo, no un verbo.
 const partirMotivo = (t) => {
   const s = String(t || '').trim(), m = s.match(/^\*\*([^*]+)\*\*\s*(?:·\s*(.*))?$/);
-  if (!m) return { verbo: '', motivo: s };
+  // «** ** · motivo» (negrita vacía) tampoco es un verbo: se lee entero, como antes.
+  if (!m || !normalizarVerbo(m[1])) return { verbo: '', motivo: s };
   return { verbo: normalizarVerbo(m[1]), motivo: (m[2] || '').trim() };
 };
 // La línea que se escribe en la nota. Sin verbo, el formato de siempre.
@@ -952,7 +953,10 @@ const lineaMotivo = (base, motivo, verbo) => {
 // ese destino y todavía no tiene verbo. null si no la encuentra: entonces no se escribe nada.
 const ponerVerboEnTexto = (texto, destino, verbo) => {
   const clave = claveEnlace(destino), L = String(texto).split('\n');
+  let codigo = false;   // dentro de un bloque ``` la línea es texto de ejemplo, no una conexión
   for (let i = 0; i < L.length; i++) {
+    if (/^\s*(```|~~~)/.test(L[i])) { codigo = !codigo; continue; }
+    if (codigo) continue;
     const m = L[i].match(/^- ((?:\[\[[^\]]+\]\][\s·,]*)+)\s+—\s+(.+)$/);
     if (!m) continue;
     const enl = enlacesEnLinea(m[1]);
@@ -1314,12 +1318,13 @@ function subgrafoDe(D, id, { saltos = 2, max = 200 } = {}) {
     for (const x of ady[u] || []) { const v = x[0] === u ? x[1] : x[0]; if (!(v in dist)) { dist[v] = dist[u] + 1; orden.push(v); } }
   }
   const vistas = new Set(), lineas = [];
-  let recortado = false;
+  let total = 0;
   for (const u of orden) {
     if (dist[u] >= saltos) break;
     for (const x of ady[u] || []) {
       const k = x[0] + '|' + x[1]; if (vistas.has(k)) continue; vistas.add(k);
-      if (lineas.length >= max) { recortado = true; continue; }
+      total++;
+      if (lineas.length >= max) continue;
       const se = x[5], de = se?.de || x[0], a = se?.a || x[1], verbo = se?.verbo || VERBO_RESERVA;
       let motivo = x[2] && x[2] !== se?.verbo ? String(x[2]).replace(/\s+/g, ' ').trim() : '';
       if (motivo.length > 200) motivo = motivo.slice(0, 199) + '…';
@@ -1327,7 +1332,7 @@ function subgrafoDe(D, id, { saltos = 2, max = 200 } = {}) {
       lineas.push({ id: cid, de, a, verbo, motivo, texto: `(${titulo[de] || de}) --[${verbo}${motivo ? ' · ' + motivo : ''}]--> (${titulo[a] || a})` });
     }
   }
-  return { centro: titulo[id] || id, lineas, recortado, notas: orden.length };
+  return { centro: titulo[id] || id, lineas, total, recortado: total > lineas.length, notas: orden.length };
 }
 
 // ── Asistente de capas: el primer uso en un vault cualquiera ─────────────────
@@ -1803,12 +1808,12 @@ class Entrevista extends Modal {
 class PreguntarMapa extends Modal {
   constructor(app, vista, id) { super(app); this.vista = vista; this.id = id; }
   onOpen() {
-    const c = this.contentEl, pl = this.vista.plugin, D = this.vista.D, sub = subgrafoDe(D, this.id), nodo = this.vista.base?.[this.id];
+    const c = this.contentEl, pl = this.vista.plugin, D = this.vista.D, sub = pl.vecindario(D, this.id), nodo = this.vista.base?.[this.id];
     c.empty(); c.addClass('mn-preguntar');
     this.setTitle(T('Preguntar al mapa'));
     c.createDiv({ cls: 'mn-motivo', text: T('Pregunta sobre «{0}» y lo que la rodea a dos saltos. A tu IA solo van las conexiones (nombres de notas, verbo y motivo), nunca el texto de las notas.', nodo?.titulo || sub.centro) });
     if (!sub.lineas.length) { c.createDiv({ cls: 'mn-resumen', text: T('Esta nota no tiene conexiones: el mapa no tiene datos para responder nada sobre ella.') }); return; }
-    c.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} conexiones entre {1} notas', sub.lineas.length, sub.notas) + (sub.recortado ? ' · ' + T('se envían las {0} más cercanas', sub.lineas.length) : '') });
+    c.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} conexiones entre {1} notas', sub.total, sub.notas) + (sub.recortado ? ' · ' + T('se envían las {0} más cercanas', sub.lineas.length) : '') });
     if (!pl.tieneIA()) { c.createDiv({ cls: 'mn-resumen', text: T('Preguntar al mapa usa tu IA, y no hay una conectada en este dispositivo. Conéctala en los ajustes del plugin. No se envió nada.') }); return; }
     const ta = c.createEl('textarea', { cls: 'mn-pregunta', attr: { rows: '3', placeholder: T('Por ejemplo: ¿qué clientes usan este sistema?') } });
     const ir = c.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Preguntar') });
@@ -4381,8 +4386,10 @@ export default class MapaNeuronal extends Plugin {
       const aviso = malas(g).map(([k, n]) => `«${g[k]}» (${k}) no está literal en la ${n}.`).join(' ');
       g = await this.llamarIA(sistema, `${conVerbo}\n\nTu respuesta anterior no sirve: ${aviso} Copia, carácter por carácter, un fragmento que SÍ esté en esa nota. Si esa nota no tiene nada que respalde el motivo, responde suficiente=false.`, esquema);
     }
-    // Un verbo fuera de la lista (o ninguno) no se escribe: queda el de reserva.
-    const res = { motivo: (g.motivo || '').trim(), verbo: verboEnLista(g.verbo) ? normalizarVerbo(g.verbo) : VERBO_RESERVA, modelo: this.ajustes.modeloIA,
+    // Solo un verbo de la lista se escribe. Si la IA no eligió ninguno (o eligió el de reserva), la línea va sin verbo:
+    // así sigue apareciendo en «Etiquetar conexiones» en vez de quedar marcada como «se relaciona con».
+    const vb = normalizarVerbo(g.verbo);
+    const res = { motivo: (g.motivo || '').trim(), verbo: verboEnLista(vb) && vb !== VERBO_RESERVA ? vb : '', modelo: this.ajustes.modeloIA,
       cita_origen: g.cita_origen ? { texto: g.cita_origen, ok: this.verificarCita(g.cita_origen, origen) } : null,
       cita_destino: g.cita_destino ? { texto: g.cita_destino, ok: this.verificarCita(g.cita_destino, destino) } : null };
     const palabras = res.motivo.split(/\s+/).filter(Boolean).length;
@@ -4400,7 +4407,7 @@ export default class MapaNeuronal extends Plugin {
     if (this.ajustes.dobleVerificacion) {
       const esquema2 = { type: 'object', additionalProperties: false, required: ['fiel', 'problema'], properties: { fiel: { type: 'boolean' }, problema: { type: 'string' } } };
       const sistema2 = 'Eres un revisor escéptico. Decides si un motivo de enlace es FIEL a dos notas. Es infiel si: afirma algo que las notas no dicen; convierte un pendiente, idea o posibilidad en un hecho; ignora una negación; atribuye algo a la nota equivocada; o describe otra relación distinta de la que el texto establece. Si hay cualquier duda, fiel=false.';
-      const usuario2 = `<origen>\n${origen}\n</origen>\n\n<destino>\n${destino}\n</destino>\n\nEnlace: ${fr.nuevo ? 'nuevo, todavía no existe' : `línea ${fr.linea} de la nota de origen`}, hacia [[${nombre(fr.destino)}]].\nMotivo propuesto: "${res.motivo}" (verbo: «${res.verbo}»)\nCitas: origen «${g.cita_origen}» · destino «${g.cita_destino}»\n\n¿Es fiel? Si no, explica el problema en una frase; si es fiel, problema="".`;
+      const usuario2 = `<origen>\n${origen}\n</origen>\n\n<destino>\n${destino}\n</destino>\n\nEnlace: ${fr.nuevo ? 'nuevo, todavía no existe' : `línea ${fr.linea} de la nota de origen`}, hacia [[${nombre(fr.destino)}]].\nMotivo propuesto: "${res.motivo}"${res.verbo ? ` (verbo: «${res.verbo}»)` : ''}\nCitas: origen «${g.cita_origen}» · destino «${g.cita_destino}»\n\n¿Es fiel? Si no, explica el problema en una frase; si es fiel, problema="".`;
       res.revision = await this.llamarIA(sistema2, usuario2, esquema2);
       // Voto (opcional, apagado por defecto): si el revisor dice «infiel», dos revisores más miran la misma
       // pregunta sin saber el veredicto anterior y manda la mayoría. Solo se llama cuando hay desacuerdo.
@@ -4685,10 +4692,12 @@ export default class MapaNeuronal extends Plugin {
   // ── [F3] Preguntar al mapa ───────────────────────────────────────────────────────────────────
   // La pregunta y las líneas del vecindario a dos saltos van a la IA; vuelve una respuesta que solo puede usar
   // esas líneas y que cita las que usa. No escribe nada en el vault.
+  // Lo que se envía: el modal y la llamada usan esta misma función, así lo que se muestra es lo que se manda.
+  vecindario(D, id) { return subgrafoDe(D, id, { saltos: 2, max: 200 }); }
   async preguntarAlMapa(D, id, pregunta) {
     const q = String(pregunta || '').trim();
     if (!q) throw new Error(T('Escribe una pregunta.'));
-    const sub = subgrafoDe(D, id);
+    const sub = this.vecindario(D, id);
     if (!sub.lineas.length) return { vacio: true, suficiente: false, respuesta: '', citas: [], sub };
     const sistema = 'Respondes preguntas sobre un mapa de notas usando SOLO las conexiones que se te dan, una por línea: [id] (A) --[verbo · motivo]--> (B), que se lee «A <verbo> B». No uses conocimiento externo ni supongas lo que las conexiones no dicen. En «citas» van los id de TODAS las conexiones que usas. Si las conexiones no alcanzan para responder, suficiente=false y respuesta="el mapa no tiene datos para responder eso". Responde en el idioma de la pregunta, en pocas frases.';
     const usuario = `NOTA CENTRAL: ${sub.centro}\n\nCONEXIONES:\n${sub.lineas.map((l) => `[${l.id}] ${l.texto}`).join('\n')}\n\nPREGUNTA: ${q}`;
@@ -5154,10 +5163,12 @@ export default class MapaNeuronal extends Plugin {
     await this.app.vault.process(f, (t) => {
       const out = t;
       const esc = titulo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), i = out.search(new RegExp('^## ' + esc + '[^\\n]*$', 'm'));
-      if (i < 0) return out.replace(/\s*$/, '') + `\n\n## ${titulo}\n\n${linea}\n`;
+      // Solo se quitan las líneas en blanco del final: un espacio o tab al final de una línea con texto se respeta.
+      const sinBlancos = (x) => x.replace(/\n\s*$/, '');
+      if (i < 0) return sinBlancos(out) + `\n\n## ${titulo}\n\n${linea}\n`;
       const resto = out.slice(i), fin = resto.slice(1).search(/^## /m);
       const seccion = fin < 0 ? resto : resto.slice(0, fin + 1), despues = fin < 0 ? '' : resto.slice(fin + 1);
-      return out.slice(0, i) + seccion.replace(/\s*$/, '') + `\n${linea}\n` + (despues ? '\n' + despues : '');
+      return out.slice(0, i) + sinBlancos(seccion) + `\n${linea}\n` + (despues ? '\n' + despues : '');
     });
     // La fecha de modificación solo si el usuario la pidió: escribir en el frontmatter de alguien
     // sin avisar es exactamente lo que el README promete que no pasa.
