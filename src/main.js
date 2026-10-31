@@ -730,7 +730,7 @@ const EN = {
   'Un verbo para cada conexión con motivo': 'A verb for each connection with a reason',
   'Tu IA propone, para cada conexión que ya tiene motivo, qué relación es («usa», «es cliente de»…), elegida de una lista fija. Solo lee los nombres de las dos notas y el motivo. Nada se escribe hasta que lo apruebes.':
     'For each connection that already has a reason, your AI proposes what kind of relation it is («uses», «is a client of»…), chosen from a fixed list. It only reads the names of the two notes and the reason. Nothing is written until you approve it.',
-  'No hay conexiones con motivo y sin verbo.': 'There are no connections with a reason and no verb.',
+  'No hay conexiones por etiquetar.': 'There are no connections to label.',
   '{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.': '{0} line(s) with several notes at once are not labelled: the verb would apply to all of them.',
   '{0} conexiones con motivo y sin verbo. Para proponer verbos, conecta tu IA en los ajustes del plugin.': '{0} connections with a reason and no verb. To propose verbs, connect your AI in the plugin settings.',
   '{0} conexiones con motivo y sin verbo · {1} con verbo propuesto': '{0} connections with a reason and no verb · {1} with a proposed verb',
@@ -3203,8 +3203,11 @@ class VistaMapa extends ItemView {
     cerrar.onclick = () => { this.vacios = false; this.sugerencia = null; this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
     const lista = p.createDiv('mn-lista');
     // [F2] Etiquetar lo existente vive junto a la cola de motivos: es la misma cola, y el menú ⋯ se mantiene corto.
-    const sinVerbo = this.conexionesSinVerbo().conexiones.length;
-    if (sinVerbo) this.boton(lista.createDiv('mn-acciones'), 'tags', T('Etiquetar conexiones · {0}', sinVerbo), () => { this.vacios = false; this.sugerencia = null; this.panelEtiquetar(); this.pintarEstado(); this.pedir(); });
+    const filaEtiquetar = lista.createDiv('mn-acciones');
+    pl.motivosPreparados().then((prep) => {
+      const sinVerbo = this.conexionesSinVerbo(prep).conexiones.length;
+      if (sinVerbo) this.boton(filaEtiquetar, 'tags', T('Etiquetar conexiones · {0}', sinVerbo), () => { this.vacios = false; this.sugerencia = null; this.panelEtiquetar(); this.pintarEstado(); this.pedir(); });
+    }).catch(() => {});
     // Temas clave: la persona dice qué le importa (p. ej. proyectos y ventas) y eso sube primero.
     const temas = Object.entries(this.D.temas).filter(([id]) => this.D.nodos.some((n) => n.tema === id));
     if (temas.length > 1) {
@@ -3274,14 +3277,17 @@ class VistaMapa extends ItemView {
   }
   // [F2] Las conexiones que la persona escribió con motivo y sin verbo, en la nota que las escribió. Las líneas de
   // varias notas a la vez («- [[a]] · [[b]] — motivo») se cuentan aparte: un verbo valdría para todas.
-  conexionesSinVerbo() {
+  // Con la cola (prep), las que la persona ya descartó no cuentan: no se le vuelven a ofrecer.
+  conexionesSinVerbo(prep) {
     const out = []; let varias = 0;
     for (const [a, b, m, , , se] of this.D.aristas) {
       if (!se?.curado || se.verbo || !m) continue;
       const A = this.base[a], B = this.base[b];
       if (!A || !B || A.fuente || B.fuente || A.virtual || B.virtual) continue;
       if (se.varias) { varias++; continue; }
-      out.push({ clave: 'verbo:' + se.de + '|' + se.a, origen: se.de, destino: se.a, motivo: m });
+      const clave = 'verbo:' + se.de + '|' + se.a;
+      if (prep?.[clave]?.res?.descartado) continue;
+      out.push({ clave, origen: se.de, destino: se.a, motivo: m });
     }
     return { conexiones: out, varias };
   }
@@ -3296,7 +3302,7 @@ class VistaMapa extends ItemView {
     const { conexiones, varias } = this.conexionesSinVerbo();
     p.addClass('abierto'); this.medir(); this.pedir();
     if (!conexiones.length) {
-      lista.createDiv({ cls: 'mn-resumen', text: T('No hay conexiones con motivo y sin verbo.') });
+      lista.createDiv({ cls: 'mn-resumen', text: T('No hay conexiones por etiquetar.') });
       if (varias) lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) });
       return;
     }
@@ -3305,6 +3311,7 @@ class VistaMapa extends ItemView {
     const pintar = (prep) => {
       cola.empty(); filas.empty();
       const vivas = conexiones.filter((c) => !prep[c.clave]?.res?.descartado);
+      if (!vivas.length) { cola.createDiv({ cls: 'mn-resumen', text: T('No hay conexiones por etiquetar.') }); if (varias) cola.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) }); return; }
       const propuestas = vivas.filter((c) => prep[c.clave]), faltan = vivas.length - propuestas.length;
       cola.createDiv({ cls: 'mn-resumen', text: T('{0} conexiones con motivo y sin verbo · {1} con verbo propuesto', vivas.length, propuestas.length) });
       if (varias) cola.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) });

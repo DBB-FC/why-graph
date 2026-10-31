@@ -328,7 +328,7 @@ const RECORRIDOS = {
     if (M.ia.llamadas.filter((x) => x.tipo === 'verbos').length !== pagadas) M.hallazgo('pagó de nuevo al reabrir', 'verbos');
     const escrito = /^- \[\[crm\]\] — \*\*usa\*\* · sigue sus ventas en el sistema$/m.test(M.notas[andes]) && /^- \[\[tostadora\]\] — \*\*es cliente de\*\* · le compra café cada semana$/m.test(M.notas[andes]);
     if (!escrito) M.hallazgo('el verbo aprobado no se escribió', M.notas[andes].split('## Conexiones')[1]);
-    if (!s.ve('No hay conexiones con motivo y sin verbo')) M.hallazgo('lo aprobado sigue en la lista', s.textoVisible().slice(0, 300));
+    if (!s.ve('No hay conexiones por etiquetar')) M.hallazgo('lo aprobado sigue en la lista', s.textoVisible().slice(0, 300));
     // El verbo se ve en el panel de la nota del otro lado.
     await s.toca('crm');
     if (!s.ve('← usa')) M.hallazgo('el verbo no se ve en el panel', s.textoVisible().slice(0, 300));
@@ -359,6 +359,28 @@ const RECORRIDOS = {
     await M.cerrar();
     if (M.ia.llamadas.length !== n0) M.hallazgo('llamó a la IA sin llave', 'preguntar al mapa');
     return `verbos pagados: ${pagadas} llamada(s) · escritos: ${escrito}`;
+  },
+  async 'verbos: descartar todos baja el número a cero y sigue así al día siguiente'(M) {
+    const andes = 'wiki/clientes/andes.md';
+    M.escribir(andes, M.notas[andes].replace('## Conexiones\n\n', '## Conexiones\n\n- [[crm]] — sigue sus ventas en el sistema\n- [[tostadora]] — le compra café cada semana\n'));
+    const original = M.notas[andes];
+    let s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
+    if (!(await s.pulsa('Etiquetar conexiones · 2'))) { await M.cerrar(); return 'sin botón'; }
+    await s.pulsa(/Proponer verbos para las \d+ conexiones/);
+    await s.pulsa('Descartar'); await s.pulsa('Descartar');
+    if (!s.ve('No hay conexiones por etiquetar')) M.hallazgo('lo descartado sigue en la lista', s.textoVisible().slice(0, 300));
+    await s.pulsa('Cerrar'); await s.menu('Vínculos por revisar');
+    // El menú ⋯ alterna: si «Vínculos por revisar» quedó abierto, se cierra; se vuelve a abrir.
+    if (!s.ve('Revisar primero')) await s.menu('Vínculos por revisar');
+    if (s.ve(/Etiquetar conexiones · \d+/)) M.hallazgo('el número no baja con los descartes', (s.textoVisible().match(/Etiquetar conexiones · \d+/) || [''])[0]);
+    const pagadas = M.ia.llamadas.filter((x) => x.tipo === 'verbos').length;
+    await M.cerrar(); M.pasarDias(1);
+    s = await M.abrir('mac'); await s.abrirMapa(); await s.menu('Vínculos por revisar');
+    if (s.ve(/Etiquetar conexiones · \d+/)) M.hallazgo('lo descartado vuelve al día siguiente', (s.textoVisible().match(/Etiquetar conexiones · \d+/) || [''])[0]);
+    await M.cerrar();
+    if (M.notas[andes] !== original) M.hallazgo('escribió sin aprobación', 'descartar cambió la nota');
+    if (M.ia.llamadas.filter((x) => x.tipo === 'verbos').length !== pagadas) M.hallazgo('pagó de nuevo lo descartado', '');
+    return `verbos pagados: ${pagadas}`;
   },
   async 'recortes sueltos: ordenar y dejar'(M) {
     M.escribir('otro recorte.md', '# Otro\n\nTexto recortado que también quedó en la raíz del vault.\n'); M.pasarMinutos(10);
