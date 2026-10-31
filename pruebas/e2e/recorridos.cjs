@@ -210,7 +210,7 @@ const RECORRIDOS = {
     if (!(await s.pulsa('Sugerir motivo ✦', { opcional: true }))) { M.hallazgo('botón que no está', 'Sugerir motivo en la nota crm'); await M.cerrar(); return; }
     await s.pulsa('Aprobar y escribir en la nota');
     // Se escribe en la nota de ORIGEN del enlace (puede no ser la tocada), una sola vez, en su sección.
-    const conMotivo = Object.keys(M.notas).filter((r) => r.startsWith('wiki/') && /^- \[\[[^\]]+\]\] — las dos notas describen/m.test(M.notas[r]));
+    const conMotivo = Object.keys(M.notas).filter((r) => r.startsWith('wiki/') && /^- \[\[[^\]]+\]\] — (\*\*[^*]+\*\* · )?las dos notas describen/m.test(M.notas[r]));
     const escrito = conMotivo.length === 1;
     if (!escrito) M.hallazgo('el motivo aprobado no se escribió', `notas con el motivo: ${conMotivo.join(', ') || 'ninguna'}`);
     const log = Object.keys(M.notas).find((r) => /mapa-neuronal-motivos\.md$/.test(r));

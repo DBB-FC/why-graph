@@ -357,7 +357,8 @@ function conIA(pl, respuesta) {
     p.cierto('para un par sin enlace, la IA sabe que el enlace todavía no existe', /TODAVÍA NO se enlazan/.test(pedido) && !/está en la línea/.test(pedido));
     p.cierto('y el motivo se verifica con las mismas citas literales', res.aprobable === true);
     await q.aprobar({ origen: 'a.md', destino: 'b.md', linea: 0, nuevo: true }, res);
-    p.cierto('aprobar crea el enlace en la sección de conexiones', /## (Conexiones|Connections)[\s\S]*- \[\[b\]\] — El hotel necesita/.test(v.notas['a.md']));
+    // [F2] Desde los verbos la línea lleva «**verbo** · » delante del motivo (aquí, el de reserva).
+    p.cierto('aprobar crea el enlace en la sección de conexiones', /## (Conexiones|Connections)[\s\S]*- \[\[b\]\] — (\*\*[^*]+\*\* · )?El hotel necesita/.test(v.notas['a.md']));
   }
 
   // ── 16. Nada queda en «Leyendo…» para siempre ──────────────────────────────────────────────

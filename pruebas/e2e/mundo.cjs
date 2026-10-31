@@ -253,7 +253,8 @@ function responderPrompt(tipo, sistema, usuario, mundo) {
     const o = String(usuario).match(/<origen>\n([\s\S]*?)\n<\/origen>/)?.[1] || '', d = String(usuario).match(/<destino>\n([\s\S]*?)\n<\/destino>/)?.[1] || '';
     // Como gemini-3.1-flash-lite: copia la cita de la nota B también en la A (mundo.ia.citaRepetida veces).
     if (mundo.ia.citaRepetida > 0) { mundo.ia.citaRepetida--; return { suficiente: true, motivo: 'las dos notas describen el mismo trabajo con el cliente', cita_origen: citaDe(d), cita_destino: citaDe(d) }; }
-    return { suficiente: true, motivo: 'las dos notas describen el mismo trabajo con el cliente', cita_origen: citaDe(o), cita_destino: citaDe(d) };
+    // [F2] Si se le pide el verbo, elige uno de la lista (como un modelo que obedece el esquema).
+    return { suficiente: true, motivo: 'las dos notas describen el mismo trabajo con el cliente', ...(/verbo de la relación/.test(usuario) ? { verbo: 'trabaja en' } : {}), cita_origen: citaDe(o), cita_destino: citaDe(d) };
   }
   if (tipo === 'resumen') { const n = String(usuario).match(/<nota>\n([\s\S]*?)\n<\/nota>/)?.[1] || ''; const c = citaDe(n); return { suficiente: true, resumen: 'Nota sobre ' + c, citas: [c] }; }
   if (tipo === 'revisor') return mundo.ia.revisorRechaza ? { fiel: false, problema: 'Las notas no dicen que el sistema sea objeto de esos reportes.' } : { fiel: true, problema: '' };

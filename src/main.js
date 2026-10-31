@@ -720,6 +720,43 @@ const EN = {
   'No se pudo cargar la lista ({0}). Escribe el nombre a mano.': 'Could not load the list ({0}). Type the name instead.',
   'Pega la llave para elegir el modelo de una lista.': 'Paste the key to choose the model from a list.',
   'Ver la lista': 'Show the list',
+  // [F2] verbos de las conexiones
+  'Etiquetar conexiones': 'Label connections',
+  'Etiquetar conexiones · {0}': 'Label connections · {0}',
+  'verbo fuera de la lista: {0}': 'verb not on the list: {0}',
+  'verbo fuera de la lista': 'verb not on the list',
+  '{0} conexión(es) con verbo fuera de la lista: se ven, pero conviene usar uno de la lista.': '{0} connection(s) with a verb not on the list: they show, but one from the list is better.',
+  'Verbo: {0}': 'Verb: {0}',
+  'Un verbo para cada conexión con motivo': 'A verb for each connection with a reason',
+  'Tu IA propone, para cada conexión que ya tiene motivo, qué relación es («usa», «es cliente de»…), elegida de una lista fija. Solo lee los nombres de las dos notas y el motivo. Nada se escribe hasta que lo apruebes.':
+    'For each connection that already has a reason, your AI proposes what kind of relation it is («uses», «is a client of»…), chosen from a fixed list. It only reads the names of the two notes and the reason. Nothing is written until you approve it.',
+  'No hay conexiones con motivo y sin verbo.': 'There are no connections with a reason and no verb.',
+  '{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.': '{0} line(s) with several notes at once are not labelled: the verb would apply to all of them.',
+  '{0} conexiones con motivo y sin verbo. Para proponer verbos, conecta tu IA en los ajustes del plugin.': '{0} connections with a reason and no verb. To propose verbs, connect your AI in the plugin settings.',
+  '{0} conexiones con motivo y sin verbo · {1} con verbo propuesto': '{0} connections with a reason and no verb · {1} with a proposed verb',
+  'Proponiendo verbos… {0} de {1}': 'Proposing verbs… {0} of {1}',
+  'Proponer verbos para las {0} conexiones': 'Propose verbs for the {0} connections',
+  'Aprobar los {0} verbos propuestos': 'Approve the {0} proposed verbs',
+  '{0} verbo(s) escritos en las notas y registrados.': '{0} verb(s) written to the notes and logged.',
+  'Verbo propuesto: {0}': 'Proposed verb: {0}',
+  'Se muestran 200 de {0}.': 'Showing 200 of {0}.',
+  'La línea de «{0}» ya no está como estaba (se editó o ya tiene verbo): no se escribió nada.': 'The line for «{0}» is no longer as it was (it was edited or already has a verb): nothing was written.',
+  // [F3] preguntar al mapa
+  'Preguntar al mapa': 'Ask the map',
+  'Pregunta sobre «{0}» y lo que la rodea a dos saltos. A tu IA solo van las conexiones (nombres de notas, verbo y motivo), nunca el texto de las notas.':
+    'Ask about «{0}» and what surrounds it within two hops. Only the connections go to your AI (note names, verb and reason), never the text of the notes.',
+  'Esta nota no tiene conexiones: el mapa no tiene datos para responder nada sobre ella.': 'This note has no connections: the map has no data to answer anything about it.',
+  '{0} conexiones entre {1} notas': '{0} connections among {1} notes',
+  'se envían las {0} más cercanas': 'the {0} closest are sent',
+  'Preguntar al mapa usa tu IA, y no hay una conectada en este dispositivo. Conéctala en los ajustes del plugin. No se envió nada.': 'Ask the map uses your AI, and none is connected on this device. Connect it in the plugin settings. Nothing was sent.',
+  'Por ejemplo: ¿qué clientes usan este sistema?': 'For example: which clients use this system?',
+  'Preguntar': 'Ask',
+  'Preguntando al mapa…': 'Asking the map…',
+  'El mapa no tiene datos para responder eso.': 'The map has no data to answer that.',
+  'La IA respondió sin citar ninguna conexión del mapa, así que no se muestra: no se podría comprobar.': 'The AI answered without citing any connection from the map, so it is not shown: it could not be checked.',
+  'Conexiones citadas ({0})': 'Cited connections ({0})',
+  '{0} cita(s) a conexiones que no están en el mapa se ignoraron.': '{0} citation(s) to connections that are not on the map were ignored.',
+  'Escribe una pregunta.': 'Write a question.',
 };
 let _es = null; // se resuelve una vez: Obsidian pide reiniciar para cambiar de idioma
 const enEspanol = () => {
@@ -877,6 +914,56 @@ function inventarioFuentes(app, carpetas) {
 }
 // «- [[nota]] — motivo», y también «- [[a]] · [[b]] — motivo» (un motivo para varias) o con alias.
 const MOTIVO = /^- ((?:\[\[[^\]]+\]\][\s·,]*)+)\s+—\s+(.+)$/gm;
+// [F2] Verbos de las conexiones: «- [[nota]] — **verbo** · motivo». Se lee «esta nota <verbo> [[nota]]».
+// La lista es fija para que el mapa se pueda consultar (quién es cliente de quién) y la IA no invente
+// relaciones. En la nota quedan en español; la interfaz en inglés los muestra traducidos.
+const VERBOS = [
+  ['es cliente de', 'is a client of'], ['es proveedor de', 'is a supplier of'], ['trabaja en', 'works at'],
+  ['es socio de', 'is a partner of'], ['es parte de', 'is part of'], ['nace de', 'comes from'],
+  ['reemplaza a', 'replaces'], ['usa', 'uses'], ['depende de', 'depends on'], ['se integra con', 'integrates with'],
+  ['cotiza con', 'gets quotes from'], ['compite con', 'competes with'], ['se inspira en', 'is inspired by'],
+  ['contradice a', 'contradicts'], ['bloquea a', 'blocks'], ['regula a', 'regulates'], ['financia a', 'funds'],
+  ['documenta', 'documents'], ['mide', 'measures'], ['decide sobre', 'decides on'],
+];
+const VERBO_RESERVA = 'se relaciona con';
+const VERBOS_ES = [...VERBOS.map((v) => v[0]), VERBO_RESERVA];
+const normalizarVerbo = (v) => String(v || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+const verboEnLista = (v) => VERBOS_ES.includes(normalizarVerbo(v));
+// Lo que la persona ve: en inglés, la traducción; un verbo fuera de la lista se muestra tal cual.
+const nombreVerbo = (v) => {
+  const x = normalizarVerbo(v);
+  if (enEspanol() || !x) return x;
+  if (x === VERBO_RESERVA) return 'relates to';
+  return (VERBOS.find((p) => p[0] === x) || [x, x])[1];
+};
+// El texto tras «—»: «**verbo** · motivo», «**verbo**» o un motivo sin verbo (como siempre). Una negrita
+// que no va seguida de «·» o del fin de línea es parte del motivo, no un verbo.
+const partirMotivo = (t) => {
+  const s = String(t || '').trim(), m = s.match(/^\*\*([^*]+)\*\*\s*(?:·\s*(.*))?$/);
+  if (!m) return { verbo: '', motivo: s };
+  return { verbo: normalizarVerbo(m[1]), motivo: (m[2] || '').trim() };
+};
+// La línea que se escribe en la nota. Sin verbo, el formato de siempre.
+const lineaMotivo = (base, motivo, verbo) => {
+  const m = String(motivo || '').replace(/\s+/g, ' ').trim().replace(/\.$/, ''), v = normalizarVerbo(verbo);
+  return v ? `- [[${base}]] — **${v}**${m ? ' · ' + m : ''}` : `- [[${base}]] — ${m}`;
+};
+// Pone el verbo a la línea de motivo de [[destino]] en el texto de una nota, si esa línea es solo de
+// ese destino y todavía no tiene verbo. null si no la encuentra: entonces no se escribe nada.
+const ponerVerboEnTexto = (texto, destino, verbo) => {
+  const clave = claveEnlace(destino), L = String(texto).split('\n');
+  for (let i = 0; i < L.length; i++) {
+    const m = L[i].match(/^- ((?:\[\[[^\]]+\]\][\s·,]*)+)\s+—\s+(.+)$/);
+    if (!m) continue;
+    const enl = enlacesEnLinea(m[1]);
+    if (enl.length !== 1 || enl[0] !== clave) continue;
+    const p = partirMotivo(m[2]);
+    if (p.verbo) return null;
+    L[i] = `- ${m[1].trim()} — **${normalizarVerbo(verbo)}** · ${p.motivo}`;
+    return L.join('\n');
+  }
+  return null;
+};
 // Clave de un enlace para compararlo con el nombre del archivo: Obsidian no distingue mayúsculas,
 // y «[[wiki/tecnico/x#sección|X]]» apunta a x.
 const claveEnlace = (t) => String(t || '').split('|')[0].split('#')[0].trim().replace(/\.md$/i, '').split('/').pop().toLowerCase();
@@ -1047,7 +1134,10 @@ async function construir(app, s) {
   // carpetas mandaban ahí (las síntesis) baja a la capa anterior. Sin la lista, nada cambia.
   const contenido = temasDeContenidoDe(s), modoContenido = contenido.size > 0 && cfg.capas.length >= 2;
   const capaTemas = cfg.capas.length - 1;
-  const poner = (a, b, m) => { const k = a < b ? a + '|' + b : b + '|' + a; if (!aristas.has(k) || (m && !aristas.get(k))) aristas.set(k, m || ''); };
+  // [F2] sentidos[k]: qué nota escribió la conexión (de) y con qué verbo. El enlace sigue siendo no dirigido para
+  // contar y dibujar; el sentido sirve para leer «A <verbo> B» y para preguntar al mapa.
+  const sentidos = {};
+  const poner = (a, b, m, extra) => { const k = a < b ? a + '|' + b : b + '|' + a; if (!aristas.has(k) || (m && !aristas.get(k))) { aristas.set(k, m || ''); sentidos[k] = { de: a, a: b, verbo: '', ...extra }; } };
   const capaDe = (ruta) => {
     if (!cfg.carpetas.length) return /^\d{4}-\d{2}-\d{2}/.test(ruta.split('/').pop()) ? 0 : Math.min(1, cfg.capas.length - 1);
     for (const [c, n] of cfg.carpetas) if ((c === '' || c === '/') ? !ruta.includes('/') : (ruta === c || ruta.startsWith(c + '/'))) return n;
@@ -1090,14 +1180,19 @@ async function construir(app, s) {
     const texto = archivo ? await app.vault.cachedRead(archivo) : '';
     nodos[id].resumen = nodos[id].resumenAprobado || resumir(texto);
     const curados = {};
-    for (const m of texto.matchAll(MOTIVO)) for (const k of enlacesEnLinea(m[1])) if (!curados[k]) curados[k] = m[2].trim();
+    for (const m of texto.matchAll(MOTIVO)) {
+      const enl = enlacesEnLinea(m[1]), p = partirMotivo(m[2]);
+      // Con verbo y sin motivo («**usa**»), el verbo hace de motivo: la conexión no cuenta como «sin motivo».
+      for (const k of enl) if (!curados[k]) curados[k] = { m: p.motivo || p.verbo, verbo: p.verbo, varias: enl.length > 1 };
+    }
     const contra = new Set(contradiccionesEn(texto));
     if (contra.size) for (const destino of Object.keys(resueltos[id] || {})) if (porRuta[destino] && destino !== id && contra.has(claveEnlace(destino))) contradicciones.add(id < destino ? id + '|' + destino : destino + '|' + id);
     const lineas = texto.split('\n'), clavesDe = [], finCuerpo = (() => { const i = lineas.findIndex((l) => l.startsWith('## ' + (s.seccionMotivos || 'Conexiones'))); return i < 0 ? lineas.length : i; })();
     for (const destino of Object.keys(resueltos[id] || {})) {
       if (!porRuta[destino] || destino === id) continue;
       const base = claveEnlace(destino);
-      poner(id, destino, curados[base] || '');
+      const cur = curados[base];
+      poner(id, destino, cur ? cur.m : '', cur ? { verbo: cur.verbo, curado: true, varias: cur.varias } : null);
       if (!curados[base]) {
         const k = id < destino ? id + '|' + destino : destino + '|' + id;
         if (!frases[k]) for (let i = 0; i < finCuerpo; i++) {
@@ -1183,7 +1278,12 @@ async function construir(app, s) {
     c.sort((p, q) => (ordenTema[p.tema] ?? 99) - (ordenTema[q.tema] ?? 99) || p._b - q._b);
     indexar();
   });
-  return { nodos: cols.flat(), aristas: [...aristas].map(([k, m]) => [...k.split('|'), m, frases[k] || null, citas[k] || null]), capas: cfg.capas, temas: cfg.temas,
+  // [F2] Verbos fuera de la lista: no rompen nada, pero el modo salud los marca en las dos notas.
+  for (const [k, se] of Object.entries(sentidos)) {
+    if (!se.verbo || verboEnLista(se.verbo)) continue;
+    for (const id of k.split('|')) if (nodos[id]) (nodos[id].verbosFuera ??= []).push(se.verbo);
+  }
+  return { nodos: cols.flat(), aristas: [...aristas].map(([k, m]) => [...k.split('|'), m, frases[k] || null, citas[k] || null, sentidos[k] || null]), capas: cfg.capas, temas: cfg.temas,
     fuentes: { carpetas: carpetasF, inventario: inventario.length, citadas, sinVinculo },
     config: { carpetasVacias, sinCapa }, contenido: modoContenido, contradicciones: [...contradicciones] };
 }
@@ -1193,12 +1293,42 @@ async function construir(app, s) {
 const REGLAS = {
   nodo: 'Cada archivo .md dentro de una carpeta asignada a una capa, menos los excluidos. Gana la carpeta más específica. Las fuentes citadas (raw:) no cuentan como notas.',
   enlace: 'Un par no dirigido de notas del mapa unidas por al menos un [[wikilink]] resuelto. A→B y B→A son un solo enlace. Los auto-enlaces y los enlaces a notas fuera del mapa se ignoran.',
-  motivo: 'Texto de «- [[nota]] — motivo» en la sección de conexiones; si no hay, la primera línea del cuerpo donde aparece el enlace.',
+  motivo: 'Texto de «- [[nota]] — motivo» (o «- [[nota]] — **verbo** · motivo») en la sección de conexiones; si no hay, la primera línea del cuerpo donde aparece el enlace.',
+  verbo: 'El texto en negrita de «- [[nota]] — **verbo** · motivo»: se lee «esta nota <verbo> [[nota]]». Sin verbo, «se relaciona con».',
   tema: 'La propiedad de tema del frontmatter; si falta, el tema más frecuente entre sus vecinos.',
   temaDeContenido: 'Con «Temas de contenido» definido: la última capa tiene un nodo por cada tag de la lista que declara alguna nota, enlazado a cada nota que lo declara. Lo que las carpetas mandaban a esa capa baja a la anterior, y la primera capa se ordena por fecha.',
   hub: 'Por tema, la nota de la última capa con hub: true; si ninguna lo tiene, la primera de esa capa con el tema declarado.',
   grado: 'Número de vecinos distintos.',
 };
+
+// [F3] El vecindario de una nota a dos saltos (entrantes y salientes), como líneas «(A) --[verbo · motivo]--> (B)».
+// Es lo único que «Preguntar al mapa» envía a la IA: nombres de notas, verbo y motivo; nunca el texto de una nota.
+// Entra toda conexión que un camino de hasta `saltos` pasos desde la nota puede recorrer, las de la nota primero.
+function subgrafoDe(D, id, { saltos = 2, max = 200 } = {}) {
+  const titulo = {}, ady = {};
+  for (const n of D.nodos) titulo[n.id] = n.titulo;
+  for (const x of D.aristas) { (ady[x[0]] ??= []).push(x); (ady[x[1]] ??= []).push(x); }
+  const dist = { [id]: 0 }, orden = [id];
+  for (let i = 0; i < orden.length; i++) {
+    const u = orden[i]; if (dist[u] >= saltos) continue;
+    for (const x of ady[u] || []) { const v = x[0] === u ? x[1] : x[0]; if (!(v in dist)) { dist[v] = dist[u] + 1; orden.push(v); } }
+  }
+  const vistas = new Set(), lineas = [];
+  let recortado = false;
+  for (const u of orden) {
+    if (dist[u] >= saltos) break;
+    for (const x of ady[u] || []) {
+      const k = x[0] + '|' + x[1]; if (vistas.has(k)) continue; vistas.add(k);
+      if (lineas.length >= max) { recortado = true; continue; }
+      const se = x[5], de = se?.de || x[0], a = se?.a || x[1], verbo = se?.verbo || VERBO_RESERVA;
+      let motivo = x[2] && x[2] !== se?.verbo ? String(x[2]).replace(/\s+/g, ' ').trim() : '';
+      if (motivo.length > 200) motivo = motivo.slice(0, 199) + '…';
+      const cid = 'c' + (lineas.length + 1);
+      lineas.push({ id: cid, de, a, verbo, motivo, texto: `(${titulo[de] || de}) --[${verbo}${motivo ? ' · ' + motivo : ''}]--> (${titulo[a] || a})` });
+    }
+  }
+  return { centro: titulo[id] || id, lineas, recortado, notas: orden.length };
+}
 
 // ── Asistente de capas: el primer uso en un vault cualquiera ─────────────────
 const CAPAS_ESTANDAR = [
@@ -1668,6 +1798,54 @@ class Entrevista extends Modal {
   onClose() { this.contentEl.empty(); }
 }
 
+// [F3] Preguntar al mapa: la pregunta va con las líneas del vecindario a dos saltos, nunca con las notas.
+// La respuesta cita las conexiones que usa; cada nota citada se abre con un toque. No escribe en el vault.
+class PreguntarMapa extends Modal {
+  constructor(app, vista, id) { super(app); this.vista = vista; this.id = id; }
+  onOpen() {
+    const c = this.contentEl, pl = this.vista.plugin, D = this.vista.D, sub = subgrafoDe(D, this.id), nodo = this.vista.base?.[this.id];
+    c.empty(); c.addClass('mn-preguntar');
+    this.setTitle(T('Preguntar al mapa'));
+    c.createDiv({ cls: 'mn-motivo', text: T('Pregunta sobre «{0}» y lo que la rodea a dos saltos. A tu IA solo van las conexiones (nombres de notas, verbo y motivo), nunca el texto de las notas.', nodo?.titulo || sub.centro) });
+    if (!sub.lineas.length) { c.createDiv({ cls: 'mn-resumen', text: T('Esta nota no tiene conexiones: el mapa no tiene datos para responder nada sobre ella.') }); return; }
+    c.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} conexiones entre {1} notas', sub.lineas.length, sub.notas) + (sub.recortado ? ' · ' + T('se envían las {0} más cercanas', sub.lineas.length) : '') });
+    if (!pl.tieneIA()) { c.createDiv({ cls: 'mn-resumen', text: T('Preguntar al mapa usa tu IA, y no hay una conectada en este dispositivo. Conéctala en los ajustes del plugin. No se envió nada.') }); return; }
+    const ta = c.createEl('textarea', { cls: 'mn-pregunta', attr: { rows: '3', placeholder: T('Por ejemplo: ¿qué clientes usan este sistema?') } });
+    const ir = c.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Preguntar') });
+    const salida = c.createDiv('mn-salida');
+    ir.onclick = async () => {
+      const q = String(ta.value || '').trim(); if (!q) { ta.focus?.(); return; }
+      ir.disabled = true; salida.empty(); salida.createDiv({ cls: 'mn-ia-estado', text: T('Preguntando al mapa…') });
+      try { this.mostrar(salida, await pl.preguntarAlMapa(D, this.id, q)); }
+      catch (e) { salida.empty(); salida.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + (e.message || String(e)) }); }
+      finally { ir.disabled = false; }
+    };
+    ta.focus?.();
+  }
+  mostrar(salida, r) {
+    salida.empty();
+    if (!r.suficiente) {
+      salida.createDiv({ cls: 'mn-respuesta', text: T('El mapa no tiene datos para responder eso.') });
+      if (r.sinCitas) salida.createDiv({ cls: 'mn-tenue', text: T('La IA respondió sin citar ninguna conexión del mapa, así que no se muestra: no se podría comprobar.') });
+      return;
+    }
+    salida.createDiv({ cls: 'mn-respuesta', text: r.respuesta });
+    salida.createDiv({ cls: 'mn-ia-titulo', text: T('Conexiones citadas ({0})', r.citas.length) });
+    const base = this.vista.base || {};
+    for (const l of r.citas) {
+      const fila = salida.createDiv('mn-citada');
+      const nota = (id) => {
+        const n = base[id], s = fila.createSpan({ cls: n?.ruta ? 'mn-citada-nota' : '', text: n?.titulo || id });
+        if (n?.ruta) s.onclick = () => { this.close(); this.vista.abrirNota(n.ruta); };
+      };
+      nota(l.de); fila.appendText(' · ' + nombreVerbo(l.verbo) + ' · '); nota(l.a);
+      if (l.motivo) fila.createDiv({ cls: 'mn-tenue', text: l.motivo });
+    }
+    if (r.inventadas) salida.createDiv({ cls: 'mn-tenue', text: T('{0} cita(s) a conexiones que no están en el mapa se ignoraron.', r.inventadas) });
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
 class VistaMapa extends ItemView {
   constructor(hoja, plugin) {
     super(hoja); this.plugin = plugin;
@@ -1920,9 +2098,11 @@ class VistaMapa extends ItemView {
     const mapa = new Map();
     this.frase = {};
     this.cita = {};
-    for (const [a, b, m, fr, ci] of this.D.aristas) {
+    this.sentido = {};
+    for (const [a, b, m, fr, ci, se] of this.D.aristas) {
       if (fr) this.frase[a + '|' + b] = this.frase[b + '|' + a] = fr;
       if (ci) this.cita[a + '|' + b] = this.cita[b + '|' + a] = ci;
+      if (se) this.sentido[a + '|' + b] = this.sentido[b + '|' + a] = se;
       const ra = this.rep[a], rb = this.rep[b]; if (ra === rb) continue;
       const k = ra < rb ? ra + '|' + rb : rb + '|' + ra, agrupada = ra !== a || rb !== b;
       const e = mapa.get(k);
@@ -2303,6 +2483,7 @@ class VistaMapa extends ItemView {
     if (n.grado === 0) p.push(T('huérfana: ninguna nota la enlaza ni enlaza a otra'));
     if (!n.propio && this.plugin.ajustes.propiedadTema && n.capa !== 0) p.push(T('sin propiedad `{0}`', this.plugin.ajustes.propiedadTema));
     if (n.sinMotivo) p.push(T('{0} enlace(s) sin motivo escrito', n.sinMotivo));
+    if (n.verbosFuera?.length) p.push(T('verbo fuera de la lista: {0}', [...new Set(n.verbosFuera)].map((v) => '«' + v + '»').join(', ')));
     const ultima = this.D.capas.length - 1;
     if (n.capa === ultima && n.tema && (this.hermanas?.[n.tema] || 0) > 1 && this.hubs[n.tema] !== n.id) p.push(T('otras {0} nota(s) de este tema en la capa de temas; solo la hub lleva el nombre del tema. Para elegirla, pon `hub: true` en su frontmatter', this.hermanas[n.tema] - 1));
     return p;
@@ -2603,8 +2784,29 @@ class VistaMapa extends ItemView {
       ctx.fillStyle = papel ? 'rgba(255,255,255,.92)' : 'rgba(6,10,24,.86)'; ctx.fillRect(x, y, w + pad * 2, h);
       ctx.fillStyle = fuerte ? tinta : papel ? 'rgba(30,33,64,.9)' : 'rgba(230,234,255,.9)'; ctx.fillText(texto, x + pad, y + h - 5 / vista.k);
     }
+    // [F2] El verbo, como etiqueta corta en el medio de la línea, solo en los enlaces de la nota tocada o bajo el
+    // mouse: en reposo el mapa queda como siempre. Va después de los rótulos y cede si choca con alguno.
+    if (centro && nivel && !radial && !enCamino) {
+      ctx.font = f(500, 9.5);
+      let puestas = 0;
+      for (const e of this.E) {
+        if (puestas >= 24) break;
+        if (e.superE || (e.a !== centro && e.b !== centro)) continue;
+        const v = this.verboVisible(e.a, e.b); if (!v) continue;
+        const A = this.porId[e.a], B = this.porId[e.b]; if (!this.visible(A) || !this.visible(B)) continue;
+        const c = curvaEntre(A, B), mx = (c[0] + 3 * c[2] + 3 * c[4] + c[6]) / 8, my = (c[1] + 3 * c[3] + 3 * c[5] + c[7]) / 8;
+        const texto = v.length > 22 ? v.slice(0, 21) + '…' : v, pad = 3 / vista.k, w = ctx.measureText(texto).width + pad * 2, h = 13 / sk;
+        const caja = { x: mx - w / 2, y: my - h / 2, w, h };
+        if (cajas.some((q) => caja.x < q.x + q.w && q.x < caja.x + caja.w && caja.y < q.y + q.h && q.y < caja.y + caja.h)) continue;
+        cajas.push(caja); puestas++;
+        ctx.fillStyle = papel ? 'rgba(255,255,255,.9)' : 'rgba(6,10,24,.82)'; ctx.fillRect(caja.x, caja.y, w, h);
+        ctx.fillStyle = papel ? 'rgba(60,66,110,.95)' : 'rgba(200,210,255,.92)'; ctx.fillText(texto, caja.x + pad, caja.y + h - 3.5 / vista.k);
+      }
+    }
     ctx.restore();
   }
+  // [F2] El verbo de un enlace tal como se lee desde la pantalla (traducido), o '' si no tiene.
+  verboVisible(a, b) { const se = this.sentido?.[a + '|' + b]; return se?.verbo ? nombreVerbo(se.verbo) : ''; }
 
   // ── gestos ─────────────────────────────────────────────────────────────────
   // [1.36] El enlace bajo el mouse: solo entre los que se dibujaron con fuerza (this.golpes), con la misma curva
@@ -2633,8 +2835,9 @@ class VistaMapa extends ItemView {
     if (this.tipClave !== clave) {
       tip.empty(); this.tipClave = clave;
       tip.createDiv({ cls: 'mn-tip-ruta', text: `${A.titulo} → ${B.titulo}` });
-      const motivo = this.motivo?.[clave], fr = this.frase?.[clave];
-      tip.createDiv({ cls: motivo ? 'mn-tip-motivo' : 'mn-tip-motivo mn-tip-sin', text: motivo || T('sin motivo todavía') });
+      const motivo = this.motivo?.[clave], fr = this.frase?.[clave], se = this.sentido?.[clave];
+      if (se?.verbo) { const de = this.porId[se.de] || A, a = this.porId[se.a] || B; tip.createDiv({ cls: 'mn-tip-verbo', text: `${de.titulo} · ${nombreVerbo(se.verbo)} · ${a.titulo}` }); }
+      if (!se?.verbo || motivo !== se.verbo) tip.createDiv({ cls: motivo ? 'mn-tip-motivo' : 'mn-tip-motivo mn-tip-sin', text: motivo || T('sin motivo todavía') });
       if (!motivo && fr?.texto) tip.createDiv({ cls: 'mn-tip-frase', text: T('en el texto: «{0}»', fr.texto) });
     }
     const x = px + 14 + 280 > (this.W || 0) ? px - 294 : px + 14;
@@ -2749,6 +2952,7 @@ class VistaMapa extends ItemView {
     if ((!n.virtual || n.ruta) && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta), true);
     if (!this.radial) this.boton(acciones, 'orbit', T('Radial'), () => { this.radial = true; this.foco = n.id; this.medir(); this.encuadrar(); this.pintarEstado(); });
     this.boton(acciones, 'route', T('Camino'), () => { this.eligiendo = { desde: n.id }; this.abrirPanel(null); new Notice(T('Toca la nota de destino')); this.pintarEstado(); this.pedir(); });
+    if (!n.agrupados) this.boton(acciones, 'message-circle-question', T('Preguntar al mapa'), () => new PreguntarMapa(this.app, this, n.id).open());
     if (n.tema && (n.agrupados || n.capa === ultima)) this.boton(acciones, this.colapsados.has(n.tema) ? 'maximize-2' : 'minimize-2', this.colapsados.has(n.tema) ? 'Expandir' : 'Colapsar', () => this.alternarColapso(n.tema));
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
@@ -2834,8 +3038,15 @@ class VistaMapa extends ItemView {
     if (ci && (n.fuente || v.fuente)) {
       const nota = n.fuente ? v : n, ir = txt.createDiv({ cls: 'mn-motivo mn-cita', text: T('Ir a la cita') + ' · ' + T('línea {0}', ci.linea) });
       ir.onclick = (e) => { e.stopPropagation(); this.abrirNota(nota.ruta, ci.linea); };
-    } else if (m) txt.createDiv({ cls: 'mn-motivo', text: m });
-    else if (fr) {
+    } else if (m) {
+      // [F2] El verbo va antes del motivo, con la flecha del sentido en que se escribió («→» esta nota lo dice de la otra).
+      const se = n && this.sentido[n.id + '|' + v.id];
+      if (se?.verbo) {
+        const fuera = !verboEnLista(se.verbo);
+        txt.createDiv({ cls: 'mn-verbo' + (fuera && this.salud ? ' mn-alerta' : ''), text: (se.de === n.id ? '→ ' : '← ') + nombreVerbo(se.verbo) + (fuera && this.salud ? ' · ⚠ ' + T('verbo fuera de la lista') : '') });
+      }
+      if (!se?.verbo || m !== se.verbo) txt.createDiv({ cls: 'mn-motivo', text: m });
+    } else if (fr) {
       const d = txt.createDiv({ cls: 'mn-frase' });
       d.createSpan({ cls: 'mn-frase-etq', text: T('en el texto: ') }); d.appendText('«' + fr.texto + '»');
     } else if (!v.fuente) txt.createDiv({ cls: 'mn-motivo mn-tenue', text: T('enlazadas sin frase visible') });
@@ -2910,6 +3121,7 @@ class VistaMapa extends ItemView {
     };
     const caja = zona.createDiv('mn-ia-caja' + (res.aprobable ? '' : ' rechazada'));
     caja.createDiv({ cls: 'mn-ia-titulo', text: res.aprobable ? T('✦ Motivo propuesto (verificado)') : T('✕ No se puede aprobar') });
+    if (res.motivo && res.verbo) caja.createDiv({ cls: 'mn-ia-verbo', text: T('Verbo: {0}', nombreVerbo(res.verbo)) });
     if (res.motivo) caja.createDiv({ cls: 'mn-ia-motivo', text: res.motivo });
     for (const [etq, c] of [[T('Cita de la nota de origen'), res.cita_origen], [T('Cita de la nota enlazada'), res.cita_destino]]) {
       if (!c) continue;
@@ -2965,7 +3177,7 @@ class VistaMapa extends ItemView {
       const txt = paso.createDiv(); txt.createEl('b', { text: n.agrupados ? T('{0} (supernodo)', this.D.temas[n.tema]?.[0]) : n.titulo });
       txt.createDiv({ cls: 'mn-ruta', text: `${this.D.capas[n.capa][1]} · ${this.D.temas[n.tema] ? this.D.temas[n.tema][0] : T('sin tema')}` });
       paso.onclick = () => (n.fuente || n.virtual ? null : this.abrirNota(n.ruta));
-      if (i < ruta.length - 1) { const m = this.motivo[id + '|' + ruta[i + 1]], fr = this.frase[id + '|' + ruta[i + 1]]; lista.createDiv({ cls: 'mn-salto', text: m ? '↓ ' + m : fr ? '↓ en el texto: «' + fr.texto + '»' : '↓ enlazadas' }); }
+      if (i < ruta.length - 1) { const m = this.motivo[id + '|' + ruta[i + 1]], fr = this.frase[id + '|' + ruta[i + 1]], v = this.verboVisible(id, ruta[i + 1]); lista.createDiv({ cls: 'mn-salto', text: m ? '↓ ' + (v ? v + ' · ' : '') + (m === v ? '' : m) : fr ? '↓ en el texto: «' + fr.texto + '»' : '↓ enlazadas' }); }
     });
     p.addClass('abierto'); this.medir(); this.pedir(); // [1.33] sin esto la capa de temas quedaba bajo el panel
   }
@@ -2978,6 +3190,9 @@ class VistaMapa extends ItemView {
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
     cerrar.onclick = () => { this.vacios = false; this.sugerencia = null; this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
     const lista = p.createDiv('mn-lista');
+    // [F2] Etiquetar lo existente vive junto a la cola de motivos: es la misma cola, y el menú ⋯ se mantiene corto.
+    const sinVerbo = this.conexionesSinVerbo().conexiones.length;
+    if (sinVerbo) this.boton(lista.createDiv('mn-acciones'), 'tags', T('Etiquetar conexiones · {0}', sinVerbo), () => { this.vacios = false; this.sugerencia = null; this.panelEtiquetar(); this.pintarEstado(); this.pedir(); });
     // Temas clave: la persona dice qué le importa (p. ej. proyectos y ventas) y eso sube primero.
     const temas = Object.entries(this.D.temas).filter(([id]) => this.D.nodos.some((n) => n.tema === id));
     if (temas.length > 1) {
@@ -3044,6 +3259,86 @@ class VistaMapa extends ItemView {
       pl.motivosPreparados().then((prep) => { pintarCola(prep); for (const c of pendientes) if (prep[c.clave]) rellenar(c.clave, prep[c.clave]); });
     }
     p.addClass('abierto'); this.medir(); this.pedir(); // [1.33] sin esto la capa de temas quedaba bajo el panel
+  }
+  // [F2] Las conexiones que la persona escribió con motivo y sin verbo, en la nota que las escribió. Las líneas de
+  // varias notas a la vez («- [[a]] · [[b]] — motivo») se cuentan aparte: un verbo valdría para todas.
+  conexionesSinVerbo() {
+    const out = []; let varias = 0;
+    for (const [a, b, m, , , se] of this.D.aristas) {
+      if (!se?.curado || se.verbo || !m) continue;
+      const A = this.base[a], B = this.base[b];
+      if (!A || !B || A.fuente || B.fuente || A.virtual || B.virtual) continue;
+      if (se.varias) { varias++; continue; }
+      out.push({ clave: 'verbo:' + se.de + '|' + se.a, origen: se.de, destino: se.a, motivo: m });
+    }
+    return { conexiones: out, varias };
+  }
+  panelEtiquetar() {
+    const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
+    const acciones = this.cabecera(p, T('Etiquetar conexiones'), T('Un verbo para cada conexión con motivo'),
+      T('Tu IA propone, para cada conexión que ya tiene motivo, qué relación es («usa», «es cliente de»…), elegida de una lista fija. Solo lee los nombres de las dos notas y el motivo. Nada se escribe hasta que lo apruebes.'));
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    const lista = p.createDiv('mn-lista');
+    const { conexiones, varias } = this.conexionesSinVerbo();
+    p.addClass('abierto'); this.medir(); this.pedir();
+    if (!conexiones.length) {
+      lista.createDiv({ cls: 'mn-resumen', text: T('No hay conexiones con motivo y sin verbo.') });
+      if (varias) lista.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) });
+      return;
+    }
+    if (!pl.tieneIA()) { lista.createDiv({ cls: 'mn-resumen', text: T('{0} conexiones con motivo y sin verbo. Para proponer verbos, conecta tu IA en los ajustes del plugin.', conexiones.length) }); return; }
+    const cola = lista.createDiv('mn-cola'), filas = lista.createDiv();
+    const pintar = (prep) => {
+      cola.empty(); filas.empty();
+      const vivas = conexiones.filter((c) => !prep[c.clave]?.res?.descartado);
+      const propuestas = vivas.filter((c) => prep[c.clave]), faltan = vivas.length - propuestas.length;
+      cola.createDiv({ cls: 'mn-resumen', text: T('{0} conexiones con motivo y sin verbo · {1} con verbo propuesto', vivas.length, propuestas.length) });
+      if (varias) cola.createDiv({ cls: 'mn-motivo mn-tenue', text: T('{0} línea(s) con varias notas a la vez no se etiquetan: el verbo valdría para todas.', varias) });
+      if (pl.colaVerbos) {
+        cola.createDiv({ cls: 'mn-ia-estado', text: T('Proponiendo verbos… {0} de {1}', pl.colaVerbos.hechas, pl.colaVerbos.n) });
+        const par = cola.createEl('button', { cls: 'mn-btn', text: T('Detener') }); par.onclick = (e) => { e.stopPropagation(); pl.colaVerbos.detenida = true; par.disabled = true; };
+      } else if (faltan > 0) {
+        const ir = cola.createEl('button', { cls: 'mn-btn' + (propuestas.length ? '' : ' mn-btn-primario'), text: T('Proponer verbos para las {0} conexiones', faltan) });
+        ir.onclick = async (e) => {
+          e.stopPropagation();
+          const arranque = pl.prepararVerbos(vivas, (clave, dato) => { prep[clave] = dato; if (this.panel.hasClass('abierto')) pintar(prep); });
+          pintar(prep);
+          const st = await arranque;
+          pintar(await pl.motivosPreparados());
+          if (st.error) cola.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + st.error + ' ' + T('Lo preparado hasta aquí quedó guardado; puedes seguir cuando el proveedor responda.') });
+          else if (st.tope) cola.createDiv({ cls: 'mn-ia-estado mn-falta', text: '✕ ' + T('Se llegó al tope diario de llamadas automáticas. Lo que falta queda para la próxima vez.') });
+        };
+      }
+      if (propuestas.length && !pl.colaVerbos) {
+        const todo = cola.createEl('button', { cls: 'mn-btn mn-btn-primario', text: T('Aprobar los {0} verbos propuestos', propuestas.length) });
+        todo.onclick = async (e) => {
+          e.stopPropagation(); todo.disabled = true;
+          let hechos = 0; const fallas = [];
+          for (const c of propuestas) { try { await pl.aprobarVerbo(c.clave, prep[c.clave]); hechos++; } catch (err) { fallas.push(err.message); } }
+          new Notice(T('{0} verbo(s) escritos en las notas y registrados.', hechos));
+          for (const f of fallas.slice(0, 3)) new Notice(f, 8000);
+          await this.recargar(); this.panelEtiquetar();
+        };
+      }
+      for (const c of vivas.slice(0, 200)) {
+        const A = this.base[c.origen], B = this.base[c.destino], d = prep[c.clave], h = filas.createDiv('mn-vacio');
+        h.createDiv({ cls: 'mn-vacio-t', text: `${A.titulo}  →  ${B.titulo}` });
+        if (d) h.createDiv({ cls: 'mn-ia-verbo', text: T('Verbo propuesto: {0}', nombreVerbo(d.res.verbo)) });
+        h.createDiv({ cls: 'mn-motivo', text: c.motivo });
+        if (!d || pl.colaVerbos) continue;
+        const acc = h.createDiv('mn-acciones');
+        this.boton(acc, 'check', T('Aprobar'), async (e) => {
+          e.stopPropagation();
+          try { await pl.aprobarVerbo(c.clave, d); new Notice(T('{0} verbo(s) escritos en las notas y registrados.', 1)); } catch (err) { new Notice(err.message, 8000); }
+          delete prep[c.clave]; conexiones.splice(conexiones.indexOf(c), 1); pintar(prep);
+        });
+        this.boton(acc, 'x', T('Descartar'), async (e) => { e.stopPropagation(); await pl.descartarVerbo(c.clave, d); prep[c.clave] = { ...d, res: { ...d.res, descartado: true } }; pintar(prep); });
+      }
+      if (vivas.length > 200) filas.createDiv({ cls: 'mn-motivo mn-tenue', text: T('Se muestran 200 de {0}.', vivas.length) });
+    };
+    pl.motivosPreparados().then(pintar);
   }
   // Revisión con perspectiva: notas viejas que después tuvieron novedades alrededor. No juzga si algo es
   // verdad (eso no se puede saber desde el texto): reúne las pistas y la persona decide si sigue vigente.
@@ -3506,6 +3801,8 @@ class VistaMapa extends ItemView {
     else new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo', huerf, sinTema, sinMot), 6000);
     const fuera = this.D.config?.sinCapa.length || 0;
     if (fuera) new Notice(T('{0} nota(s) fuera de toda capa: no aparecen en el mapa. Revisa «Carpetas → capa».', fuera), 8000);
+    const verbosFuera = this.D.aristas.filter((x) => x[5]?.verbo && !verboEnLista(x[5].verbo)).length;
+    if (verbosFuera) new Notice(T('{0} conexión(es) con verbo fuera de la lista: se ven, pero conviene usar uno de la lista.', verbosFuera), 8000);
   }
   async exportar() {
     const blob = await new Promise((ok) => this.lienzo.toBlob(ok, 'image/png'));
@@ -4051,9 +4348,11 @@ export default class MapaNeuronal extends Plugin {
     const usuario = fr.nuevo
       ? `NOTA A (${nombre(fr.origen)}):\n<origen>\n${origen}\n</origen>\n\nNOTA B (${nombre(fr.destino)}):\n<destino>\n${destino}\n</destino>\n\nEstas dos notas TODAVÍA NO se enlazan. Si lo que dicen ambas respalda una relación concreta, escribe el motivo: una frase de 6 a 18 palabras que diga por qué A se conecta con B. Si no hay una relación que se pueda afirmar con citas literales de las dos, suficiente=false. ESCRIBE EL MOTIVO EN EL MISMO IDIOMA EN QUE ESTÁN ESCRITAS LAS NOTAS. Da dos citas DISTINTAS: cita_origen copiada de la NOTA A (dentro de <origen>) y cita_destino copiada de la NOTA B (dentro de <destino>). Cada cita tiene que estar en su propia nota; no copies la misma frase en las dos.`
       : `NOTA DE ORIGEN (${nombre(fr.origen)}). El enlace a [[${nombre(fr.destino)}]] está en la línea ${fr.linea}:\n<origen>\n${origen}\n</origen>\n\nNOTA ENLAZADA (${nombre(fr.destino)}):\n<destino>\n${destino}\n</destino>\n\nEscribe el motivo del enlace: una frase de 6 a 18 palabras, concreta, que diga por qué la nota de origen se conecta con la enlazada. ESCRIBE EL MOTIVO EN EL MISMO IDIOMA EN QUE ESTÁN ESCRITAS LAS NOTAS, no en el idioma de estas instrucciones. Da una cita literal de la nota de origen (idealmente la línea ${fr.linea} o parte de ella) y una cita literal de la nota enlazada que respalde el motivo. Son dos citas DISTINTAS: cita_origen sale de <origen> y cita_destino sale de <destino>; no copies la misma frase en las dos.`;
-    const esquema = { type: 'object', additionalProperties: false, required: ['suficiente', 'motivo', 'cita_origen', 'cita_destino'],
-      properties: { suficiente: { type: 'boolean' }, motivo: { type: 'string' }, cita_origen: { type: 'string' }, cita_destino: { type: 'string' } } };
-    let g = await this.llamarIA(sistema, usuario, esquema);
+    // [F2] El verbo: uno de la lista, o «se relaciona con». Se lee «nota de origen <verbo> nota enlazada».
+    const conVerbo = `${usuario}\n\nElige también el verbo de la relación, leído como «${nombre(fr.origen)} <verbo> ${nombre(fr.destino)}». SOLO uno de esta lista, copiado tal cual: ${VERBOS_ES.map((v) => '«' + v + '»').join(', ')}. Si ninguno calza con lo que dicen las notas, «${VERBO_RESERVA}».`;
+    const esquema = { type: 'object', additionalProperties: false, required: ['suficiente', 'motivo', 'verbo', 'cita_origen', 'cita_destino'],
+      properties: { suficiente: { type: 'boolean' }, motivo: { type: 'string' }, verbo: { type: 'string', enum: VERBOS_ES }, cita_origen: { type: 'string' }, cita_destino: { type: 'string' } } };
+    let g = await this.llamarIA(sistema, conVerbo, esquema);
     // [1.34] Los modelos baratos (gemini-3.1-flash-lite) copiaban la MISMA frase en las dos citas: la
     // de la nota que sí la tiene pasaba y la otra no, así que todo motivo quedaba bloqueado. Se les
     // dice qué cita falló y dónde tiene que estar, una sola vez: el candado no se afloja.
@@ -4061,9 +4360,10 @@ export default class MapaNeuronal extends Plugin {
       .filter(([k, , t]) => x.suficiente && x[k] && !this.verificarCita(x[k], t));
     if (malas(g).length) {
       const aviso = malas(g).map(([k, n]) => `«${g[k]}» (${k}) no está literal en la ${n}.`).join(' ');
-      g = await this.llamarIA(sistema, `${usuario}\n\nTu respuesta anterior no sirve: ${aviso} Copia, carácter por carácter, un fragmento que SÍ esté en esa nota. Si esa nota no tiene nada que respalde el motivo, responde suficiente=false.`, esquema);
+      g = await this.llamarIA(sistema, `${conVerbo}\n\nTu respuesta anterior no sirve: ${aviso} Copia, carácter por carácter, un fragmento que SÍ esté en esa nota. Si esa nota no tiene nada que respalde el motivo, responde suficiente=false.`, esquema);
     }
-    const res = { motivo: (g.motivo || '').trim(), modelo: this.ajustes.modeloIA,
+    // Un verbo fuera de la lista (o ninguno) no se escribe: queda el de reserva.
+    const res = { motivo: (g.motivo || '').trim(), verbo: verboEnLista(g.verbo) ? normalizarVerbo(g.verbo) : VERBO_RESERVA, modelo: this.ajustes.modeloIA,
       cita_origen: g.cita_origen ? { texto: g.cita_origen, ok: this.verificarCita(g.cita_origen, origen) } : null,
       cita_destino: g.cita_destino ? { texto: g.cita_destino, ok: this.verificarCita(g.cita_destino, destino) } : null };
     const palabras = res.motivo.split(/\s+/).filter(Boolean).length;
@@ -4081,7 +4381,7 @@ export default class MapaNeuronal extends Plugin {
     if (this.ajustes.dobleVerificacion) {
       const esquema2 = { type: 'object', additionalProperties: false, required: ['fiel', 'problema'], properties: { fiel: { type: 'boolean' }, problema: { type: 'string' } } };
       const sistema2 = 'Eres un revisor escéptico. Decides si un motivo de enlace es FIEL a dos notas. Es infiel si: afirma algo que las notas no dicen; convierte un pendiente, idea o posibilidad en un hecho; ignora una negación; atribuye algo a la nota equivocada; o describe otra relación distinta de la que el texto establece. Si hay cualquier duda, fiel=false.';
-      const usuario2 = `<origen>\n${origen}\n</origen>\n\n<destino>\n${destino}\n</destino>\n\nEnlace: ${fr.nuevo ? 'nuevo, todavía no existe' : `línea ${fr.linea} de la nota de origen`}, hacia [[${nombre(fr.destino)}]].\nMotivo propuesto: "${res.motivo}"\nCitas: origen «${g.cita_origen}» · destino «${g.cita_destino}»\n\n¿Es fiel? Si no, explica el problema en una frase; si es fiel, problema="".`;
+      const usuario2 = `<origen>\n${origen}\n</origen>\n\n<destino>\n${destino}\n</destino>\n\nEnlace: ${fr.nuevo ? 'nuevo, todavía no existe' : `línea ${fr.linea} de la nota de origen`}, hacia [[${nombre(fr.destino)}]].\nMotivo propuesto: "${res.motivo}" (verbo: «${res.verbo}»)\nCitas: origen «${g.cita_origen}» · destino «${g.cita_destino}»\n\n¿Es fiel? Si no, explica el problema en una frase; si es fiel, problema="".`;
       res.revision = await this.llamarIA(sistema2, usuario2, esquema2);
       // Voto (opcional, apagado por defecto): si el revisor dice «infiel», dos revisores más miran la misma
       // pregunta sin saber el veredicto anterior y manda la mayoría. Solo se llama cuando hay desacuerdo.
@@ -4294,6 +4594,97 @@ export default class MapaNeuronal extends Plugin {
       await this.anotarUso((this.llamadasHechas || 0) - antes, st.error).catch(() => {});
     }
     return st;
+  }
+
+  // [F2] Cuántas llamadas quedan hoy bajo el «Tope de llamadas automáticas al día» (las mismas que cuenta la ingesta).
+  async cupoDeHoy() {
+    const reg = await this.leerRegistroIngesta(), tope = Math.max(0, Number(this.ajustes.topeDiario) || 0);
+    return Math.max(0, tope - (reg.uso?.fecha === hoy() ? reg.uso.llamadas : 0));
+  }
+  // ── [F2] Etiquetar conexiones: proponer un verbo a cada conexión con motivo y sin verbo ────────
+  // Va a la misma cola que los motivos (ingesta.json → motivos), con clave «verbo:origen|destino», hasta que la
+  // persona lo apruebe o lo descarte. Solo se envían los nombres de las dos notas y el motivo, en tandas de 20,
+  // y la corrida se detiene en el tope diario: lo que falta queda para otro día. Nada se escribe aquí.
+  async prepararVerbos(conexiones, alAvance) {
+    if (this.colaVerbos) return this.colaVerbos;
+    const hechos = await this.motivosPreparados();
+    const faltan = conexiones.filter((c) => !hechos[c.clave]);
+    const st = this.colaVerbos = { detenida: false, hechas: 0, n: faltan.length, error: null, tope: false };
+    const antes = this.llamadasHechas || 0; this.errorFatal = null;
+    const sistema = `Clasificas conexiones de un wiki personal. Cada conexión dice que la nota A se enlaza con la nota B, y por qué. Para cada una eliges el verbo que mejor describe la relación, leída como «A <verbo> B», SOLO de esta lista y copiado tal cual: ${VERBOS_ES.map((v) => '«' + v + '»').join(', ')}. Usa solo lo que dice el motivo; no infieras con conocimiento externo. Si ninguno calza, «${VERBO_RESERVA}».`;
+    const esquema = { type: 'object', additionalProperties: false, required: ['verbos'], properties: { verbos: { type: 'array', items: {
+      type: 'object', additionalProperties: false, required: ['id', 'verbo'], properties: { id: { type: 'string' }, verbo: { type: 'string', enum: VERBOS_ES } } } } } };
+    try {
+      let cupo = await this.cupoDeHoy();
+      for (let i = 0; i < faltan.length; i += 20) {
+        if (st.detenida) break;
+        if (cupo <= 0) { st.tope = true; break; }
+        const tanda = faltan.slice(i, i + 20);
+        const usuario = tanda.map((c, j) => `v${j + 1}: A = ${nombreNota(c.origen)} · B = ${nombreNota(c.destino)} · motivo: ${String(c.motivo).replace(/\s+/g, ' ').slice(0, 300)}`).join('\n');
+        let g;
+        try { g = await this.llamarIA(sistema, usuario, esquema); }
+        catch (e) { st.error = e.message; break; }
+        finally { cupo = (await this.cupoDeHoy()) - ((this.llamadasHechas || 0) - antes); }
+        const porId = {}; for (const x of g?.verbos || []) porId[String(x.id).trim()] = x.verbo;
+        for (const [j, c] of tanda.entries()) {
+          const v = porId['v' + (j + 1)];
+          const dato = { tipo: 'verbo', fecha: new Date().toISOString(), origen: c.origen, destino: c.destino, motivo: c.motivo,
+            res: { verbo: verboEnLista(v) ? normalizarVerbo(v) : VERBO_RESERVA, modelo: this.ajustes.modeloIA } };
+          await this.guardarMotivoPreparado(c.clave, dato);
+          st.hechas++;
+          alAvance?.(c.clave, dato, st);
+        }
+      }
+    } finally {
+      this.colaVerbos = null;
+      await this.anotarUso((this.llamadasHechas || 0) - antes, st.error).catch(() => {});
+    }
+    return st;
+  }
+  // Escribe el verbo aprobado en la línea de motivo de la nota de origen. Si la línea ya no está (se editó a
+  // mano, ya tiene verbo o se volvió de varias notas) no se toca nada y se dice.
+  async aprobarVerbo(clave, dato) {
+    const f = this.app.vault.getFileByPath(dato.origen); if (!f) throw new Error(T('No encuentro la nota de origen'));
+    { const veto = this.permisoEscritura(dato.origen); if (veto) throw await this.vetar('escritura', veto, dato.origen); }
+    const verbo = verboEnLista(dato.res?.verbo) ? normalizarVerbo(dato.res.verbo) : VERBO_RESERVA;
+    if (ponerVerboEnTexto(await this.app.vault.read(f), dato.destino, verbo) === null) {
+      await this.quitarMotivoPreparado(clave);
+      throw new Error(T('La línea de «{0}» ya no está como estaba (se editó o ya tiene verbo): no se escribió nada.', nombreNota(dato.destino)));
+    }
+    await this.app.vault.process(f, (t) => ponerVerboEnTexto(t, dato.destino, verbo) ?? t);
+    await this.evento('accepted', { origen: dato.origen, destino: dato.destino }, { modelo: dato.res?.modelo || '', tipo: 'verbo' });
+    await this.registrar(`\n## ${new Date().toTimeString().slice(0, 5)} · ${dato.origen} → [[${nombreNota(dato.destino)}]]\n- Verbo aprobado: **${verbo}** · ${dato.motivo}\n- Modelo: ${dato.res?.modelo || ''} · aprobado por la persona\n`);
+    await this.quitarMotivoPreparado(clave);
+    this.refrescarVistas();
+  }
+  async descartarVerbo(clave, dato) {
+    // Queda en la cola como descartado: así no se vuelve a pagar ni a ofrecer.
+    await this.guardarMotivoPreparado(clave, { ...dato, res: { ...(dato.res || {}), descartado: true } });
+    await this.evento('rejected', { origen: dato.origen, destino: dato.destino }, { causa: 'persona', tipo: 'verbo' });
+  }
+
+  // ── [F3] Preguntar al mapa ───────────────────────────────────────────────────────────────────
+  // La pregunta y las líneas del vecindario a dos saltos van a la IA; vuelve una respuesta que solo puede usar
+  // esas líneas y que cita las que usa. No escribe nada en el vault.
+  async preguntarAlMapa(D, id, pregunta) {
+    const q = String(pregunta || '').trim();
+    if (!q) throw new Error(T('Escribe una pregunta.'));
+    const sub = subgrafoDe(D, id);
+    if (!sub.lineas.length) return { vacio: true, suficiente: false, respuesta: '', citas: [], sub };
+    const sistema = 'Respondes preguntas sobre un mapa de notas usando SOLO las conexiones que se te dan, una por línea: [id] (A) --[verbo · motivo]--> (B), que se lee «A <verbo> B». No uses conocimiento externo ni supongas lo que las conexiones no dicen. En «citas» van los id de TODAS las conexiones que usas. Si las conexiones no alcanzan para responder, suficiente=false y respuesta="el mapa no tiene datos para responder eso". Responde en el idioma de la pregunta, en pocas frases.';
+    const usuario = `NOTA CENTRAL: ${sub.centro}\n\nCONEXIONES:\n${sub.lineas.map((l) => `[${l.id}] ${l.texto}`).join('\n')}\n\nPREGUNTA: ${q}`;
+    const esquema = { type: 'object', additionalProperties: false, required: ['suficiente', 'respuesta', 'citas'],
+      properties: { suficiente: { type: 'boolean' }, respuesta: { type: 'string' }, citas: { type: 'array', items: { type: 'string' } } } };
+    const antes = this.llamadasHechas || 0;
+    let g;
+    try { g = await this.llamarIA(sistema, usuario, esquema); }
+    finally { await this.anotarUso((this.llamadasHechas || 0) - antes).catch(() => {}); }
+    const porId = Object.fromEntries(sub.lineas.map((l) => [l.id, l]));
+    const ids = [...new Set((g.citas || []).map((c) => String(c).replace(/[[\]\s]/g, '')))];
+    const citas = ids.map((c) => porId[c]).filter(Boolean);
+    // Una respuesta que no cita ninguna conexión del mapa no se puede comprobar: no se muestra como respuesta.
+    const suficiente = !!g.suficiente && citas.length > 0 && !!String(g.respuesta || '').trim();
+    return { suficiente, respuesta: suficiente ? String(g.respuesta).trim() : '', citas: suficiente ? citas : [], sinCitas: !!g.suficiente && !citas.length, inventadas: ids.length - citas.length, sub };
   }
 
   // ── Novedades: buscar (a mano o al abrir Obsidian) ──────────────────────────────────────────
@@ -4740,7 +5131,7 @@ export default class MapaNeuronal extends Plugin {
     const f = this.app.vault.getFileByPath(fr.origen); if (!f) throw new Error(T('No encuentro la nota de origen'));
     { const veto = this.permisoEscritura(fr.origen); if (veto) throw await this.vetar('escritura', veto, fr.origen); }
     const titulo = this.ajustes.seccionMotivos || 'Conexiones';
-    const base = fr.destino.split('/').pop().replace(/\.md$/, ''), linea = `- [[${base}]] — ${res.motivo.replace(/\s+/g, ' ').replace(/\.$/, '')}`, hoyStr = hoy();
+    const base = fr.destino.split('/').pop().replace(/\.md$/, ''), linea = lineaMotivo(base, res.motivo, res.verbo), hoyStr = hoy();
     await this.app.vault.process(f, (t) => {
       const out = t;
       const esc = titulo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), i = out.search(new RegExp('^## ' + esc + '[^\\n]*$', 'm'));
@@ -4755,7 +5146,7 @@ export default class MapaNeuronal extends Plugin {
       const prop = this.ajustes.propiedadFecha;
       await this.app.fileManager.processFrontMatter(f, (fm) => { fm[prop] = hoyStr; });
     }
-    const entrada = res.manual ? `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo escrito por la persona (sin IA): ${res.motivo}\n` : `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo aprobado: ${res.motivo}\n- Cita origen (línea ${fr.linea}): «${res.cita_origen?.texto}»\n- Cita destino: «${res.cita_destino?.texto}»\n- Modelo: ${res.modelo} · segunda revisión: ${res.revision ? (res.revision.fiel ? 'fiel' : 'no fiel') : 'desactivada'} · aprobado por la persona\n`;
+    const entrada = res.manual ? `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo escrito por la persona (sin IA): ${res.motivo}\n` : `\n## ${new Date().toTimeString().slice(0, 5)} · ${fr.origen} → [[${base}]]\n- Motivo aprobado: ${res.verbo ? '**' + res.verbo + '** · ' : ''}${res.motivo}\n- Cita origen (línea ${fr.linea}): «${res.cita_origen?.texto}»\n- Cita destino: «${res.cita_destino?.texto}»\n- Modelo: ${res.modelo} · segunda revisión: ${res.revision ? (res.revision.fiel ? 'fiel' : 'no fiel') : 'desactivada'} · aprobado por la persona\n`;
     await this.evento(res.manual ? 'modified' : 'accepted', fr, { modelo: res.manual ? '' : res.modelo });
     await this.registrar(entrada);
     this.refrescarVistas();
