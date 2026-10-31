@@ -122,5 +122,32 @@ const NOTAS = {
     p.cierto('y descartar no escribe', !/\[\[n2\]\] — \*\*/.test(w.notas['a.md']));
   }
 
+  // ── 7. El verbo se ve en el lienzo al tocar una nota, también en enlaces cortos ───────────────
+  // El vault del mirador con un verbo en cada línea de Conexiones. En un enlace corto el medio de la curva cae bajo
+  // el rótulo de la nota: antes se veían 0 de 2 verbos en Hotel. Se cuentan los fillText de verbos dibujados.
+  {
+    const mir = require('./mirador/vault.json');
+    const notas = {}; for (const [r, t] of Object.entries(mir.notas)) notas[r] = t.replace(/^(- \[\[[^\]]+\]\] — )(?!\*\*)/gm, '$1**usa** · ');
+    const w = vaultSimulado(notas), aj = { ...AJUSTES_BASE, ...mir.ajustes, fuentes: 'no', animacion: false };
+    const vm = new VistaMapa({}, { ajustes: aj, tieneIA: () => false, app: w.app, manifest: { version: 'x' } });
+    vm.app = w.app; vm.contentEl = { ...el(), getBoundingClientRect: () => ({ width: 1440, height: 860, top: 0, left: 0 }) };
+    vm.lienzo = el(); vm.marca = el(); vm.chips = el(); vm.estado = el(); vm.guia = el(); vm.resultados = el();
+    // Con el panel abierto, como al tocar una nota en el escritorio.
+    vm.panel = { ...el(), hasClass: (c) => c === 'abierto', getBoundingClientRect: () => ({ width: 380, height: 700, top: 92, left: 1048 }) };
+    await vm.recargar(); vm.medir();
+    let vistos = 0, esperados = 0; const detalle = [];
+    for (const titulo of ['Hotel Andino', 'Cómo compramos grano verde', 'Logística de despachos', 'Perfil de tueste', 'Proyecto — Tostadora']) {
+      const n = vm.N.find((x) => x.titulo.startsWith(titulo)); if (!n) { detalle.push(titulo + ': no está'); continue; }
+      const conVerbo = vm.E.filter((e) => (e.a === n.id || e.b === n.id) && vm.verboVisible(e.a, e.b) && vm.visible(vm.porId[e.a]) && vm.visible(vm.porId[e.b])).length;
+      vm.foco = n.id;
+      const ctx = contexto2D(), textos = []; const ft = ctx.fillText; ctx.fillText = (t, ...a) => { textos.push(t); return ft(t, ...a); };
+      vm.dibujarEscena(ctx, true);
+      const n2 = textos.filter((t) => t === 'uses').length;
+      vistos += Math.min(n2, conVerbo); esperados += conVerbo; detalle.push(`${titulo} ${n2}/${conVerbo}`);
+    }
+    vm.foco = null;
+    console.log(`   · verbos en el lienzo: ${detalle.join(" · ")}`); p.cierto(`al tocar una nota se ven al menos el 80 % de sus verbos (${detalle.join(' · ')})`, esperados > 0 && vistos / esperados >= 0.8);
+  }
+
   process.exit(p.cerrar() ? 1 : 0);
 })().catch((e) => { console.error('   ✕ se cortó: ' + e.stack); p.cerrar(); process.exit(1); });

@@ -2784,20 +2784,32 @@ class VistaMapa extends ItemView {
       ctx.fillStyle = papel ? 'rgba(255,255,255,.92)' : 'rgba(6,10,24,.86)'; ctx.fillRect(x, y, w + pad * 2, h);
       ctx.fillStyle = fuerte ? tinta : papel ? 'rgba(30,33,64,.9)' : 'rgba(230,234,255,.9)'; ctx.fillText(texto, x + pad, y + h - 5 / vista.k);
     }
-    // [F2] El verbo, como etiqueta corta en el medio de la línea, solo en los enlaces de la nota tocada o bajo el
-    // mouse: en reposo el mapa queda como siempre. Va después de los rótulos y cede si choca con alguno.
+    // [F2] El verbo, como etiqueta corta sobre la línea, solo en los enlaces de la nota tocada o bajo el mouse: en
+    // reposo el mapa queda como siempre. Va después de los rótulos. En un enlace corto el medio de la curva cae justo
+    // bajo el rótulo de la nota: se prueban otros puntos de la curva, y encima o debajo de ella, antes de ceder.
     if (centro && nivel && !radial && !enCamino) {
       ctx.font = f(500, 9.5);
+      const choca = (k) => cajas.some((q) => k.x < q.x + q.w && q.x < k.x + k.w && k.y < q.y + q.h && q.y < k.y + k.h);
+      const PUNTOS = [0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85, 0.42, 0.58, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9];
       let puestas = 0;
       for (const e of this.E) {
         if (puestas >= 24) break;
         if (e.superE || (e.a !== centro && e.b !== centro)) continue;
         const v = this.verboVisible(e.a, e.b); if (!v) continue;
         const A = this.porId[e.a], B = this.porId[e.b]; if (!this.visible(A) || !this.visible(B)) continue;
-        const c = curvaEntre(A, B), mx = (c[0] + 3 * c[2] + 3 * c[4] + c[6]) / 8, my = (c[1] + 3 * c[3] + 3 * c[5] + c[7]) / 8;
+        const c = curvaEntre(A, B);
         const texto = v.length > 22 ? v.slice(0, 21) + '…' : v, pad = 3 / vista.k, w = ctx.measureText(texto).width + pad * 2, h = 13 / sk;
-        const caja = { x: mx - w / 2, y: my - h / 2, w, h };
-        if (cajas.some((q) => caja.x < q.x + q.w && q.x < caja.x + caja.w && caja.y < q.y + q.h && q.y < caja.y + caja.h)) continue;
+        let caja = null;
+        for (const dy of [0, -h, h, -2 * h, 2 * h]) {
+          for (const t of PUNTOS) {
+            const u = 1 - t, px = u * u * u * c[0] + 3 * u * u * t * c[2] + 3 * u * t * t * c[4] + t * t * t * c[6];
+            const py = u * u * u * c[1] + 3 * u * u * t * c[3] + 3 * u * t * t * c[5] + t * t * t * c[7];
+            const k = { x: px - w / 2, y: py - h / 2 + dy, w, h };
+            if (!choca(k)) { caja = k; break; }
+          }
+          if (caja) break;
+        }
+        if (!caja) continue;
         cajas.push(caja); puestas++;
         ctx.fillStyle = papel ? 'rgba(255,255,255,.9)' : 'rgba(6,10,24,.82)'; ctx.fillRect(caja.x, caja.y, w, h);
         ctx.fillStyle = papel ? 'rgba(60,66,110,.95)' : 'rgba(200,210,255,.92)'; ctx.fillText(texto, caja.x + pad, caja.y + h - 3.5 / vista.k);
