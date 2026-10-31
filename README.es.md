@@ -135,6 +135,14 @@ Rinde cuando tu vault tiene, o va hacia:
 - **La costumbre de decir por qué enlazas.** Cuando una nota lleva `- [[otra-nota]] — el motivo`, el
   panel muestra tus palabras. Cuando no, cae en la frase donde aparece el enlace — y la IA puede
   proponerte el motivo que falta para que lo apruebes.
+- **Opcional: el verbo de la relación.** `- [[otra-nota]] — **usa** · el motivo` se lee «esta nota usa
+  otra-nota». Los verbos salen de una lista fija (es cliente de, es proveedor de, trabaja en, es socio de,
+  es parte de, nace de, reemplaza a, usa, depende de, se integra con, cotiza con, compite con, se inspira en,
+  contradice a, bloquea a, regula a, financia a, documenta, mide, decide sobre; y «se relaciona con» de
+  reserva). Un verbo fuera de la lista se muestra igual y el modo salud lo marca. Las líneas sin verbo
+  siguen valiendo como siempre; «Etiquetar conexiones» (en «Vínculos por revisar») le pide a tu IA un verbo
+  para cada una y tú apruebas. Con verbos, «Preguntar al mapa» (en el panel de cada nota) responde preguntas
+  usando solo las conexiones a dos saltos, y cita las que usa.
 
 <details>
 <summary>Por qué un LLM wiki le saca más partido</summary>
@@ -311,8 +319,10 @@ le cuadraron. Estas son las reglas, escritas una sola vez (también van dentro d
 - **Enlace:** un par **no dirigido** de notas del mapa unidas por al menos un `[[wikilink]]`
   resuelto. A→B y B→A son un solo enlace. Los auto-enlaces y los enlaces a notas fuera del mapa
   se ignoran.
-- **Motivo:** el texto de `- [[nota]] — motivo` en la sección de conexiones; si no hay, la primera
-  línea del cuerpo donde aparece el enlace.
+- **Motivo:** el texto de `- [[nota]] — motivo` (o `- [[nota]] — **verbo** · motivo`) en la sección de
+  conexiones; si no hay, la primera línea del cuerpo donde aparece el enlace.
+- **Verbo:** la negrita de `- [[nota]] — **verbo** · motivo`, leída «esta nota <verbo> [[nota]]». Sin verbo,
+  «se relaciona con».
 - **Tema:** la propiedad de tema del frontmatter; si falta, el tema más frecuente entre sus vecinos.
 - **Hub:** por tema, la nota de la última capa con `hub: true`; si ninguna lo tiene, la primera de
   esa capa con el tema declarado.

@@ -134,6 +134,17 @@ It pays off when your vault has, or is moving towards:
 - **The habit of saying why you link.** When a note carries `- [[other-note]] — the reason`, the
   panel shows your words. When it does not, it falls back to the sentence where the link appears —
   and the AI can propose the missing reason for you to approve.
+- **Optional: the verb of the relation.** `- [[other-note]] — **usa** · the reason` reads «this note uses
+  other-note». Verbs come from a fixed list and are written in Spanish in the note (es cliente de = is a
+  client of, es proveedor de = is a supplier of, trabaja en = works at, es socio de = is a partner of, es
+  parte de = is part of, nace de = comes from, reemplaza a = replaces, usa = uses, depende de = depends on,
+  se integra con = integrates with, cotiza con = gets quotes from, compite con = competes with, se inspira
+  en = is inspired by, contradice a = contradicts, bloquea a = blocks, regula a = regulates, financia a =
+  funds, documenta = documents, mide = measures, decide sobre = decides on; «se relaciona con» = relates to,
+  as the fallback). The interface shows them translated. A verb off the list still shows, and health mode
+  flags it. Lines without a verb work as always; «Label connections» (in «Links to review») asks your AI for
+  a verb for each one and you approve. With verbs, «Ask the map» (in each note's panel) answers questions
+  using only the connections within two hops, and cites the ones it uses.
 
 <details>
 <summary>Why an LLM wiki gets more out of it</summary>
@@ -309,8 +320,10 @@ they matched. These are the rules, written once (they also ship inside the expor
   specific folder wins. Sources cited by path do not count as notes.
 - **Link:** an **undirected** pair of notes on the map joined by at least one resolved
   `[[wikilink]]`. A→B and B→A are one link. Self-links and links to notes off the map are ignored.
-- **Reason:** the text of `- [[note]] — reason` in the connections section; failing that, the first
-  body line where the link appears.
+- **Reason:** the text of `- [[note]] — reason` (or `- [[note]] — **verb** · reason`) in the connections
+  section; failing that, the first body line where the link appears.
+- **Verb:** the bold text of `- [[note]] — **verb** · reason`, read «this note <verb> [[note]]». Without a
+  verb, «se relaciona con» (relates to).
 - **Topic:** the topic frontmatter property; if missing, the most frequent topic among its neighbours.
 - **Hub:** per topic, the last-layer note with `hub: true`; if none has it, the first one in that
   layer with the topic declared.
