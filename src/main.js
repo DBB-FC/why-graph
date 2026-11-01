@@ -761,6 +761,7 @@ const EN = {
   '{0} conexiones entre {1} notas': '{0} connections among {1} notes',
   'se envían las {0} más cercanas': 'the {0} closest are sent',
   'Preguntar al mapa usa tu IA, y no hay una conectada en este dispositivo. Conéctala en los ajustes del plugin. No se envió nada.': 'Ask the map uses your AI, and none is connected on this device. Connect it in the plugin settings. Nothing was sent.',
+  'Sin IA en este dispositivo': 'No AI on this device',
   'Por ejemplo: ¿qué clientes usan este sistema?': 'For example: which clients use this system?',
   'Preguntar': 'Ask',
   'Preguntando al mapa…': 'Asking the map…',
@@ -1897,7 +1898,11 @@ class VistaMapa extends ItemView {
     this.ctx = this.lienzo.getContext('2d');
     const barra = raiz.createDiv('mn-barra'); this.barra = barra;
     this.marca = barra.createDiv({ cls: 'mn-marca', text: NOMBRE });
-    const buscar = barra.createEl('input', { type: 'search', placeholder: T('buscar nota…'), cls: 'mn-buscar' });
+    // [1.38] El teclado del iPhone ponía mayúscula, corregía «Kapa» y, al abrirse, subía los
+    // botones de zoom encima del buscador: mientras se escribe, el zoom se esconde.
+    const buscar = barra.createEl('input', { type: 'search', placeholder: T('buscar nota…'), cls: 'mn-buscar', attr: { autocapitalize: 'off', autocorrect: 'off', autocomplete: 'off', spellcheck: 'false' } });
+    this.registerDomEvent(buscar, 'focus', () => raiz.addClass('escribiendo'));
+    this.registerDomEvent(buscar, 'blur', () => this.ventana.setTimeout(() => raiz.removeClass('escribiendo'), 250));
     this.resultados = barra.createDiv('mn-resultados');
     // [1.33] La lista se muestra con una clase, no con show()/toggle(): en Obsidian esos dejan
     // style.display vacío, el CSS la tenía oculta por defecto y los resultados nunca se veían.
@@ -1933,24 +1938,28 @@ class VistaMapa extends ItemView {
       if (e.key !== 'Enter' || !this.filtro) return;
       const n = resultados()[0]; if (n) elegir(n); else new Notice(T('No hay notas con ese nombre'));
     });
-    this.chips = barra.createDiv('mn-chips');
-    this.registerDomEvent(this.chips, 'scroll', () => this.marcarDesborde(), { passive: true });
+    // [1.38] En el teléfono los chips de temas y los de herramientas ocupaban tres filas (un cuarto
+    // de la pantalla) y tapaban los títulos de las capas. Van todos en una sola fila que se desliza;
+    // en el escritorio esta fila no existe para el diseño (display: contents) y nada cambia.
+    const fila = barra.createDiv('mn-fila'); this.fila = fila;
+    this.chips = fila.createDiv('mn-chips');
+    for (const e of [this.chips, fila]) this.registerDomEvent(e, 'scroll', () => this.marcarDesborde(), { passive: true });
     // Solo aparece si hay material nuevo: una barra sin nada que hacer no muestra este chip.
-    this.chipNovedades = barra.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
+    this.chipNovedades = fila.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
     this.chipNovedades.onclick = () => (this.cuentas?.dia || !this.cuentas?.afuera ? this.panelNovedades() : this.panelLlegadas());
     // [1.35] Lo que entró de afuera (teléfono, Web Clipper), con su día y su estado: separado de lo recurrente.
     // [1.35] Qué entró cada día y en qué línea de negocio; tarjetas por tema con su última novedad.
-    const linea = barra.createEl('button', { cls: 'mn-chip', text: T('◷ línea de tiempo') });
+    const linea = fila.createEl('button', { cls: 'mn-chip', text: T('◷ línea de tiempo') });
     linea.onclick = () => this.panelLinea();
     // [1.37] Obsidian Sync trae lo del teléfono a su hora, y un plugin no puede forzarlo ni saber cuándo
     // pasó. El mapa dice a qué hora leyó el vault por última vez y se vuelve a leer con un toque.
-    this.chipAlDia = barra.createEl('button', { cls: 'mn-chip mn-chip-aldia' });
+    this.chipAlDia = fila.createEl('button', { cls: 'mn-chip mn-chip-aldia' });
     this.chipAlDia.onclick = async () => {
       this.chipAlDia.setText(T('↻ leyendo…'));
       await this.recargar();
       new Notice(T('Mapa al día: {0}', this.textoAlDia(this.alDia).hora));
     };
-    const herramientas = barra.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
+    const herramientas = fila.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
     herramientas.onclick = (e) => this.menuHerramientas(e);
     this.estado = barra.createDiv('mn-estado');
     const zoom = raiz.createDiv('mn-zoom');
@@ -2283,7 +2292,7 @@ class VistaMapa extends ItemView {
   // [1.33] En el teléfono los chips van en una fila con desplazamiento y sin barra: nada decía que
   // había 4 temas más a la derecha. Un degradado en el borde lo dice, y se va al llegar al final.
   marcarDesborde() {
-    const c = this.chips; if (!c || c.scrollWidth === undefined) return;
+    const c = this.angosto?.() && this.fila ? this.fila : this.chips; if (!c || c.scrollWidth === undefined) return;
     c.toggleClass('desborda-der', c.scrollLeft + c.clientWidth < c.scrollWidth - 2);
     c.toggleClass('desborda-izq', c.scrollLeft > 2);
   }
@@ -2391,6 +2400,7 @@ class VistaMapa extends ItemView {
     // El CSS tiene reglas para pantallas angostas («.mn-raiz.angosto»): sin esta línea no se
     // aplicaban nunca, y en un panel angosto de escritorio la barra se salía de la vista.
     this.contentEl.toggleClass('angosto', this.angosto());
+    if (this.barra?.getBoundingClientRect) this.contentEl.style?.setProperty?.('--mn-barra-abajo', Math.round(this.barra.getBoundingClientRect().bottom - r.top) + 'px');
     if (this.radial && this.foco && this.porId[this.foco]) return this.medirRadial();
     // En el celular el mapa se arma más ancho que la pantalla y se escala para caber. La altura se arma
     // en la MISMA escala (H / escala): si no, al achicar queda aplastado en la mitad de arriba.
@@ -2959,11 +2969,36 @@ class VistaMapa extends ItemView {
 
   // ── paneles ────────────────────────────────────────────────────────────────
   cabecera(p, ojo, titulo, sub) {
-    const cab = p.createDiv('mn-cab');
+    const cab = p.createDiv('mn-cab'); this.asa(cab);
     cab.createDiv({ cls: 'mn-ojo', text: ojo });
     cab.createEl('h3', { text: titulo });
-    if (sub) cab.createDiv({ cls: 'mn-ruta', text: sub });
+    // [1.38] En el teléfono la explicación larga se corta en dos líneas; un toque la muestra entera.
+    if (sub) { const d = cab.createDiv({ cls: 'mn-ruta', text: sub }); d.onclick = () => d.toggleClass('entera', !d.hasClass('entera')); }
     return cab.createDiv('mn-acciones');
+  }
+  // [1.38] En el teléfono el panel es una hoja inferior con tres alturas. Se arrastra desde la asa
+  // o se toca para pasar de media a alta a baja: con la hoja baja se ve casi todo el mapa.
+  asa(cab) {
+    if (!this.angosto()) return;
+    const asa = cab.createDiv('mn-asa'), p = this.panel, alturas = ['media', 'alta', 'baja'];
+    const fijar = (h) => {
+      this.hoja = h; p.style?.removeProperty?.('height');
+      for (const a of alturas) p.toggleClass('hoja-' + a, a === h);
+      if (this.foco && this.porId?.[this.foco]) this.asegurarVisible(this.porId[this.foco]);
+      this.pedir();
+    };
+    fijar(this.hoja || 'media');
+    let y0 = null, h0 = 0, total = 0;
+    asa.onpointerdown = (e) => { y0 = e.clientY; h0 = p.getBoundingClientRect().height; total = this.contentEl.getBoundingClientRect().height; asa.setPointerCapture?.(e.pointerId); };
+    asa.onpointermove = (e) => { if (y0 === null) return; p.style.height = Math.max(80, Math.min(total - 60, h0 - (e.clientY - y0))) + 'px'; };
+    asa.onpointerup = (e) => {
+      if (y0 === null) return;
+      const dy = e.clientY - y0; y0 = null;
+      if (Math.abs(dy) < 6) return fijar(alturas[(alturas.indexOf(this.hoja) + 1) % 3]);
+      const r = p.getBoundingClientRect().height / (total || 1);
+      fijar(r > 0.68 ? 'alta' : r < 0.34 ? 'baja' : 'media');
+    };
+    asa.onpointercancel = () => { y0 = null; fijar(this.hoja); };
   }
   cerrarBoton(acciones) {
     acciones.createEl('button', { text: T('Cerrar') }).onclick = () => { this.foco = null; this.camino = null; this.sugerencia = null; if (this.radial) this.medir(); this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
@@ -2999,7 +3034,7 @@ class VistaMapa extends ItemView {
     const ultima = this.D.capas.length - 1, capa = this.D.capas[n.capa], vec = this.ady[n.id].map((v) => this.porId[v]);
     const nombreTema = this.D.temas[n.tema] ? this.D.temas[n.tema][0] : T('sin tema'), colorTema = this.D.temas[n.tema]?.[1] || '#C9D1FF';
 
-    const cab = p.createDiv('mn-cab');
+    const cab = p.createDiv('mn-cab'); this.asa(cab);
     const ojo = cab.createDiv('mn-ojo2');
     ojo.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': colorTema });
     ojo.createSpan({ text: n.agrupados ? `Supernodo · ${nombreTema}` : `${nombreTema} · ${capa[1]}` });
@@ -3009,7 +3044,7 @@ class VistaMapa extends ItemView {
     meta.push(`${vec.length} conexiones`);
     if (n.updated) meta.push(`actualizada ${n.updated.slice(0, 10)}`);
     cab.createDiv({ cls: 'mn-meta', text: meta.join(' · ') });
-    const acciones = cab.createDiv('mn-acciones');
+    const acciones = cab.createDiv('mn-acciones mn-acciones-nota');
     if ((!n.virtual || n.ruta) && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta), true);
     if (!this.radial) this.boton(acciones, 'orbit', T('Radial'), () => { this.radial = true; this.foco = n.id; this.medir(); this.encuadrar(); this.pintarEstado(); });
     this.boton(acciones, 'route', T('Camino'), () => { this.eligiendo = { desde: n.id }; this.abrirPanel(null); new Notice(T('Toca la nota de destino')); this.pintarEstado(); this.pedir(); });
@@ -3018,7 +3053,12 @@ class VistaMapa extends ItemView {
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
     cerrar.onclick = () => { this.foco = null; this.camino = null; this.sugerencia = null; if (this.plugin.ajustes.fuentes === 'demanda') this.rehacer(); if (this.radial) this.medir(); this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
     // [F3] En su propia fila: en la de arriba empujaba la ✕ a otra línea en el escritorio.
-    if (!n.agrupados) this.boton(cab.createDiv('mn-acciones mn-acciones-2'), 'message-circle-question', T('Preguntar al mapa'), () => new PreguntarMapa(this.app, this, n.id).open());
+    // [1.38] En el teléfono va en la misma fila (solo íconos) para no robarle una fila al mapa. Sin
+    // IA en el dispositivo se ve apagado desde antes de tocarlo; al tocarlo, el cuadro dice por qué.
+    if (!n.agrupados) {
+      const b = this.boton(this.angosto() ? acciones : cab.createDiv('mn-acciones mn-acciones-2'), 'message-circle-question', T('Preguntar al mapa'), () => new PreguntarMapa(this.app, this, n.id).open());
+      if (!this.plugin.tieneIA()) { b.addClass('mn-sin-ia'); b.setAttr?.('title', T('Sin IA en este dispositivo')); }
+    }
 
     const lista = p.createDiv('mn-lista');
     const explica = lista.createDiv('mn-explica');
@@ -3466,7 +3506,7 @@ class VistaMapa extends ItemView {
   // costado, no puntos en el lienzo: no reordena nada. Y dice solo «sin cita reconocida».
   panelFuentes() {
     const p = this.panel; p.empty(); this.guia.hide(); this.novAbierto = false;
-    const F = this.D.fuentes, cab = p.createDiv('mn-cab');
+    const F = this.D.fuentes, cab = p.createDiv('mn-cab'); this.asa(cab);
     cab.createEl('h3', { text: T('Fuentes sin vínculo') });
     const alcance = F.carpetas.map((c) => c.ruta + (c.grupo ? '/*' : '')).join(' · ');
     cab.createDiv({ cls: 'mn-meta', text: T('Fuentes citadas: {0} de {1}', F.citadas, F.inventario) + ' · ' + alcance });

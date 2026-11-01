@@ -79,3 +79,12 @@ Regla: entra solo con síntoma real, que no exista ya y costo proporcional. Resu
 - El cuelgue de 20 s («más de 20 s ocupado, fase revisar») en «aprobar lo mismo» con `--vault`: pasa igual en la 1.36.0; sin investigar.
 - El grafo lee líneas `- [[x]] — motivo` aunque estén dentro de un bloque de código (preexistente); `ponerVerboEnTexto`
   ya no las edita, pero `construir` todavía las cuenta como motivo.
+
+## Anotado el 31.10.2026 — auditoría móvil con fotos del iPhone (quedó fuera de la 1.38.0)
+- **Modo salud en el teléfono:** los dos avisos de Obsidian tapan el buscador y los anillos rojos marcan casi todas
+  las notas; en el teléfono convendría un resumen en el panel en vez de avisos.
+- **Rótulos que se pisan:** verbos de las aristas («es parte de», «documenta») uno encima de otro alrededor de la nota
+  elegida, y las etiquetas negras de L3 tapan la columna L2.
+- **El modo activo** («◎ radial», «salud») es texto suelto: sería un chip con ✕ para salir.
+- **Fuentes sin vínculo:** el teléfono mostraba 49 y el Mac 30 el mismo día; probablemente los clips nuevos del día
+  (6 «Hoy» en Por ingerir), sin confirmar.

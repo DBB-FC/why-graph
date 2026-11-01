@@ -671,6 +671,32 @@ const RECORRIDOS = {
     else if (y > panel.top) M.hallazgo('la nota tocada queda bajo el panel', `${n.titulo}: y=${Math.round(y)} y el panel empieza en ${Math.round(panel.top)}`);
     await M.cerrar();
   },
+  // [1.38] En el iPhone la barra usaba tres filas, la ✕ gastaba una fila y «Preguntar al mapa» otra.
+  async 'teléfono: barra en dos filas, hoja con asa y acciones de la nota en una fila'(M) {
+    M.dispositivos.iphone2 = { ls: {}, telefono: true };
+    const s = await M.abrir('iphone2', { telefono: true }); await s.abrirMapa();
+    const v = s.vista, en = (raiz, sel) => raiz.querySelectorAll(sel);
+    const fila = en(v.barra, '.mn-fila')[0];
+    if (!fila) M.hallazgo('no hay fila única de chips', 'la barra no tiene .mn-fila');
+    else if (!en(fila, '.mn-chips').length || ![...fila.recorrer()].some((x) => /herramientas/.test(x.texto))) M.hallazgo('la fila no reúne temas y herramientas', [...fila.recorrer()].map((x) => x.texto).join(' '));
+    const buscar = en(v.barra, 'input')[0];
+    if (buscar?.attrs.autocapitalize !== 'off' || buscar?.attrs.spellcheck !== 'false') M.hallazgo('el teclado corrige el buscador', JSON.stringify(buscar?.attrs));
+    const n = v.N.find((x) => !x.oculto && !x.fuente && x.capa === 1);
+    await s.toca(n.titulo);
+    const asa = en(v.panel, '.mn-asa')[0], acciones = en(v.panel, '.mn-acciones-nota')[0];
+    if (!asa) M.hallazgo('la hoja no tiene asa', n.titulo);
+    else {
+      if (!v.panel.hasClass('hoja-media')) M.hallazgo('la hoja no parte a media altura', v.panel.className);
+      asa.onpointerdown({ clientY: 500, pointerId: 1 }); asa.onpointerup({ clientY: 501, pointerId: 1 });
+      if (!v.panel.hasClass('hoja-alta')) M.hallazgo('tocar el asa no sube la hoja', v.panel.className);
+      asa.onpointerdown({ clientY: 500, pointerId: 1 }); asa.onpointerup({ clientY: 500, pointerId: 1 });
+      if (!v.panel.hasClass('hoja-baja')) M.hallazgo('el segundo toque no deja la hoja baja', v.panel.className);
+    }
+    const preguntar = acciones && [...acciones.recorrer()].find((x) => x.tag === 'button' && /Preguntar/.test(x.attrs['aria-label'] || ''));
+    if (!preguntar) M.hallazgo('«Preguntar al mapa» no está en la fila de acciones', n.titulo);
+    else if (!v.plugin.tieneIA() && !preguntar.hasClass('mn-sin-ia')) M.hallazgo('sin IA, «Preguntar» no se ve apagado', preguntar.className);
+    await M.cerrar();
+  },
   async 'mouse: pasar por un enlace muestra su porqué'(M) {
     const s = await M.abrir('mac'); await s.abrirMapa();
     const v = s.vista, k = v.vista.k;
