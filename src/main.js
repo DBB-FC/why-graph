@@ -914,6 +914,7 @@ function nodoFuenteDe(ruta, carpetas) {
   return null;
 }
 // Inventario: qué archivos (o subcarpetas, con «/*») hay en cada carpeta de fuentes.
+const ES_IMAGEN = /\.(png|jpe?g|gif|webp|svg|avif|bmp|heic|ico)$/i;
 function inventarioFuentes(app, carpetas) {
   const todos = (app.vault.getFiles ? app.vault.getFiles() : app.vault.getMarkdownFiles()).map((f) => f.path);
   const items = [];
@@ -922,7 +923,9 @@ function inventarioFuentes(app, carpetas) {
   for (const c of carpetas) {
     const dentro = todos.filter((r) => suya(r) === c);
     if (c.grupo) { const subs = new Set(dentro.map((r) => r.slice(c.ruta.length + 1).split('/')[0]).filter((s) => dentro.some((r) => r.startsWith(c.ruta + '/' + s + '/')))); for (const s of subs) items.push({ ruta: c.ruta + '/' + s, titulo: s, carpeta: c, grupo: true }); }
-    else for (const r of dentro) items.push({ ruta: r, titulo: r.slice(c.ruta.length + 1), carpeta: c });
+    // [1.37] Una imagen no es una fuente: es el adjunto de la nota que la muestra (un clip baja las suyas a
+    // imagenes/<clip>/). Contadas una por una, 350 imágenes salían «sin vínculo» en el cerebro de Felipe.
+    else for (const r of dentro) if (!ES_IMAGEN.test(r)) items.push({ ruta: r, titulo: r.slice(c.ruta.length + 1), carpeta: c });
   }
   return items;
 }
