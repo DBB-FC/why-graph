@@ -2400,7 +2400,7 @@ class VistaMapa extends ItemView {
     // El CSS tiene reglas para pantallas angostas («.mn-raiz.angosto»): sin esta línea no se
     // aplicaban nunca, y en un panel angosto de escritorio la barra se salía de la vista.
     this.contentEl.toggleClass('angosto', this.angosto());
-    if (this.barra?.getBoundingClientRect) this.contentEl.style?.setProperty?.('--mn-barra-abajo', Math.round(this.barra.getBoundingClientRect().bottom - r.top) + 'px');
+    if (this.barra?.getBoundingClientRect) this.contentEl.setCssProps?.({ '--mn-barra-abajo': Math.round(this.barra.getBoundingClientRect().bottom - r.top) + 'px' });
     if (this.radial && this.foco && this.porId[this.foco]) return this.medirRadial();
     // En el celular el mapa se arma más ancho que la pantalla y se escala para caber. La altura se arma
     // en la MISMA escala (H / escala): si no, al achicar queda aplastado en la mitad de arriba.
@@ -2982,7 +2982,7 @@ class VistaMapa extends ItemView {
     if (!this.angosto()) return;
     const asa = cab.createDiv('mn-asa'), p = this.panel, alturas = ['media', 'alta', 'baja'];
     const fijar = (h) => {
-      this.hoja = h; p.style?.removeProperty?.('height');
+      this.hoja = h; p.setCssProps?.({ height: '' });
       for (const a of alturas) p.toggleClass('hoja-' + a, a === h);
       if (this.foco && this.porId?.[this.foco]) this.asegurarVisible(this.porId[this.foco]);
       this.pedir();
@@ -2990,7 +2990,7 @@ class VistaMapa extends ItemView {
     fijar(this.hoja || 'media');
     let y0 = null, h0 = 0, total = 0;
     asa.onpointerdown = (e) => { y0 = e.clientY; h0 = p.getBoundingClientRect().height; total = this.contentEl.getBoundingClientRect().height; asa.setPointerCapture?.(e.pointerId); };
-    asa.onpointermove = (e) => { if (y0 === null) return; p.style.height = Math.max(80, Math.min(total - 60, h0 - (e.clientY - y0))) + 'px'; };
+    asa.onpointermove = (e) => { if (y0 === null) return; p.setCssProps({ height: Math.max(80, Math.min(total - 60, h0 - (e.clientY - y0))) + 'px' }); };
     asa.onpointerup = (e) => {
       if (y0 === null) return;
       const dy = e.clientY - y0; y0 = null;
