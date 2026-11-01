@@ -135,6 +135,9 @@ const respuesta = (obj) => ({ status: 200, json: { choices: [{ message: { conten
     p.igual('una cita a un artículo cae en su carpeta, con su nombre', nodoFuenteDe('raw/articles/a.md', C)?.titulo, 'a.md');
     const { app } = vaultSimulado({ 'raw/x.md': '', 'raw/articles/a.md': '', 'raw/daily/2026-09-20/c.md': '', 'raw/daily/2026-09-21/d.md': '' });
     p.igual('el inventario cuenta cada archivo una sola vez', inventarioFuentes(app, C).map((i) => i.ruta).sort(), ['raw/articles/a.md', 'raw/daily/2026-09-20', 'raw/daily/2026-09-21', 'raw/x.md']);
+    // [1.37] Las imágenes de un clip son su adjunto, no fuentes sueltas: no entran al inventario.
+    const { app: conImagenes } = vaultSimulado({ 'raw/articles/a.md': '', 'raw/articles/imagenes/a/01.png': '', 'raw/articles/imagenes/a/02.GIF': '', 'raw/articles/informe.pdf': '' });
+    p.igual('las imágenes no cuentan como fuentes; un PDF sí', inventarioFuentes(conImagenes, C).map((i) => i.ruta).sort(), ['raw/articles/a.md', 'raw/articles/informe.pdf']);
   }
 
   // ── 7. Motivos: varios enlaces en una línea, enlaces con ruta, ancla o mayúsculas ────────────
