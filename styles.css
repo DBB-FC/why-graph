@@ -257,10 +257,12 @@
 .mn-raiz button.mn-chip.mn-chip-aldia { color: rgba(230,234,255,.72); }
 
 /* [1.38] Teléfono: barra en dos filas (buscador + una fila de chips que se desliza) */
-.mn-fila { display: contents; }
+/* En el escritorio la fila es un grupo más de la barra, que se envuelve igual que antes (sin display: contents,
+   que la revisión de Obsidian marca como de soporte parcial). */
+.mn-fila { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; min-width: 0; flex: 1 1 auto; }
 .is-phone .mn-fila, .mn-raiz.angosto .mn-fila { display: flex; flex: 1 1 100%; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; min-width: 0; }
 .is-phone .mn-fila::-webkit-scrollbar, .mn-raiz.angosto .mn-fila::-webkit-scrollbar { display: none; }
-.is-phone .mn-fila .mn-chips, .mn-raiz.angosto .mn-fila .mn-chips { display: contents; }
+.is-phone .mn-fila .mn-chips, .mn-raiz.angosto .mn-fila .mn-chips { flex: none; flex-wrap: nowrap; overflow: visible; padding-bottom: 0; -webkit-mask-image: none; mask-image: none; }
 .is-phone .mn-fila > .mn-chip, .mn-raiz.angosto .mn-fila > .mn-chip { flex: none; white-space: nowrap; }
 .is-phone .mn-raiz input.mn-buscar, .mn-raiz.angosto input.mn-buscar { flex: 1 1 100%; }
 .mn-fila.desborda-der { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
@@ -283,7 +285,9 @@
 .is-phone .mn-cab, .mn-raiz.angosto .mn-cab { position: relative; padding: 8px 14px 10px; }
 .is-phone .mn-cab > .mn-ojo, .is-phone .mn-cab > .mn-ojo2, .is-phone .mn-cab > h3, .mn-raiz.angosto .mn-cab > .mn-ojo, .mn-raiz.angosto .mn-cab > .mn-ojo2, .mn-raiz.angosto .mn-cab > h3 { padding-right: 46px; }
 .is-phone .mn-raiz .mn-panel button.mn-cerrar, .mn-raiz.angosto .mn-panel button.mn-cerrar { position: absolute; top: 14px; right: 12px; width: 36px; height: 36px; min-width: 36px; }
-.is-phone .mn-acciones:has(> .mn-cerrar:only-child), .mn-raiz.angosto .mn-acciones:has(> .mn-cerrar:only-child) { display: contents; }
+/* La ✕ va fuera del flujo: una fila de acciones que solo la tiene a ella no ocupa alto (sin :has). */
+.is-phone .mn-cab .mn-acciones, .mn-raiz.angosto .mn-cab .mn-acciones { margin-top: 0; }
+.is-phone .mn-cab .mn-acciones > :not(.mn-cerrar), .mn-raiz.angosto .mn-cab .mn-acciones > :not(.mn-cerrar) { margin-top: 8px; }
 .is-phone .mn-cab .mn-ruta, .mn-raiz.angosto .mn-cab .mn-ruta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
 .is-phone .mn-cab .mn-ruta.entera, .mn-raiz.angosto .mn-cab .mn-ruta.entera { display: block; }
 /* Acciones de la nota en una fila: «Abrir» con nombre, el resto solo con su ícono */
