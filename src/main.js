@@ -761,6 +761,10 @@ const EN = {
   '{0} conexiones entre {1} notas': '{0} connections among {1} notes',
   'se envían las {0} más cercanas': 'the {0} closest are sent',
   'Preguntar al mapa usa tu IA, y no hay una conectada en este dispositivo. Conéctala en los ajustes del plugin. No se envió nada.': 'Ask the map uses your AI, and none is connected on this device. Connect it in the plugin settings. Nothing was sent.',
+  'Sin IA en este dispositivo': 'No AI on this device',
+  'Qué revisar en el cerebro': 'What to review in the vault',
+  'Rojo: grave. Ámbar: conviene revisar. Toca una nota del mapa para ver su detalle.': 'Red: serious. Amber: worth reviewing. Tap a note on the map to see its details.',
+  'Salir: {0}': 'Exit: {0}',
   'Por ejemplo: ¿qué clientes usan este sistema?': 'For example: which clients use this system?',
   'Preguntar': 'Ask',
   'Preguntando al mapa…': 'Asking the map…',
@@ -896,8 +900,20 @@ function citasDe(texto, carpetas) {
   const envuelta = new RegExp('(?:`([^`]+)`|\\[\\[([^\\]|#]+)(?:[|#][^\\]]*)?\\]\\]|\\]\\(([^)\\s]+)\\))', 'g');
   const suelta = new RegExp('(?:^|[^\\w/])((?:' + esc + ')/[^\\s`"\'<>|\\[\\]()]+)', 'g');
   const dentro = new RegExp('^(?:' + esc + ')/');
+  // [1.38] «  - raw/articles/Post by @x on X.md» en la lista fuentes: la ruta suelta se cortaba en
+  // el primer espacio («raw/articles/Post»): el clip quedaba sin vínculo y el pedazo, como cita rota.
+  // Una línea que es solo «- ruta.ext» o «clave: ruta.ext» se lee entera.
+  const entera = new RegExp('^\\s*(?:-\\s+|[\\w-]+:\\s+)["\']?((?:' + esc + ')/[^"\'`\\[\\]]+?\\.[A-Za-z0-9]{1,6})["\']?\\s*$');
   lineas.forEach((l, i) => {
-    for (const m of l.matchAll(envuelta)) { const r = (m[1] || m[2] || m[3] || '').trim(); if (dentro.test(r)) agregar(r, i + 1); }
+    const e = l.match(entera); if (e) { agregar(e[1], i + 1); return; }
+    for (const m of l.matchAll(envuelta)) {
+      let r = (m[1] || m[2] || m[3] || '').trim(); if (!dentro.test(r)) continue;
+      // [1.38] Obsidian escribe [[raw/articles/x|fuente]] sin «.md»: la cita no calzaba con el archivo,
+      // el clip salía sin vínculo y la cita, rota. Un wikilink sin extensión apunta a un .md, salvo
+      // [[raw/daily/2026-10-05]] en una carpeta agrupada, que nombra el día entero.
+      if (m[2] && !/\.[A-Za-z0-9]{1,6}$/.test(r)) { const c = carpetas.find((x) => r.startsWith(x.ruta + '/')); if (!(c?.grupo && !r.slice(c.ruta.length + 1).includes('/'))) r += '.md'; }
+      agregar(r, i + 1);
+    }
     // Lo envuelto ya se leyó entero: se borra antes de buscar rutas sueltas, o «`a b.md`» daría también «a».
     for (const m of l.replace(envuelta, ' ').matchAll(suelta)) agregar(m[1], i + 1);
   });
@@ -1897,7 +1913,11 @@ class VistaMapa extends ItemView {
     this.ctx = this.lienzo.getContext('2d');
     const barra = raiz.createDiv('mn-barra'); this.barra = barra;
     this.marca = barra.createDiv({ cls: 'mn-marca', text: NOMBRE });
-    const buscar = barra.createEl('input', { type: 'search', placeholder: T('buscar nota…'), cls: 'mn-buscar' });
+    // [1.38] El teclado del iPhone ponía mayúscula, corregía «Kapa» y, al abrirse, subía los
+    // botones de zoom encima del buscador: mientras se escribe, el zoom se esconde.
+    const buscar = barra.createEl('input', { type: 'search', placeholder: T('buscar nota…'), cls: 'mn-buscar', attr: { autocapitalize: 'off', autocorrect: 'off', autocomplete: 'off', spellcheck: 'false' } });
+    this.registerDomEvent(buscar, 'focus', () => raiz.addClass('escribiendo'));
+    this.registerDomEvent(buscar, 'blur', () => this.ventana.setTimeout(() => raiz.removeClass('escribiendo'), 250));
     this.resultados = barra.createDiv('mn-resultados');
     // [1.33] La lista se muestra con una clase, no con show()/toggle(): en Obsidian esos dejan
     // style.display vacío, el CSS la tenía oculta por defecto y los resultados nunca se veían.
@@ -1933,24 +1953,28 @@ class VistaMapa extends ItemView {
       if (e.key !== 'Enter' || !this.filtro) return;
       const n = resultados()[0]; if (n) elegir(n); else new Notice(T('No hay notas con ese nombre'));
     });
-    this.chips = barra.createDiv('mn-chips');
-    this.registerDomEvent(this.chips, 'scroll', () => this.marcarDesborde(), { passive: true });
+    // [1.38] En el teléfono los chips de temas y los de herramientas ocupaban tres filas (un cuarto
+    // de la pantalla) y tapaban los títulos de las capas. Van todos en una sola fila que se desliza;
+    // en el escritorio esta fila no existe para el diseño (display: contents) y nada cambia.
+    const fila = barra.createDiv('mn-fila'); this.fila = fila;
+    this.chips = fila.createDiv('mn-chips');
+    for (const e of [this.chips, fila]) this.registerDomEvent(e, 'scroll', () => this.marcarDesborde(), { passive: true });
     // Solo aparece si hay material nuevo: una barra sin nada que hacer no muestra este chip.
-    this.chipNovedades = barra.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
+    this.chipNovedades = fila.createEl('button', { cls: 'mn-chip mn-chip-nov' }); this.chipNovedades.hide();
     this.chipNovedades.onclick = () => (this.cuentas?.dia || !this.cuentas?.afuera ? this.panelNovedades() : this.panelLlegadas());
     // [1.35] Lo que entró de afuera (teléfono, Web Clipper), con su día y su estado: separado de lo recurrente.
     // [1.35] Qué entró cada día y en qué línea de negocio; tarjetas por tema con su última novedad.
-    const linea = barra.createEl('button', { cls: 'mn-chip', text: T('◷ línea de tiempo') });
+    const linea = fila.createEl('button', { cls: 'mn-chip', text: T('◷ línea de tiempo') });
     linea.onclick = () => this.panelLinea();
     // [1.37] Obsidian Sync trae lo del teléfono a su hora, y un plugin no puede forzarlo ni saber cuándo
     // pasó. El mapa dice a qué hora leyó el vault por última vez y se vuelve a leer con un toque.
-    this.chipAlDia = barra.createEl('button', { cls: 'mn-chip mn-chip-aldia' });
+    this.chipAlDia = fila.createEl('button', { cls: 'mn-chip mn-chip-aldia' });
     this.chipAlDia.onclick = async () => {
       this.chipAlDia.setText(T('↻ leyendo…'));
       await this.recargar();
       new Notice(T('Mapa al día: {0}', this.textoAlDia(this.alDia).hora));
     };
-    const herramientas = barra.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
+    const herramientas = fila.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
     herramientas.onclick = (e) => this.menuHerramientas(e);
     this.estado = barra.createDiv('mn-estado');
     const zoom = raiz.createDiv('mn-zoom');
@@ -2283,23 +2307,33 @@ class VistaMapa extends ItemView {
   // [1.33] En el teléfono los chips van en una fila con desplazamiento y sin barra: nada decía que
   // había 4 temas más a la derecha. Un degradado en el borde lo dice, y se va al llegar al final.
   marcarDesborde() {
-    const c = this.chips; if (!c || c.scrollWidth === undefined) return;
+    const c = this.angosto?.() && this.fila ? this.fila : this.chips; if (!c || c.scrollWidth === undefined) return;
     c.toggleClass('desborda-der', c.scrollLeft + c.clientWidth < c.scrollWidth - 2);
     c.toggleClass('desborda-izq', c.scrollLeft > 2);
   }
   pintarEstado() {
-    const t = [];
-    if (this.radial) t.push(this.foco ? T('◎ radial') : T('◎ radial: toca una nota'));
-    if (this.colapsados.size) t.push(T('◉ {0} tema(s) colapsado(s)', this.colapsados.size));
-    if (this.vacios) t.push(T('⌁ conexiones que faltan'));
-    if (this.salud) t.push(T('❤︎ salud'));
-    if (this.reciente) t.push(T('◷ últimos {0} días', this.reciente));
-    if (this.conEnlace) t.push(T('◯ con enlaces externos'));
-    if (this.todas) t.push(T('todas las conexiones'));
-    if (this.largos) t.push(T('⇄ largo alcance'));
-    if (this.eligiendo) t.push(this.eligiendo.desde ? T('→ toca la nota de destino') : T('→ toca la nota de origen'));
+    // [1.38] Cada modo activo es un chip con su ✕: antes era texto suelto y para salir había que
+    // volver al menú de herramientas.
+    const t = [], fin = () => { this.pintarEstado(); this.pedir(); };
+    if (this.radial) t.push([this.foco ? T('◎ radial') : T('◎ radial: toca una nota'), () => { this.radial = false; this.medir(); this.encuadrar(); fin(); }]);
+    if (this.colapsados.size) t.push([T('◉ {0} tema(s) colapsado(s)', this.colapsados.size), () => { this.colapsados.clear(); this.rehacer(); this.pintarChips(); fin(); }]);
+    if (this.vacios) t.push([T('⌁ conexiones que faltan'), () => { this.vacios = false; this.sugerencia = null; this.abrirPanel(this.foco ? this.porId[this.foco] : null); fin(); }]);
+    if (this.salud) t.push([T('❤︎ salud'), () => { this.salud = false; fin(); }]);
+    if (this.reciente) t.push([T('◷ últimos {0} días', this.reciente), () => { this.reciente = 0; fin(); }]);
+    if (this.conEnlace) t.push([T('◯ con enlaces externos'), () => { this.conEnlace = false; fin(); }]);
+    if (this.todas) t.push([T('todas las conexiones'), () => { this.todas = false; fin(); }]);
+    if (this.largos) t.push([T('⇄ largo alcance'), () => { this.largos = false; fin(); }]);
+    if (this.eligiendo) t.push([this.eligiendo.desde ? T('→ toca la nota de destino') : T('→ toca la nota de origen'), () => { this.eligiendo = null; fin(); }]);
     const antes = this.barra?.offsetHeight;
-    this.estado.setText(t.join(' · '));
+    if (typeof this.estado.empty !== 'function' || typeof this.estado.createSpan !== 'function') this.estado.setText(t.map((x) => x[0]).join(' · '));
+    else {
+      this.estado.empty();
+      for (const [texto, salir] of t) {
+        const chip = this.estado.createSpan({ cls: 'mn-modo', text: texto });
+        const x = chip.createEl('button', { cls: 'mn-modo-x', text: '✕', attr: { 'aria-label': T('Salir: {0}', texto), title: T('Salir: {0}', texto) } });
+        x.onclick = (e) => { e?.stopPropagation?.(); salir(); };
+      }
+    }
     // [1.29.2] El texto de estado agranda la barra: si cambió su alto, el mapa se vuelve a
     // medir para que el título de la primera capa no quede debajo (visto en un iPhone).
     if (this.barra && this.barra.offsetHeight !== antes && this.W) { this.medir(); this.pedir(); }
@@ -2391,6 +2425,7 @@ class VistaMapa extends ItemView {
     // El CSS tiene reglas para pantallas angostas («.mn-raiz.angosto»): sin esta línea no se
     // aplicaban nunca, y en un panel angosto de escritorio la barra se salía de la vista.
     this.contentEl.toggleClass('angosto', this.angosto());
+    if (this.barra?.getBoundingClientRect) this.contentEl.setCssProps?.({ '--mn-barra-abajo': Math.round(this.barra.getBoundingClientRect().bottom - r.top) + 'px' });
     if (this.radial && this.foco && this.porId[this.foco]) return this.medirRadial();
     // En el celular el mapa se arma más ancho que la pantalla y se escala para caber. La altura se arma
     // en la MISMA escala (H / escala): si no, al achicar queda aplastado en la mitad de arriba.
@@ -2819,7 +2854,10 @@ class VistaMapa extends ItemView {
       if (!izquierda && n.x + ancho > bordeDer) izquierda = true;
       if (izquierda && n.x - ancho < bordeIzq && n.x + ancho <= bordeDer) izquierda = false;
       // Si no cabe a ningún lado (un título largo en el teléfono), se acorta con «…» al aire que hay.
-      const aireLado = (izquierda ? n.x - bordeIzq : bordeDer - n.x) - r - pad * 2;
+      let aireLado = (izquierda ? n.x - bordeIzq : bordeDer - n.x) - r - pad * 2;
+      // [1.38] El rótulo de un tema (a la izquierda de la última capa) no tapa la columna anterior.
+      const previa = !radial && izquierda && n.capa === ultima ? this.capas?.[ultima - 1] : null;
+      if (previa) aireLado = Math.min(aireLado, n.x - previa.x - 18 / vista.k - r - pad * 2);
       if (w > aireLado && aireLado > 40 / vista.k) { while (texto.length > 4 && ctx.measureText(texto + '…').width > aireLado) texto = texto.slice(0, -1); texto += '…'; }
       w = ctx.measureText(texto).width;
       const x = izquierda ? n.x - r - w - pad * 2 : n.x + r, y = n.y - h / 2;
@@ -2835,11 +2873,13 @@ class VistaMapa extends ItemView {
     // bajo el rótulo de la nota: se prueban otros puntos de la curva, y encima o debajo de ella, antes de ceder.
     if (centro && nivel && !radial && !enCamino) {
       ctx.font = f(500, 9.5);
-      const choca = (k) => cajas.some((q) => k.x < q.x + q.w && q.x < k.x + k.w && k.y < q.y + q.h && q.y < k.y + k.h);
+      // [1.38] Con un poco de aire entre etiquetas («es parte de» quedaba pegada a «documenta»), y en
+      // el teléfono menos etiquetas: las demás se leen en el panel.
+      const ai = 2 / vista.k, choca = (k) => cajas.some((q) => k.x - ai < q.x + q.w && q.x < k.x + k.w + ai && k.y - ai < q.y + q.h && q.y < k.y + k.h + ai);
       const PUNTOS = [0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85, 0.42, 0.58, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9];
       let puestas = 0;
       for (const e of this.E) {
-        if (puestas >= 24) break;
+        if (puestas >= (this.angosto() ? 10 : 24)) break;
         if (e.superE || (e.a !== centro && e.b !== centro)) continue;
         const v = this.verboVisible(e.a, e.b); if (!v) continue;
         const A = this.porId[e.a], B = this.porId[e.b]; if (!this.visible(A) || !this.visible(B)) continue;
@@ -2959,11 +2999,36 @@ class VistaMapa extends ItemView {
 
   // ── paneles ────────────────────────────────────────────────────────────────
   cabecera(p, ojo, titulo, sub) {
-    const cab = p.createDiv('mn-cab');
+    const cab = p.createDiv('mn-cab'); this.asa(cab);
     cab.createDiv({ cls: 'mn-ojo', text: ojo });
     cab.createEl('h3', { text: titulo });
-    if (sub) cab.createDiv({ cls: 'mn-ruta', text: sub });
+    // [1.38] En el teléfono la explicación larga se corta en dos líneas; un toque la muestra entera.
+    if (sub) { const d = cab.createDiv({ cls: 'mn-ruta', text: sub }); d.onclick = () => d.toggleClass('entera', !d.hasClass('entera')); }
     return cab.createDiv('mn-acciones');
+  }
+  // [1.38] En el teléfono el panel es una hoja inferior con tres alturas. Se arrastra desde la asa
+  // o se toca para pasar de media a alta a baja: con la hoja baja se ve casi todo el mapa.
+  asa(cab) {
+    if (!this.angosto()) return;
+    const asa = cab.createDiv('mn-asa'), p = this.panel, alturas = ['media', 'alta', 'baja'];
+    const fijar = (h) => {
+      this.hoja = h; p.setCssProps?.({ height: '' });
+      for (const a of alturas) p.toggleClass('hoja-' + a, a === h);
+      if (this.foco && this.porId?.[this.foco]) this.asegurarVisible(this.porId[this.foco]);
+      this.pedir();
+    };
+    fijar(this.hoja || 'media');
+    let y0 = null, h0 = 0, total = 0;
+    asa.onpointerdown = (e) => { y0 = e.clientY; h0 = p.getBoundingClientRect().height; total = this.contentEl.getBoundingClientRect().height; asa.setPointerCapture?.(e.pointerId); };
+    asa.onpointermove = (e) => { if (y0 === null) return; p.setCssProps({ height: Math.max(80, Math.min(total - 60, h0 - (e.clientY - y0))) + 'px' }); };
+    asa.onpointerup = (e) => {
+      if (y0 === null) return;
+      const dy = e.clientY - y0; y0 = null;
+      if (Math.abs(dy) < 6) return fijar(alturas[(alturas.indexOf(this.hoja) + 1) % 3]);
+      const r = p.getBoundingClientRect().height / (total || 1);
+      fijar(r > 0.68 ? 'alta' : r < 0.34 ? 'baja' : 'media');
+    };
+    asa.onpointercancel = () => { y0 = null; fijar(this.hoja); };
   }
   cerrarBoton(acciones) {
     acciones.createEl('button', { text: T('Cerrar') }).onclick = () => { this.foco = null; this.camino = null; this.sugerencia = null; if (this.radial) this.medir(); this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
@@ -2999,7 +3064,7 @@ class VistaMapa extends ItemView {
     const ultima = this.D.capas.length - 1, capa = this.D.capas[n.capa], vec = this.ady[n.id].map((v) => this.porId[v]);
     const nombreTema = this.D.temas[n.tema] ? this.D.temas[n.tema][0] : T('sin tema'), colorTema = this.D.temas[n.tema]?.[1] || '#C9D1FF';
 
-    const cab = p.createDiv('mn-cab');
+    const cab = p.createDiv('mn-cab'); this.asa(cab);
     const ojo = cab.createDiv('mn-ojo2');
     ojo.createSpan({ cls: 'mn-punto' }).setCssProps({ '--mn-color': colorTema });
     ojo.createSpan({ text: n.agrupados ? `Supernodo · ${nombreTema}` : `${nombreTema} · ${capa[1]}` });
@@ -3009,7 +3074,7 @@ class VistaMapa extends ItemView {
     meta.push(`${vec.length} conexiones`);
     if (n.updated) meta.push(`actualizada ${n.updated.slice(0, 10)}`);
     cab.createDiv({ cls: 'mn-meta', text: meta.join(' · ') });
-    const acciones = cab.createDiv('mn-acciones');
+    const acciones = cab.createDiv('mn-acciones mn-acciones-nota');
     if ((!n.virtual || n.ruta) && !(n.fuente && (n.rota || n.grupo))) this.boton(acciones, 'file-text', T('Abrir'), () => this.abrirNota(n.ruta), true);
     if (!this.radial) this.boton(acciones, 'orbit', T('Radial'), () => { this.radial = true; this.foco = n.id; this.medir(); this.encuadrar(); this.pintarEstado(); });
     this.boton(acciones, 'route', T('Camino'), () => { this.eligiendo = { desde: n.id }; this.abrirPanel(null); new Notice(T('Toca la nota de destino')); this.pintarEstado(); this.pedir(); });
@@ -3018,7 +3083,12 @@ class VistaMapa extends ItemView {
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
     cerrar.onclick = () => { this.foco = null; this.camino = null; this.sugerencia = null; if (this.plugin.ajustes.fuentes === 'demanda') this.rehacer(); if (this.radial) this.medir(); this.abrirPanel(null); this.pintarEstado(); this.pedir(); };
     // [F3] En su propia fila: en la de arriba empujaba la ✕ a otra línea en el escritorio.
-    if (!n.agrupados) this.boton(cab.createDiv('mn-acciones mn-acciones-2'), 'message-circle-question', T('Preguntar al mapa'), () => new PreguntarMapa(this.app, this, n.id).open());
+    // [1.38] En el teléfono va en la misma fila (solo íconos) para no robarle una fila al mapa. Sin
+    // IA en el dispositivo se ve apagado desde antes de tocarlo; al tocarlo, el cuadro dice por qué.
+    if (!n.agrupados) {
+      const b = this.boton(this.angosto() ? acciones : cab.createDiv('mn-acciones mn-acciones-2'), 'message-circle-question', T('Preguntar al mapa'), () => new PreguntarMapa(this.app, this, n.id).open());
+      if (!this.plugin.tieneIA()) { b.addClass('mn-sin-ia'); b.setAttr?.('title', T('Sin IA en este dispositivo')); }
+    }
 
     const lista = p.createDiv('mn-lista');
     const explica = lista.createDiv('mn-explica');
@@ -3466,7 +3536,7 @@ class VistaMapa extends ItemView {
   // costado, no puntos en el lienzo: no reordena nada. Y dice solo «sin cita reconocida».
   panelFuentes() {
     const p = this.panel; p.empty(); this.guia.hide(); this.novAbierto = false;
-    const F = this.D.fuentes, cab = p.createDiv('mn-cab');
+    const F = this.D.fuentes, cab = p.createDiv('mn-cab'); this.asa(cab);
     cab.createEl('h3', { text: T('Fuentes sin vínculo') });
     const alcance = F.carpetas.map((c) => c.ruta + (c.grupo ? '/*' : '')).join(' · ');
     cab.createDiv({ cls: 'mn-meta', text: T('Fuentes citadas: {0} de {1}', F.citadas, F.inventario) + ' · ' + alcance });
@@ -3862,18 +3932,28 @@ class VistaMapa extends ItemView {
   }
 
   informeSalud() {
+    // [1.38] En el teléfono los avisos se apilaban sobre el buscador: el informe va en el panel.
+    const lineas = [], avisar = (texto, ms) => (this.angosto() ? lineas.push(texto) : new Notice(texto, ms));
     const nodos = this.D.nodos.filter((n) => !n.fuente);
     const huerf = nodos.filter((n) => n.grado === 0).length, sinTema = nodos.filter((n) => !n.propio && n.capa !== 0).length;
     const sinMot = this.D.aristas.filter(([a, b, m]) => !m && !this.base[a].fuente && !this.base[b].fuente).length;
     const rotas = this.D.nodos.filter((n) => n.fuente && n.rota).length, sinV = this.D.fuentes?.sinVinculo.length || 0;
     const graves = this.D.nodos.filter((n) => this.grave(n)).length;
-    if (graves) new Notice(T('{0} nota(s) graves (rojo). Lo demás, en ámbar.', graves), 6000);
-    if (this.D.fuentes?.carpetas.length) new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo · {3} referencia(s) rota(s) · {4} fuente(s) sin vínculo', huerf, sinTema, sinMot, rotas, sinV), 8000);
-    else new Notice(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo', huerf, sinTema, sinMot), 6000);
+    if (graves) avisar(T('{0} nota(s) graves (rojo). Lo demás, en ámbar.', graves), 6000);
+    if (this.D.fuentes?.carpetas.length) avisar(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo · {3} referencia(s) rota(s) · {4} fuente(s) sin vínculo', huerf, sinTema, sinMot, rotas, sinV), 8000);
+    else avisar(T('Salud: {0} huérfana(s) · {1} sin tema · {2} enlace(s) sin motivo', huerf, sinTema, sinMot), 6000);
     const fuera = this.D.config?.sinCapa.length || 0;
-    if (fuera) new Notice(T('{0} nota(s) fuera de toda capa: no aparecen en el mapa. Revisa «Carpetas → capa».', fuera), 8000);
+    if (fuera) avisar(T('{0} nota(s) fuera de toda capa: no aparecen en el mapa. Revisa «Carpetas → capa».', fuera), 8000);
     const verbosFuera = this.D.aristas.filter((x) => x[5]?.verbo && !verboEnLista(x[5].verbo)).length;
-    if (verbosFuera) new Notice(T(verbosFuera === 1 ? '{0} conexión con verbo fuera de la lista: se ve, pero conviene usar uno de la lista.' : '{0} conexiones con verbo fuera de la lista: se ven, pero conviene usar uno de la lista.', verbosFuera), 8000);
+    if (verbosFuera) avisar(T(verbosFuera === 1 ? '{0} conexión con verbo fuera de la lista: se ve, pero conviene usar uno de la lista.' : '{0} conexiones con verbo fuera de la lista: se ven, pero conviene usar uno de la lista.', verbosFuera), 8000);
+    if (!lineas.length) return;
+    const p = this.panel; p.empty(); p.addClass('abierto'); this.guia.hide();
+    const acciones = this.cabecera(p, T('Modo salud'), T('Qué revisar en el cerebro'), T('Rojo: grave. Ámbar: conviene revisar. Toca una nota del mapa para ver su detalle.'));
+    const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
+    try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
+    cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
+    const lista = p.createDiv('mn-lista');
+    for (const l of lineas) for (const parte of l.split(' · ')) lista.createDiv({ cls: 'mn-motivo mn-salud-linea', text: parte });
   }
   async exportar() {
     const blob = await new Promise((ok) => this.lienzo.toBlob(ok, 'image/png'));

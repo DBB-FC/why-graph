@@ -52,6 +52,10 @@ const vista = (app, ajustes, D) => {
   p.cierto('una ruta suelta se corta en el espacio y pierde el punto final', citas.includes('raw/articles/no-existe.md'));
   p.igual('la cita entre paréntesis de un enlace también cuenta', citasDe(notas['wiki/proyectos/b-suite.md'], carpetas).map((c) => c.ruta), ['raw/articles/2026-01-04-repo-maxun.md']);
   p.igual('sin carpetas configuradas no hay citas', citasDe(notas['wiki/tecnico/maxun.md'], []).length, 0);
+  // [1.38] Visto en el Cerebro: un clip citado en la lista fuentes con espacios en el nombre salía sin vínculo.
+  const conEspacios = citasDe('---\nfuentes:\n  - raw/articles/Post by @0xCodez on X.md\n  - "raw/articles/How to Reverse Engineer (Full).md"\nfuente: raw/articles/a b.md\n---\nVer raw/articles/suelta.md en el texto.', carpetas).map((c) => c.ruta);
+  p.igual('un wikilink sin .md apunta al clip; un día agrupado sigue siendo el día', citasDe('([[raw/articles/2026-09-28-licenses|fuente]]) [[raw/daily/2026-10-05]] [[raw/daily/2026-10-05/oem]] [[raw/articles/plano.pdf]]', carpetas).map((c) => c.ruta), ['raw/articles/2026-09-28-licenses.md', 'raw/daily/2026-10-05', 'raw/daily/2026-10-05/oem.md', 'raw/articles/plano.pdf']);
+  p.igual('una línea de lista con espacios se lee entera', conEspacios, ['raw/articles/Post by @0xCodez on X.md', 'raw/articles/How to Reverse Engineer (Full).md', 'raw/articles/a b.md', 'raw/articles/suelta.md']);
   p.igual('«carpeta/*» agrupa por subcarpeta', nodoFuenteDe('raw/daily/2026-01-02/hermes.md', carpetas).ruta, 'raw/daily/2026-01-02');
   p.igual('una ruta fuera de las carpetas no es fuente', nodoFuenteDe('wiki/tecnico/maxun.md', carpetas), null);
 

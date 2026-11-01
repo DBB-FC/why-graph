@@ -55,8 +55,13 @@ jobs:
       - name: Publicar el release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Las notas para quien ya lo instaló van en docs/notas/<versión>.md (inglés y español);
+        # la lista de PR generada se agrega debajo. Sin ese archivo, solo la lista.
         run: |
+          NOTAS=()
+          [ -f "docs/notas/${GITHUB_REF_NAME}.md" ] && NOTAS=(--notes-file "docs/notas/${GITHUB_REF_NAME}.md")
           gh release create "${GITHUB_REF_NAME}" \
             --title "${GITHUB_REF_NAME}" \
+            "${NOTAS[@]}" \
             --generate-notes \
             main.js manifest.json styles.css

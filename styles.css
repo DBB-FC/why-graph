@@ -41,9 +41,7 @@
 .is-phone .mn-marca, .mn-raiz.angosto .mn-marca { display: none; }
 .is-phone .mn-guia { display: none; }
 .is-phone .mn-raiz input.mn-buscar, .mn-raiz.angosto input.mn-buscar { flex: 1 1 96px; }
-.is-phone .mn-panel { left: 8px; right: 8px; width: auto; top: auto; bottom: 58px; height: 52%; }
 @media (max-width: 640px) {
-  .mn-panel { left: 8px; right: 8px; width: auto; top: auto; bottom: 58px; height: 52%; }
   .mn-guia { display: none; }
 }
 
@@ -257,3 +255,51 @@
 .mn-acciones.mn-acciones-2 { margin-top: 6px; }
 /* 1.37 — «↻ al día 21:42»: tenue, para que no compita con las novedades. */
 .mn-raiz button.mn-chip.mn-chip-aldia { color: rgba(230,234,255,.72); }
+
+/* [1.38] Teléfono: barra en dos filas (buscador + una fila de chips que se desliza) */
+.mn-fila { display: contents; }
+.is-phone .mn-fila, .mn-raiz.angosto .mn-fila { display: flex; flex: 1 1 100%; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; min-width: 0; }
+.is-phone .mn-fila::-webkit-scrollbar, .mn-raiz.angosto .mn-fila::-webkit-scrollbar { display: none; }
+.is-phone .mn-fila .mn-chips, .mn-raiz.angosto .mn-fila .mn-chips { display: contents; }
+.is-phone .mn-fila > .mn-chip, .mn-raiz.angosto .mn-fila > .mn-chip { flex: none; white-space: nowrap; }
+.is-phone .mn-raiz input.mn-buscar, .mn-raiz.angosto input.mn-buscar { flex: 1 1 100%; }
+.mn-fila.desborda-der { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+.mn-fila.desborda-izq { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
+.mn-fila.desborda-izq.desborda-der { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+.is-phone .mn-estado, .mn-raiz.angosto .mn-estado { font-size: 11px; line-height: 1.2; }
+/* Con el teclado abierto la vista se achica y el zoom subía encima del buscador */
+.mn-raiz.angosto.escribiendo .mn-zoom { display: none; }
+
+/* [1.38] Teléfono: el panel es una hoja inferior con tres alturas y su asa */
+.is-phone .mn-panel, .mn-raiz.angosto .mn-panel { left: 0; right: 0; width: auto; top: auto; bottom: 0; height: 46%; border-radius: 16px 16px 0 0; border-bottom: none; }
+.is-phone .mn-panel.hoja-baja, .mn-raiz.angosto .mn-panel.hoja-baja { height: 26%; }
+.is-phone .mn-panel.hoja-alta, .mn-raiz.angosto .mn-panel.hoja-alta { height: auto; top: calc(var(--mn-barra-abajo, 120px) + 8px); }
+/* La barra de Obsidian flota sobre el borde de abajo: la lista deja ese aire para leerse entera */
+.is-phone .mn-raiz .mn-lista { padding-bottom: calc(96px + var(--safe-area-inset-bottom, 0px)); }
+.mn-asa { display: none; }
+.is-phone .mn-asa, .mn-raiz.angosto .mn-asa { display: block; width: 44px; height: 5px; border-radius: 3px; background: rgba(230,234,255,.35); margin: -2px auto 8px; touch-action: none; cursor: grab; position: relative; }
+.is-phone .mn-asa::after, .mn-raiz.angosto .mn-asa::after { content: ''; position: absolute; inset: -14px -40px; }
+/* Cabecera compacta: la ✕ va en la esquina y no gasta una fila */
+.is-phone .mn-cab, .mn-raiz.angosto .mn-cab { position: relative; padding: 8px 14px 10px; }
+.is-phone .mn-cab > .mn-ojo, .is-phone .mn-cab > .mn-ojo2, .is-phone .mn-cab > h3, .mn-raiz.angosto .mn-cab > .mn-ojo, .mn-raiz.angosto .mn-cab > .mn-ojo2, .mn-raiz.angosto .mn-cab > h3 { padding-right: 46px; }
+.is-phone .mn-raiz .mn-panel button.mn-cerrar, .mn-raiz.angosto .mn-panel button.mn-cerrar { position: absolute; top: 14px; right: 12px; width: 36px; height: 36px; min-width: 36px; }
+.is-phone .mn-acciones:has(> .mn-cerrar:only-child), .mn-raiz.angosto .mn-acciones:has(> .mn-cerrar:only-child) { display: contents; }
+.is-phone .mn-cab .mn-ruta, .mn-raiz.angosto .mn-cab .mn-ruta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.is-phone .mn-cab .mn-ruta.entera, .mn-raiz.angosto .mn-cab .mn-ruta.entera { display: block; }
+/* Acciones de la nota en una fila: «Abrir» con nombre, el resto solo con su ícono */
+.is-phone .mn-acciones-nota, .mn-raiz.angosto .mn-acciones-nota { flex-wrap: nowrap; }
+.is-phone .mn-acciones-nota button.mn-btn:not(.mn-btn-primario):not(.mn-cerrar) > span:not(.mn-btn-icono), .mn-raiz.angosto .mn-acciones-nota button.mn-btn:not(.mn-btn-primario):not(.mn-cerrar) > span:not(.mn-btn-icono) { display: none; }
+.is-phone .mn-raiz .mn-panel .mn-acciones-nota button.mn-btn, .mn-raiz.angosto .mn-panel .mn-acciones-nota button.mn-btn { min-width: 44px; justify-content: center; }
+.mn-raiz .mn-panel button.mn-btn.mn-sin-ia { opacity: .45; }
+/* Tarjetas de la línea de tiempo en una columna; fichas largas con «…» en vez de salirse */
+.is-phone .mn-raiz .mn-panel .mn-tarjetas, .mn-raiz.angosto .mn-panel .mn-tarjetas { grid-template-columns: 1fr; }
+.mn-raiz .mn-panel button.mn-ficha { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Mapa por parecido con el fondo del mapa, no una caja negra */
+.mn-raiz .mn-parecido { background: rgba(170,185,255,.05); }
+
+/* [1.38] Modos activos como chips con su ✕ */
+.mn-raiz .mn-estado { display: flex; flex-wrap: wrap; gap: 6px; }
+.mn-raiz .mn-modo { display: inline-flex; align-items: center; gap: 4px; padding: 1px 2px 1px 8px; border: 1px solid rgba(255,107,107,.45); border-radius: 999px; background: rgba(255,107,107,.08); }
+.mn-raiz button.mn-modo-x { font: 11px var(--font-monospace); color: #FF6B6B; background: none; border: none; box-shadow: none; padding: 0 6px; height: 20px; min-width: 24px; cursor: pointer; }
+.is-phone .mn-raiz button.mn-modo-x, .mn-raiz.angosto button.mn-modo-x { height: 28px; min-width: 32px; }
+.mn-raiz .mn-panel .mn-salud-linea { padding: 8px 0; border-top: 1px solid rgba(170,185,255,.1); color: #E6EAFF; }

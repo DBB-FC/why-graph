@@ -16,7 +16,7 @@ const DETALLE = args.includes('--detalle');
 // --vault <ruta>: los recorridos genéricos sobre una COPIA EN MEMORIA de un vault real (solo se lee
 // del disco; nada se escribe) con su data.json y la IA falsa. Encuentra lo que un vault de prueba no tiene.
 const VAULT = args.includes('--vault') ? args[args.indexOf('--vault') + 1] : null;
-const GENERICOS = ['temas de contenido en un vault cualquiera', 'novedades con cuota diaria', 'aprobar parte', 'material nuevo', 'respeta el tope', 'detener una búsqueda', 'cuota agotada', 'teléfono: tocar', 'mouse: pasar', 'aprobar lo mismo', 'cola de motivos', 'verbos y preguntar en un vault cualquiera'];
+const GENERICOS = ['teléfono: barra en dos filas', 'temas de contenido en un vault cualquiera', 'novedades con cuota diaria', 'aprobar parte', 'material nuevo', 'respeta el tope', 'detener una búsqueda', 'cuota agotada', 'teléfono: tocar', 'mouse: pasar', 'aprobar lo mismo', 'cola de motivos', 'verbos y preguntar en un vault cualquiera'];
 
 // ── El vault de la persona: un LLM wiki con material crudo de varios días ──────────────────────
 const parrafos = (tema, n, extra = '') => Array.from({ length: n }, (_, k) => `${tema} ${k + 1}: se acordó con el equipo avanzar en la entrega número ${k + 1} y revisar el presupuesto el jueves ${extra}.`).join('\n\n');
@@ -669,6 +669,38 @@ const RECORRIDOS = {
     const y = n.y * v.vista.k + v.vista.y, panel = v.panel.getBoundingClientRect();
     if (!v.panel.hasClass('abierto')) M.hallazgo('tocar no abre el panel', n.titulo);
     else if (y > panel.top) M.hallazgo('la nota tocada queda bajo el panel', `${n.titulo}: y=${Math.round(y)} y el panel empieza en ${Math.round(panel.top)}`);
+    await M.cerrar();
+  },
+  // [1.38] En el iPhone la barra usaba tres filas, la ✕ gastaba una fila y «Preguntar al mapa» otra.
+  async 'teléfono: barra en dos filas, hoja con asa y acciones de la nota en una fila'(M) {
+    M.dispositivos.iphone2 = { ls: {}, telefono: true };
+    const s = await M.abrir('iphone2', { telefono: true }); await s.abrirMapa();
+    const v = s.vista, en = (raiz, sel) => raiz.querySelectorAll(sel);
+    const fila = en(v.barra, '.mn-fila')[0];
+    if (!fila) M.hallazgo('no hay fila única de chips', 'la barra no tiene .mn-fila');
+    else if (!en(fila, '.mn-chips').length || ![...fila.recorrer()].some((x) => /herramientas/.test(x.texto))) M.hallazgo('la fila no reúne temas y herramientas', [...fila.recorrer()].map((x) => x.texto).join(' '));
+    const buscar = en(v.barra, 'input')[0];
+    if (buscar?.attrs.autocapitalize !== 'off' || buscar?.attrs.spellcheck !== 'false') M.hallazgo('el teclado corrige el buscador', JSON.stringify(buscar?.attrs));
+    const n = v.N.find((x) => !x.oculto && !x.fuente && x.capa === 1);
+    await s.toca(n.titulo);
+    const asa = en(v.panel, '.mn-asa')[0], acciones = en(v.panel, '.mn-acciones-nota')[0];
+    if (!asa) M.hallazgo('la hoja no tiene asa', n.titulo);
+    else {
+      if (!v.panel.hasClass('hoja-media')) M.hallazgo('la hoja no parte a media altura', v.panel.className);
+      asa.onpointerdown({ clientY: 500, pointerId: 1 }); asa.onpointerup({ clientY: 501, pointerId: 1 });
+      if (!v.panel.hasClass('hoja-alta')) M.hallazgo('tocar el asa no sube la hoja', v.panel.className);
+      asa.onpointerdown({ clientY: 500, pointerId: 1 }); asa.onpointerup({ clientY: 500, pointerId: 1 });
+      if (!v.panel.hasClass('hoja-baja')) M.hallazgo('el segundo toque no deja la hoja baja', v.panel.className);
+    }
+    const preguntar = acciones && [...acciones.recorrer()].find((x) => x.tag === 'button' && /Preguntar/.test(x.attrs['aria-label'] || ''));
+    if (!preguntar) M.hallazgo('«Preguntar al mapa» no está en la fila de acciones', n.titulo);
+    else if (!v.plugin.tieneIA() && !preguntar.hasClass('mn-sin-ia')) M.hallazgo('sin IA, «Preguntar» no se ve apagado', preguntar.className);
+    // El modo activo es un chip con ✕ que lo apaga, y el modo salud se lee en el panel, no en avisos.
+    v.salud = true; v.informeSalud(); v.pintarEstado();
+    if (!v.panel.hasClass('abierto') || ![...v.panel.recorrer()].some((x) => x.hasClass('mn-salud-linea'))) M.hallazgo('el modo salud no se ve en el panel del teléfono', v.panel.className);
+    const x = en(v.estado, '.mn-modo-x')[0];
+    if (!x) M.hallazgo('el modo activo no tiene ✕', [...v.estado.recorrer()].map((y) => y.texto).join(' '));
+    else { x.onclick({}); if (v.salud) M.hallazgo('la ✕ del chip no apaga el modo salud', ''); }
     await M.cerrar();
   },
   async 'mouse: pasar por un enlace muestra su porqué'(M) {

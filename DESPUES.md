@@ -79,3 +79,4 @@ Regla: entra solo con síntoma real, que no exista ya y costo proporcional. Resu
 - El cuelgue de 20 s («más de 20 s ocupado, fase revisar») en «aprobar lo mismo» con `--vault`: pasa igual en la 1.36.0; sin investigar.
 - El grafo lee líneas `- [[x]] — motivo` aunque estén dentro de un bloque de código (preexistente); `ponerVerboEnTexto`
   ya no las edita, pero `construir` todavía las cuenta como motivo.
+

@@ -79,11 +79,12 @@ const obsidian = {
   Menu: class { addItem(f) { f(campo()); return this; } showAtMouseEvent() {} },
   Modal: class { constructor() { this.contentEl = document.createElement('div'); } setTitle() {} close() {} },
   Notice: class { constructor(m) { console.log('[aviso]', m); } },
-  Platform: { isMobile: false, isPhone: false },
+  // [1.38] Con ?movil=1 el plugin se cree en un teléfono, como en Obsidian para iPhone.
+  Platform: { isMobile: !!new URLSearchParams(location.search).get('movil'), isPhone: !!new URLSearchParams(location.search).get('movil') },
   debounce: (f) => f,
-  // Sin la librería de íconos de Obsidian: solo la ✕ de cerrar se dibuja como texto, para que
-  // las capturas del README no muestren un botón vacío.
-  setIcon: (el, nombre) => { el.textContent = nombre === 'x' ? '✕' : ''; },
+  // Sin la librería de íconos de Obsidian: los de los botones del panel se dibujan como texto,
+  // para que las capturas no muestren botones vacíos.
+  setIcon: (el, nombre) => { el.textContent = { x: '✕', 'file-text': '▤', orbit: '◎', route: '⇄', 'message-circle-question': '?' }[nombre] || ''; },
   requestUrl: async () => ({ status: 500, json: {} }),
   normalizePath: (p) => String(p).replace(/\/+/g, '/').replace(/^\/|\/$/g, ''),
   getLanguage: () => (new URLSearchParams(location.search).get('idioma') || 'es'),
