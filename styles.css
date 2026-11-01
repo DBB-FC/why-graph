@@ -242,3 +242,16 @@
 .mn-tip-ruta { font-weight: 600; margin-bottom: 3px; }
 .mn-tip-sin { opacity: .65; font-style: italic; }
 .mn-tip-frase { margin-top: 3px; opacity: .8; }
+/* [F2] Verbo de la conexión: corto, en otro color, antes del motivo. */
+.mn-verbo { font: italic 600 11px/1.3 var(--font-interface); color: #B79CFF; letter-spacing: .02em; }
+.mn-verbo.mn-alerta { color: #F5CF45; }
+.mn-tip-verbo { color: #B79CFF; font-style: italic; }
+.mn-ia-verbo { font: 600 12px/1.4 var(--font-interface); color: #B79CFF; margin-bottom: 2px; }
+/* [F3] Preguntar al mapa */
+.mn-preguntar textarea { width: 100%; min-height: 64px; margin: 6px 0; }
+.mn-preguntar .mn-respuesta { margin: 10px 0; font: 13.5px/1.5 var(--font-interface); white-space: pre-wrap; }
+.mn-preguntar .mn-citada { padding: 6px 0; border-top: 1px solid var(--background-modifier-border); font: 12.5px/1.4 var(--font-interface); }
+.mn-preguntar .mn-citada-nota { cursor: pointer; color: var(--text-accent); }
+.mn-preguntar .mn-citada-nota:hover { text-decoration: underline; }
+.mn-preguntar .mn-tenue { color: var(--text-muted); font-style: italic; }
+.mn-acciones.mn-acciones-2 { margin-top: 6px; }

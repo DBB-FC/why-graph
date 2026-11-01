@@ -71,3 +71,11 @@ Regla: entra solo con síntoma real, que no exista ya y costo proporcional. Resu
   descartada); Salud ya lo nombra. Índice semántico, migas y apagar notas viejas: descartadas el 29.10 por decisión.
 - Corregido el 29.10: el recorrido «contra la versión anterior» no usaba el `main.js` viejo si el archivo no terminaba en `.js`;
   una comparación anterior contra la 1.35.0 salió «28 bien» por esa causa y no valía.
+
+## Anotado el 31.10.2026 (QA de verbos y «Preguntar al mapa», fuera de alcance)
+- «Preparar motivos» (cola de la 1.36) no respeta el tope diario; «Etiquetar conexiones» sí. Preexistente.
+- «Escribir yo el motivo» no tiene selector de verbo: escribe la línea sin verbo (después se puede etiquetar).
+- `.mn-verbo`, `.mn-tip-verbo` y `.mn-ia-verbo` usan un color fijo (#B79CFF) que no se ajusta al tema claro.
+- El cuelgue de 20 s («más de 20 s ocupado, fase revisar») en «aprobar lo mismo» con `--vault`: pasa igual en la 1.36.0; sin investigar.
+- El grafo lee líneas `- [[x]] — motivo` aunque estén dentro de un bloque de código (preexistente); `ponerVerboEnTexto`
+  ya no las edita, pero `construir` todavía las cuenta como motivo.

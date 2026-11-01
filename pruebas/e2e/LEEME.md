@@ -65,3 +65,21 @@ la cuota de la IA en 3 llamadas, y comprueba: que diga por qué se detuvo, que l
 reinicio sin pagarse otra vez, que al día siguiente siga donde quedó, y que «Aprobar y escribir en la nota»
 saque el par de la lista. Contra la 1.35.0 falla con `botón que no está` (no había forma de preparar todos).
 Corre también con `--vault`.
+
+## Verbos y «Preguntar al mapa» (F2 y F3)
+
+El recorrido `verbos: etiquetar lo existente…` parte de un vault con dos motivos escritos a mano sin verbo.
+Abre «Vínculos por revisar», pulsa «Etiquetar conexiones · N» y «Proponer verbos para las N conexiones», y
+comprueba que nada se escribe sin aprobar. Cierra sin aprobar; al día siguiente lo propuesto sigue ahí sin
+pagarse otra vez, y «Aprobar los N verbos propuestos» escribe `- [[nota]] — **verbo** · motivo`. Después toca
+la nota del otro lado y ve «← «usa»» en su panel, pulsa «Preguntar al mapa», escribe la pregunta en el modal y
+pulsa «Preguntar»: la respuesta cita una conexión, una pregunta que el mapa no cubre dice «El mapa no tiene
+datos para responder eso» y la nota citada se abre con un toque. En un teléfono sin llave, el modal explica por
+qué y no llama a la IA. Contra la 1.36.0 falla con `botón que no está`. No está en `GENERICOS`: espera los dos
+motivos que escribe al empezar.
+
+Ronda de QA (31.10.2026): `verbos: descartar todos…` comprueba que «Etiquetar conexiones · N» baja a 0 al
+descartar y sigue en 0 al día siguiente, y `verbos y preguntar en un vault cualquiera…` (en `GENERICOS`) usa lo
+que el vault ya tiene: propone verbos sin aprobar (nada se escribe, respeta el tope) y pregunta sobre la nota más
+conectada, comprobando que ninguna frase del cuerpo de la nota viaja a la IA. El detector de «línea duplicada»
+compara con las repeticiones que el vault ya tenía al empezar.
