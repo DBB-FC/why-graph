@@ -1112,6 +1112,10 @@ function temasDeContenidoDe(s) {
 // Fecha de una nota para ordenar la entrada: la propiedad de fecha, si no la fecha del nombre,
 // si no la última modificación del archivo.
 function fechaDeNota(f, fm, s) {
+  // [1.37] Una nota cuyo nombre ES una fecha (un diario, 2026-08-24.md) tiene esa fecha, aunque se
+  // edite después: con `updated` mandando, corregir diarios viejos los subía al tope de la entrada.
+  const propia = f.basename.match(/^(\d{4}-\d{2}-\d{2})$/);
+  if (propia && !isNaN(Date.parse(propia[1]))) return Date.parse(propia[1]);
   const v = s.propiedadFecha ? fm[s.propiedadFecha] : null;
   const t = v ? Date.parse(String(v).slice(0, 10)) : NaN;
   if (!isNaN(t)) return t;
