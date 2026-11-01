@@ -188,6 +188,10 @@ const EN = {
   'Mostrar todas las conexiones': 'Show all connections',
   'Exportar imagen (PNG)': 'Export image (PNG)',
   'Recargar el mapa': 'Reload the map',
+  '↻ al día {0}': '↻ up to date {0}',
+  '↻ leyendo…': '↻ reading…',
+  'Mapa al día: {0}': 'Map up to date: {0}',
+  'Mapa al día: {0}. Toca para volver a leer el vault (lo que haya traído Sync).': 'Map up to date: {0}. Tap to read the vault again (whatever Sync has brought).',
   'Asistente de capas': 'Layer wizard',
   // panel
   'Abrir': 'Open',
@@ -1931,6 +1935,14 @@ class VistaMapa extends ItemView {
     // [1.35] Qué entró cada día y en qué línea de negocio; tarjetas por tema con su última novedad.
     const linea = barra.createEl('button', { cls: 'mn-chip', text: T('◷ línea de tiempo') });
     linea.onclick = () => this.panelLinea();
+    // [1.37] Obsidian Sync trae lo del teléfono a su hora, y un plugin no puede forzarlo ni saber cuándo
+    // pasó. El mapa dice a qué hora leyó el vault por última vez y se vuelve a leer con un toque.
+    this.chipAlDia = barra.createEl('button', { cls: 'mn-chip mn-chip-aldia' });
+    this.chipAlDia.onclick = async () => {
+      this.chipAlDia.setText(T('↻ leyendo…'));
+      await this.recargar();
+      new Notice(T('Mapa al día: {0}', this.textoAlDia(this.alDia).hora));
+    };
     const herramientas = barra.createEl('button', { cls: 'mn-chip', text: T('⋯ herramientas') });
     herramientas.onclick = (e) => this.menuHerramientas(e);
     this.estado = barra.createDiv('mn-estado');
@@ -2054,8 +2066,20 @@ class VistaMapa extends ItemView {
   }
 
   // ── datos ──────────────────────────────────────────────────────────────────
+  // [1.37] «↻ al día 21:42»: la hora en que el mapa leyó el vault. Cuenta igual si se recargó solo.
+  textoAlDia(d) {
+    const hora = d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '—';
+    return { hora, chip: T('↻ al día {0}', hora), titulo: T('Mapa al día: {0}. Toca para volver a leer el vault (lo que haya traído Sync).', hora) };
+  }
+  pintarAlDia() {
+    if (!this.chipAlDia) return;
+    const t = this.textoAlDia(this.alDia);
+    this.chipAlDia.setText(t.chip);
+    this.chipAlDia.setAttribute?.('title', t.titulo); this.chipAlDia.setAttribute?.('aria-label', t.titulo);
+  }
   async recargar() {
     this.D = await construir(this.app, this.plugin.ajustes);
+    this.alDia = new Date(); this.pintarAlDia();
     this.base = {}; this.adyBase = {};
     this.D.nodos.forEach((n) => { this.base[n.id] = n; this.adyBase[n.id] = new Set(); });
     this.D.aristas.forEach(([a, b]) => { this.adyBase[a].add(b); this.adyBase[b].add(a); });

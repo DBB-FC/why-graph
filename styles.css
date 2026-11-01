@@ -255,3 +255,5 @@
 .mn-preguntar .mn-citada-nota:hover { text-decoration: underline; }
 .mn-preguntar .mn-tenue { color: var(--text-muted); font-style: italic; }
 .mn-acciones.mn-acciones-2 { margin-top: 6px; }
+/* 1.37 — «↻ al día 21:42»: tenue, para que no compita con las novedades. */
+.mn-raiz button.mn-chip.mn-chip-aldia { color: rgba(230,234,255,.72); }
