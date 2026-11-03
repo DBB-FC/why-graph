@@ -63,8 +63,9 @@ Not a guess. The real line from your own note.
 
 And also: a **radial view** that centres on one note and shows its world in rings · **English and
 Spanish**, following Obsidian's own setting · **the phone**, same map and touch gestures, no
-separate build · **export** to PNG, to an Obsidian Canvas you can keep editing, or to a
-standalone HTML page.
+separate build · **voice notes**, what you dictate with Obsidian's Quick Capture on iOS 26 reaches
+*To ingest* with its recording one tap away, and you approve where it goes · **export** to PNG, to
+an Obsidian Canvas you can keep editing, or to a standalone HTML page.
 
 ## Install
 

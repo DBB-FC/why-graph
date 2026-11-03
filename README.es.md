@@ -63,8 +63,9 @@ No una suposición. La línea real de tu propia nota.
 
 Y además: una **vista radial** que centra una nota y muestra su mundo en anillos · **español e
 inglés**, siguiendo el idioma de Obsidian · **el celular**, mismo mapa y gestos táctiles, sin una
-build aparte · **exportar** a PNG, a un Canvas de Obsidian que puedes seguir editando, o a una
-página HTML autónoma.
+build aparte · **notas de voz**, lo que dictas con Quick Capture de Obsidian en iOS 26 llega a *Por
+ingerir* con su grabación a un toque, y tú apruebas adónde va · **exportar** a PNG, a un Canvas de
+Obsidian que puedes seguir editando, o a una página HTML autónoma.
 
 ## Instalar
 

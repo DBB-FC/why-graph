@@ -112,7 +112,7 @@ class Mundo {
   recalcular() {
     const md = Object.keys(this.notas).filter((p) => p.endsWith('.md'));
     const porNombre = {}; for (const p of md) { const b = p.split('/').pop().replace(/\.md$/, '').toLowerCase(); (porNombre[b] = porNombre[b] || []).push(p); }
-    const resolver = (t) => { t = t.split('|')[0].split('#')[0].trim().replace(/\.md$/i, ''); const ruta = md.find((p) => p.replace(/\.md$/, '').toLowerCase() === t.toLowerCase()); if (ruta) return ruta; const c = porNombre[t.split('/').pop().toLowerCase()]; return c ? c.slice().sort((a, b) => a.length - b.length)[0] : null; };
+    const resolver = (t) => { t = t.split('|')[0].split('#')[0].trim().replace(/\.md$/i, ''); const ruta = md.find((p) => p.replace(/\.md$/, '').toLowerCase() === t.toLowerCase()); if (ruta) return ruta; const c = porNombre[t.split('/').pop().toLowerCase()]; if (c) return c.slice().sort((a, b) => a.length - b.length)[0]; return Object.keys(this.notas).find((p) => !p.endsWith('.md') && p.split('/').pop().toLowerCase() === t.split('/').pop().toLowerCase()) || null; };
     const r = {}; for (const p of md) { r[p] = {}; for (const m of this.notas[p].matchAll(/\[\[([^\]]+)\]\]/g)) { const d = resolver(m[1]); if (d) r[p][d] = (r[p][d] || 0) + 1; } }
     this.resueltos = r;
   }
@@ -198,10 +198,14 @@ class Mundo {
     return true;
   }
   clicar(n) {
-    const e = { stopPropagation() {}, preventDefault() {}, target: n, clientX: 0, clientY: 0, type: 'click' };
+    let parado = false;
+    const e = { stopPropagation() { parado = true; }, preventDefault() {}, target: n, clientX: 0, clientY: 0, type: 'click' };
     if (n.tag === 'summary' && n.padre?.tag === 'details') n.padre.open = !n.padre.open;
-    try { const r = n.onclick?.(e); if (r?.catch) r.catch((err) => this.error('clic ' + textoDe(n), err)); } catch (err) { this.error('clic ' + textoDe(n), err); }
-    for (const f of n.eventos.click || []) try { f(e); } catch (err) { this.error('clic', err); }
+    // El clic sube por los padres como en el navegador: un botón dentro de una fila clicable también pulsa la fila.
+    for (let x = n; x && !parado; x = x.padre) {
+      try { const r = x.onclick?.(e); if (r?.catch) r.catch((err) => this.error('clic ' + textoDe(x), err)); } catch (err) { this.error('clic ' + textoDe(x), err); }
+      for (const f of x.eventos.click || []) try { f(e); } catch (err) { this.error('clic', err); }
+    }
   }
   contexto2D() {
     const c = { font: '', fillStyle: '', strokeStyle: '', lineWidth: 1, textAlign: 'left', globalCompositeOperation: 'source-over' };
@@ -369,6 +373,7 @@ class Sesion {
         append: async (f, t) => escribe(f.path, M.notas[f.path] + t),
         process: async (f, fn) => { const t = fn(M.notas[f.path]); if (t !== M.notas[f.path]) escribe(f.path, t); return t; },
         cachedRead: async (f) => M.notas[f.path], read: async (f) => M.notas[f.path],
+        getResourcePath: (f) => 'app://local/' + f.path,
         trash: async (f) => { delete M.notas[f.path]; M.registro.push({ dia: M.hoy(), accion: 'papelera', ruta: f.path }); M.recalcular(); },
         on: () => ({}),
       },
@@ -386,6 +391,7 @@ class Sesion {
         on: (ev, f) => { (S.eventosWs = S.eventosWs || {})[ev] = [...(S.eventosWs?.[ev] || []), f]; return {}; },
         onLayoutReady: (f) => { (S.alListo = S.alListo || []).push(f); },
         getLeavesOfType: () => S.hojas,
+        openLinkText: async (ruta) => { M.registro.push({ dia: M.hoy(), accion: 'abre-nota', ruta }); S.notaAbierta = ruta; },
         getActiveFile: () => null,
         getActiveViewOfType: () => null,
         revealLeaf: () => {},

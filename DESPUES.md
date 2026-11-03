@@ -16,6 +16,13 @@ Chip único «Por ingerir · N» con pestañas, tags de estado en Sugerir temas 
 - [investigar] Mejoras inspiradas en repos de Karpathy (anotado 03.10.2026). Orden: (1) clasificar clips por tema en local (TF-IDF, sin IA); (2) ordenar vínculos por parecido de texto; (3) revisión anónima por voto cuando la segunda revisión rechaza; (4) mapa por parecido (tsnejs): CONSTRUIDO 03.10 (menú «Mapa por parecido»; t-SNE local, solo la vecindad significa algo). Prueba 1 hecha el 03.10: 79 % de acierto del tema #1 (38/48 notas, una a una) contra 63 % de «siempre ia»; ver resultado y límites en el Cerebro. Falta decidir si se construye.
 - [investigar] Segunda pasada a repos de Karpathy (03.10.2026), aprobada por Felipe: (1) **vínculos por vecinos en común**: YA EXISTÍA en `calcularPendientes` (`c.comunes`); el tope de 20 ya dice «N de M»; prueba hecha: AUC 0.87 y el vínculo oculto sale entre los 10 primeros en 49 % de 423 casos; (2) **«se parece a…» en cada clip** de «Llegó de afuera» (researchpooler/arxiv-sanity, mismo TF-IDF), resuelve «adónde fue»; (3) **métrica fija + registro keep/discard** antes de tocar el prompt de `sugerirMotivo` (autoresearch), sin enjambres ni bucle infinito. (4) revisión con perspectiva de notas viejas (hn-time-capsule): CONSTRUIDA 03.10 (menú «Revisar con perspectiva»; reúne pistas —edad, vecinas más nuevas— y decide la persona, sin IA). Voto de 3 revisores en la segunda revisión: CONSTRUIDO 03.10, APAGADO por defecto (afloja un candado; Ajustes → «Voto en la segunda revisión»). Nada de esto se ha visto aún con datos reales en Obsidian. El log de motivos solo tiene 5 aprobados y no guarda descartes: los descartes ya se registran (03.10); falta acumularlos para medir (3).
 
+## Anotado el 02.11.2026 (changelog de Obsidian 1.15, tarea de voz)
+- **«Insertar como diagrama»:** bloque `mermaid` de la nota en foco y sus vecinas, con el motivo en cada flecha. Pele lo dibuja con el tema, zoom y sin pedir permiso; también en Publish. Sin dependencias.
+- [abierto] Voz publicada en la 1.39.0 sin grabación real de iPhone, por decisión de Felipe el 02.11. Falta grabar una y ver si el audio llega enlazado a la nota.
+- Dictados sin párrafos: `prepararMaterial` corta cada `trozo` caracteres (15.000 con Claude) aunque sea a mitad de frase. Mirar con una grabación larga real.
+- [investigar] CLI de Obsidian (`eval`, `dev:screenshot`, `dev:mobile`, `plugin:reload`) para probar el plugin en la app real.
+- `--font-preferred-size` para los textos del panel en móvil.
+
 ## Anotado el 28.10.2026 (mientras se construía la cola de motivos)
 - Traducir el 400 de Anthropic «identity verification is required» a un consejo en español dentro del plugin.
 - Botón de apoyo dentro del plugin; cambiar «cerveza» por «café» en los README.
@@ -71,6 +78,10 @@ Regla: entra solo con síntoma real, que no exista ya y costo proporcional. Resu
   descartada); Salud ya lo nombra. Índice semántico, migas y apagar notas viejas: descartadas el 29.10 por decisión.
 - Corregido el 29.10: el recorrido «contra la versión anterior» no usaba el `main.js` viejo si el archivo no terminaba en `.js`;
   una comparación anterior contra la 1.35.0 salió «28 bien» por esa causa y no valía.
+- [descartado 29.10] **Vista 3D tipo Neomas** (Three.js + d3-force-3d, racimos en esferas, niebla, partículas).
+  Motivo: un grafo de fuerzas mide «quién conecta con quién» y pierde el orden por capas y el porqué, que es la
+  razón de ser de Why Graph; suma ~600 KB y se arrastra en el teléfono; la vista de grafo de Obsidian y plugins 3D
+  ya lo cubren; «Mapa por parecido» (1.35) ya da la vista libre. Ni Neomas lo usa a diario («el 3D es exploración»).
 
 ## Anotado el 31.10.2026 (QA de verbos y «Preguntar al mapa», fuera de alcance)
 - «Preparar motivos» (cola de la 1.36) no respeta el tope diario; «Etiquetar conexiones» sí. Preexistente.

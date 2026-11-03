@@ -455,6 +455,29 @@ const RECORRIDOS = {
     if (despues) M.hallazgo('el clip ingerido sigue contando como nuevo', despues);
     return `aviso antes: «${chip}» · después: «${despues || 'sin clips esperando'}»`;
   },
+  async 'nota de voz: se reconoce, se escucha sin abrir la nota y se ingiere solo el texto'(M) {
+    // Lo que deja Quick Capture con «Save Audio File»: la transcripción y su grabación, en la carpeta elegida.
+    M.escribir('raw/articles/Grabacion 1.m4a', '');
+    M.escribir('raw/articles/idea-dictada.md', '![[Grabacion 1.m4a]]\n\n' + parrafos('Dictado sobre CRM', 6, '(nota de voz)'));
+    let s = await M.abrir('mac'); await s.abrirMapa();
+    await s.pulsa(/Por ingerir/); await s.pulsa(/De afuera/);
+    if (!s.ve('idea-dictada')) M.hallazgo('la nota de voz no aparece', s.textoVisible().slice(0, 200));
+    if (!/· voz ·/.test(s.textoVisible())) M.hallazgo('la nota de voz no se reconoce', s.textoVisible().slice(0, 200));
+    if (s.ve('Grabacion 1')) M.hallazgo('el audio se lista como otro clip', s.textoVisible().slice(0, 200));
+    await s.pulsa('Escuchar original');
+    const audio = [...s.vista.contentEl.recorrer()].find((n) => n.tag === 'audio');
+    if (audio?.attrs.src !== 'app://local/raw/articles/Grabacion 1.m4a') M.hallazgo('no se puede escuchar el original', `src: ${audio?.attrs.src}`);
+    if (s.notaAbierta) M.hallazgo('escuchar abre la nota', s.notaAbierta);
+    await M.cerrar();
+    // Al volver, el clip sigue esperando: escucharlo no cuenta como ingerirlo.
+    s = await M.abrir('mac'); await s.abrirMapa();
+    await s.pulsa(/Por ingerir/); await s.pulsa(/De afuera/);
+    M.busqueda = 'b1';
+    if (!(await s.pulsa(/Ingerir novedades/, { opcional: true }))) M.hallazgo('escuchar consumió el clip', s.textoVisible().slice(0, 200));
+    await s.calma(); await s.pulsa('Terminar', { opcional: true });
+    await M.cerrar();
+    return 'etiqueta «voz», audio escuchado, texto ingerido';
+  },
   async 'línea de tiempo: tarjetas por tema con su última novedad y notas por día'(M) {
     const s = await M.abrir('mac'); await s.abrirMapa();
     if (!(await s.pulsa(/línea de tiempo/, { opcional: true }))) { M.hallazgo('botón que no está', 'línea de tiempo'); await M.cerrar(); return; }
