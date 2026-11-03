@@ -579,7 +579,9 @@ const EN = {
   'última novedad · {0}': 'latest · {0}',
   'Todavía no hay notas con fecha.': 'No dated notes yet.',
   'Llegó de afuera': 'Arrived from outside',
-  'Clips del teléfono y del Web Clipper': 'Clips from your phone and the Web Clipper',
+  'Clips y notas de voz del teléfono, y del Web Clipper': 'Clips and voice notes from your phone, and the Web Clipper',
+  'voz': 'voice',
+  'Escuchar original': 'Listen to the original',
   'Por día de llegada, con lo que ya se ingirió y lo que falta': 'By day of arrival, with what is ingested and what is left',
   'Hoy': 'Today', 'Ayer': 'Yesterday',
   'Falta la «carpeta de recortes» en los ajustes: de ahí leo lo que llega de afuera.': 'Set the “clippings folder” in settings: that is where outside arrivals are read from.',
@@ -931,8 +933,11 @@ function nodoFuenteDe(ruta, carpetas) {
 }
 // Inventario: qué archivos (o subcarpetas, con «/*») hay en cada carpeta de fuentes.
 const ES_IMAGEN = /\.(png|jpe?g|gif|webp|svg|avif|bmp|heic|ico)$/i;
+const ES_AUDIO = /\.(m4a|mp3|wav|webm|ogg|oga|flac|aac|caf|3gp)$/i;
 function inventarioFuentes(app, carpetas) {
-  const todos = (app.vault.getFiles ? app.vault.getFiles() : app.vault.getMarkdownFiles()).map((f) => f.path);
+  // [1.39] El audio que una nota enlaza (la grabación de su transcripción) va con ella: no es una fuente suelta.
+  const audiosEnlazados = new Set(Object.values(app.metadataCache?.resolvedLinks || {}).flatMap((d) => Object.keys(d || {})).filter((r) => ES_AUDIO.test(r)));
+  const todos = (app.vault.getFiles ? app.vault.getFiles() : app.vault.getMarkdownFiles()).map((f) => f.path).filter((r) => !audiosEnlazados.has(r));
   const items = [];
   // Cada archivo cuenta una vez, en su carpeta más específica (carpetas viene ordenada así).
   const suya = (r) => carpetas.find((x) => r.startsWith(x.ruta + '/'));
@@ -1074,8 +1079,9 @@ const claveAlias = (t) => String(t || '').toLowerCase().normalize('NFD').replace
   .replace(/[-_.,]/g, ' ').replace(/\s+/g, ' ').trim().replace(/ (spa|ltda|limitada|sa|eirl|inc|llc|ltd|gmbh)$/, '');
 const nombreNota = (ruta) => String(ruta || '').split('/').pop().replace(/\.md$/, '');
 // Comparar textos sin que importen mayúsculas, acentos de formato ni espacios: la IA copia una
-// cita con otro salto de línea o sin las negritas, y eso no la vuelve inventada.
-const normalizarCita = (t) => String(t || '').toLowerCase().replace(/[*_`>#[\]]/g, '').replace(/\s+/g, ' ').trim();
+// cita con otro salto de línea o sin las negritas, y eso no la vuelve inventada. [1.39] Lo mismo con ==resaltado==
+// y su emoji de color: el espacio solo se quita tras el emoji, para no pegar palabras al cerrar el resaltado.
+const normalizarCita = (t) => String(t || '').toLowerCase().replace(/==(?:[🔴🟠🟡🟢🔵🟣]\s*)?/gu, '').replace(/[*_`>#[\]]/g, '').replace(/\s+/g, ' ').trim();
 const citaEnTexto = (cita, texto) => { const c = normalizarCita(cita); return c.length >= 12 && normalizarCita(texto).includes(c); };
 // Inserta una línea al final de la sección cuyo título coincide (sin los #). null si no existe.
 const insertarEnSeccion = (texto, seccion, linea) => {
@@ -1506,10 +1512,15 @@ function tagsDelVault(app, ajustes) {
 const TAGS_DE_ESTADO = 'reutilizable, bloqueado, pendiente';
 const tagsDeEstadoDe = (aj) => new Set(String(aj.tagsDeEstado ?? TAGS_DE_ESTADO).split(/[,\n]/).map((x) => normalizarTag(x.trim())).filter(Boolean));
 
+// [1.39] Voice Capture de Obsidian guarda la grabación junto a la transcripción. Why Graph no graba ni transcribe:
+// reconoce la nota por su audio enlazado. La ruta del audio, o '' si la nota no tiene.
+const audioDeClip = (app, ruta) => Object.keys(app.metadataCache?.resolvedLinks?.[ruta] || {}).find((r) => ES_AUDIO.test(r)) || '';
+
 // [1.35] De dónde vino un clip: X, repo o web, leído del frontmatter (source, url o link).
 function fuenteDeClip(fm) {
   const v = [].concat(fm?.source ?? fm?.url ?? fm?.link ?? [])[0];
   if (!v) return '';
+  if (/^(voz|voice)$/i.test(String(v).trim())) return T('voz'); // [1.39] Plantilla de Quick Capture, cuando no se guarda el audio.
   try {
     const h = new URL(String(v)).hostname.replace(/^www\./, '');
     if (/^(x|twitter)\.com$/.test(h)) return 'X';
@@ -3602,7 +3613,7 @@ class VistaMapa extends ItemView {
   }
   async panelLlegadas() {
     const p = this.panel, pl = this.plugin; p.empty(); this.guia.hide(); this.novAbierto = false;
-    const acciones = this.cabecera(p, T('Llegó de afuera'), T('Clips del teléfono y del Web Clipper'), T('Por día de llegada, con lo que ya se ingirió y lo que falta'));
+    const acciones = this.cabecera(p, T('Llegó de afuera'), T('Clips y notas de voz del teléfono, y del Web Clipper'), T('Por día de llegada, con lo que ya se ingirió y lo que falta'));
     const cerrar = acciones.createEl('button', { cls: 'mn-btn mn-cerrar', attr: { 'aria-label': T('Cerrar'), title: T('Cerrar') } });
     try { setIcon(cerrar, 'x'); } catch { cerrar.setText('×'); }
     cerrar.onclick = () => this.abrirPanel(this.foco ? this.porId[this.foco] : null);
@@ -3693,8 +3704,21 @@ class VistaMapa extends ItemView {
     cuerpo.createDiv({ cls: 'mn-nov-texto', text: x.archivo.basename.replace(/^\d{4}-\d{2}-\d{2}-/, '').slice(0, 90) });
     const hora = new Date(x.fecha).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
     const estado = { nuevo: T('nuevo'), ingerido: T('ingerido'), ignorado: T('ignorado') }[x.estado];
-    const fuente = fuenteDeClip(this.app.metadataCache.getFileCache(x.archivo)?.frontmatter);
+    const audio = audioDeClip(this.app, x.archivo.path);
+    const fuente = audio ? T('voz') : fuenteDeClip(this.app.metadataCache.getFileCache(x.archivo)?.frontmatter);
     cuerpo.createDiv({ cls: 'mn-nov-meta', text: [hora, fuente, estado].filter(Boolean).join(' · ') });
+    // [1.39] Una transcripción se equivoca: el original se oye aquí, sin abrir la nota. El reproductor nace al pulsar.
+    if (audio) {
+      const escuchar = cuerpo.createEl('button', { cls: 'mn-btn mn-nov-escuchar', text: T('Escuchar original') });
+      escuchar.onclick = (e) => {
+        e.stopPropagation();
+        const f = this.app.vault.getFileByPath(audio); if (!f) return;
+        const rep = cuerpo.createEl('audio', { cls: 'mn-nov-audio', attr: { controls: '', src: this.app.vault.getResourcePath(f) } });
+        rep.onclick = (ev) => ev.stopPropagation();
+        escuchar.remove();
+        rep.play?.()?.catch?.(() => {}); // Si el sistema no deja partir solo, quedan los controles.
+      };
+    }
     // «Adónde fue»: las páginas que recibieron líneas de este clip, según el registro de aprobaciones.
     const fue = extra.adonde?.get(x.archivo.basename) || extra.adonde?.get(x.archivo.path);
     if (fue?.size) cuerpo.createDiv({ cls: 'mn-nov-meta', text: T('→ fue a: {0}', [...fue].slice(0, 3).join(', ')) });
